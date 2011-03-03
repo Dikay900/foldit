@@ -1,0 +1,259 @@
+function fsl.FastCenter() --by Rav3n_pl based on Tlaloc`s
+	distances={}
+    local minDistance = 100000.0
+    local distance
+    local indexCenter
+    for i=1,numsegs-1 do
+		distances[i]={}
+        for j=i+1,numsegs do
+            distances[i][j]=get_segment_distance(i,j)
+        end
+    end
+	for i=1,numsegs do
+        distance = 0
+        for j=1,numsegs do
+			if i~=j then
+				local x=i
+				local y=j
+				if x>y then x,y=y,x end
+				distance = distance + distances[x][y]
+			end
+        end
+        if(distance < minDistance) then
+             minDistance = distance
+             indexCenter =  i
+        end
+    end
+    return indexCenter
+end
+
+function fsl.CreateBandsToCenter()
+dark.hydrocheck()
+   local indexCenter = fsl.FastCenter()
+   for i=1,numsegs do
+       if(i ~= indexCenter) then
+           if hydro[i] then
+               band_add_segment_segment(i,indexCenter)
+           end
+       end
+   end
+end
+
+function fsl.CreateHydrophobeBands()
+dark.hydrocheck()
+   for x=1, numsegs do
+       if hydro[x] then
+           for y=x+2, numsegs do
+               if hydro[y] then
+                   band_add_segment_segment(x, y)
+               end
+           end
+       end
+   end
+end
+
+function push()
+    for x=1, numsegs - 2 do
+        if not foldit.IsHydrophobic(x) then
+            for y = x + 2, numsegs do
+                if (not foldit.IsHydrophobic(y)) and (math.random() <= percentBands) then
+                    local distance = foldit.GetSegmentDistance(x, y)
+                    if  distance <= (20 - expand) then
+                        BandAddBetweenSegments(x, y)
+                        local band = foldit.GetBandCount()
+                        foldit.BandSetStrength(band, 2.0)
+                        foldit.BandSetLength(band, distance + expand)
+                    end
+                end
+            end
+        end
+    end
+end
+
+function math.min(x,...)
+  local min=x
+  local args={...}
+  for i=1,#args do
+    if args[i]<min then
+      min=args[i]
+    end
+  end
+  return min
+end
+
+function math.floor(x)
+  return x - (x%1)
+end
+
+math.randLngX = 1000    -- nonstandard variable needed by math.random
+math.randLngC = 48313   -- nonstandard variable needed by math.random
+function math.random(m,n) 
+-----------------------------------------
+-- The original random script this was ported from has the following notices:
+--
+-- Copyright (c) 2007 Richard L. Mueller
+-- Hilltop Lab web site - http://www.rlmueller.net
+-- Version 1.0 - January 2, 2007
+--
+-- You have a royalty-free right to use, modify, reproduce, and 
+-- distribute this script file in any way you find useful, provided 
+-- that you agree that the copyright owner above has no warranty,
+-- obligations, or liability for such use.
+-----------------------------------------
+  local MWC = function()
+    local S_Hi
+    local S_Lo
+    local C_Hi
+    local C_Lo
+    local F1
+    local F2
+    local F3
+    local T1
+    local T2
+    local T3
+    local A_Hi = 63551
+    local A_Lo = 25354
+    local M = 4294967296
+    local H = 65536
+    local S_Hi = math.floor(math.randLngX / H)
+    local S_Lo = math.randLngX - (S_Hi * H)
+    local C_Hi = math.floor(math.randLngC / H)
+    local C_Lo = math.randLngC - (C_Hi * H)
+    local F1 = A_Hi * S_Hi
+    local F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
+    local F3 = (A_Lo * S_Lo) + C_Lo
+    local T1 = math.floor(F2 / H)
+    local T2 = F2 - (T1 * H)
+    math.randLngX = (T2 * H) + F3
+    local T3 = math.floor(math.randLngX / M)
+    math.randLngX = math.randLngX - (T3 * M)
+    math.randLngC = math.floor((F2 / H) + F1)
+    return math.randLngX
+  end
+
+  if n == nil and m ~= nil then
+    n = m
+    m = 1
+  end
+  if (m == nil) and (n == nil) then
+    return MWC() / 4294967296
+  else
+    m, n = math.min(m,n),math.max(m,n)
+    return math.floor((MWC() / 4294967296) * (n - m + 1)) + m
+  end
+end
+
+numsegs=get_segment_count()
+function getdistances()
+	distances={}
+    for i=1,numsegs-1 do
+		distances[i]={}
+        for j=i+1,numsegs do
+            distances[i][j]=get_segment_distance(i,j)
+        end
+    end
+	return distances
+end
+
+function _CreateHydrophobeBands()
+   for x=1, numsegs do
+       if hydro[x] then
+           for y=x+2, numsegs do
+               if hydro[y] and math.random()<=0.07 then
+                   band_add_segment_segment(x, y)
+				   local length=get_segment_distance(x,y)
+				   repeat
+				   length=length*7/8
+				   until length<=20
+				   band_set_length(get_band_count(),length)
+				   band_set_strength(get_band_count(),length/20)
+               end
+           end
+       end
+   end
+end
+
+function check_hydro()
+hydro={}
+for i=1,numsegs do
+hydro[i]=is_hydrophobic(i)
+end
+end
+
+function bandmaxdist() --by Rav3n_pl based on Tlaloc`s
+	distances={}
+	distances=getdistances()
+    local maxdistance=0
+	for i=1,numsegs do
+        for j=1,numsegs do
+			if i~=j then
+			    local x=i
+				local y=j
+				if x>y then x,y=y,x end
+				if distances[x][y]>maxdistance then
+				maxdistance=distances[x][y]
+				maxx=i
+				maxy=j
+				end
+			end
+        end
+    end
+	band_add_segment_segment(maxx,maxy)
+	repeat
+	maxdistance=maxdistance*3/4
+	until maxdistance<=20
+	band_set_strength(get_band_count(),maxdistance/20)
+	band_set_length(get_band_count(),maxdistance)
+
+	for x=1, numsegs - 2 do
+        if not hydro[x] then
+            for y = x + 2, numsegs do
+                if (not hydro[y]) and (math.random() <= 0.01) then
+				maxdistance = distances[x][y]
+                band_add_segment_segment(x, y)
+				repeat
+				maxdistance=maxdistance*3/4
+				until maxdistance<=20
+				band_set_strength(get_band_count(),maxdistance/20)
+				band_set_length(get_band_count(),maxdistance)
+                end
+            end
+        end
+    end
+end
+
+local function _FindMutatableSegments()
+    local saveSlot = fsl.RequestSaveSlot()
+    local changeableSegments = {}
+    foldit.Quicksave(saveSlot)
+    local replace = 'g'
+   
+    -- BUG: the -1 on the next line is due to a foldit bug
+    -- The ligand is considered the last segment
+    for i=1, foldit.GetSegmentCount() - 1 do
+        foldit.DeselectAll()
+        foldit.SelectIndex(i)
+        local before = foldit.GetAA(i)
+        if before == 'g' then
+            replace = 'q'
+        else
+            replace = 'g'
+        end
+        foldit.ReplaceAA(replace)
+        local after = foldit.GetAA(i)
+        if after ~= before then
+            changeableSegments[#changeableSegments + 1] = i
+        end
+    end
+    foldit.Quickload(saveSlot)
+    fsl.ReleaseSaveSlot(saveSlot)
+    return changeableSegments
+end
+
+local function _CreateRandomBands()
+    Print('Creating random bands')
+    BandDisable()
+    for i=1, math.floor(foldit.GetSegmentCount()/4) do
+        BandAddRandom()
+    end
+end
