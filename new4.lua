@@ -521,8 +521,8 @@ function mutate()
             repeat
             mut_1 = get_score(true)
             do_mutate(1)
-            until get_score(true) - mut_1 < 0.01
             fgain()
+            until get_score(true) - mut_1 < 0.01
             if get_score(true) > c_s then
                 c_s = get_score(true)
                 quicksave(overall)
