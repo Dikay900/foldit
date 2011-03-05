@@ -32,7 +32,7 @@ b_m_new     = false
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.966"
+Version     = "2.8.7.967"
 numsegs     = get_segment_count()
 s0          = get_score(true)
 c_s          = s0
@@ -572,7 +572,11 @@ function mutate()
                     p("Mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
                     p(#amino - j, " mutations left...")
                     p(s_mut - c_s)
-                    fuze(sl_mut)
+                    if b_m_fuze == true then
+                        fuze(sl_mut)
+                    else
+                        fgain()
+                    end
                     s_mut2 = get_score(true)
                     if s_mut2 > s_mut then
                         p("+", s_mut2 - s_mut, "+")
@@ -598,19 +602,27 @@ end
 function all()
     overall = RequestSaveSlot()
     quicksave(overall)
+    if b_mutate == true then
     mutable = FindMutable()
+    end
     for i = start_seg, end_seg do
         seg = i
         r = nil
         c_s = get_score(true)
-        mutate()
-        --_snap(seg)
+        if b_mutate == true then
+            mutate()
+        end
+        if b_snap == true then
+            _snap(seg)
+        end
         for ii = 0, 4 do
             r = i + ii
             if r > numsegs then r = numsegs end
             p(Version)
             p(seg, "-", r)
-            --_rebuild()
+            if b_rebuild == true then
+                _rebuild()
+            end
             gd("wl")
             gd("wb")
             gd("ws")
