@@ -34,7 +34,7 @@ b_m_fuze    = true
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.969"
+Version     = "2.8.7.972"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -91,7 +91,7 @@ end
 --Debug#
 
 --#External functions
-function Get_Distances()
+function GetDistances()
 	local distances = {}
     for i = 1, numsegs - 1 do
 		distances[i] = {}
@@ -106,10 +106,10 @@ function GetSphere(seg, radius)
     local sphere={}
     local _seg = seg
     for i = 1, numsegs do
-        if i>_seg then
+        if i > _seg then
             _seg, i = i, _seg
         end
-        if get_segment_distance(_seg, i) <= radius then
+        if distances[seg][i] <= radius then
             sphere[#sphere + 1] = i
         end
     end
@@ -237,7 +237,7 @@ function s_fuze(option, cl1, cl2)
 end
 
 function fuze(sl)
-    if b_fuze == true then
+    if b_fuze then
         select_all()
         sl_f = {}
         sl_f[1] = RequestSaveSlot()
@@ -302,7 +302,7 @@ end
 
 --Freezing functions
 function freeze(f) -- f not used yet
-    if f==nil then
+    if not f then
         do_freeze(true, true)
     elseif f == "b" then
         do_freeze(true, false)
@@ -361,7 +361,7 @@ end
 
 --#Snapping function Version = "1.0.2.169"
 function _snap(mutated)
-    snapping = 1
+    snapping = true
     snaps = RequestSaveSlot()
     quicksave(snaps)
     iii = get_sidechain_snap_count(seg)
@@ -402,7 +402,7 @@ function _snap(mutated)
     else
         p("Skipping...")
     end
-    snapping = 0
+    snapping = false
     ReleaseSaveSlot(snaps)
     if mutated then
         s_snap = get_score(true)
@@ -420,9 +420,9 @@ end
 --#Universal working function Version = "1.6.5.476"
 function gd(g)
     local iter = 0
-    if rebuild == 1 then
+    if rebuild then
         sl = rebuild1
-    elseif snapping == 1 then
+    elseif snapping then
         sl = snapwork
     else
         sl = overall
@@ -434,6 +434,7 @@ function gd(g)
             select()
         end
     else
+        distances = GetDistances()
         local list1 = GetSphere(seg, 8)
         local list2 = GetSphere(r, 8)
     end
@@ -451,7 +452,6 @@ function gd(g)
                 do_shake(1)
                 local s_s2 = get_score(true)
                 if s_s2 > s_s1 then
-                    s_s2 = get_score(true)
                     quicksave(sl)
                     p("+", s_s2 - s_s1, "+")
                     s1 = s_s2
@@ -491,12 +491,11 @@ function gd(g)
 end
 
 function _rebuild()
-    rebuild = 1
+    rebuild = true
     rebuild1 = RequestSaveSlot()
     rebuildsl = {}
     for i = 1, 4 do
         quickload(overall)
-        do_unfreeze_all()
         quicksave(rebuild1)
         select()
         if r == seg then
@@ -543,12 +542,13 @@ function _rebuild()
     else
         quicksave(overall)
     end
+    rebuild = false
 end
 
---#Mutate function Version = "1.0.2.134"
+--#Mutate function Version = "1.0.3.136"
 function mutate()
-    if b_mutate == true then
-        if b_m_new == true then
+    if b_mutate then
+        if b_m_new then
             select(mutable)
             for i = 1, #amino do
                 p("Mutating segment ", seg)
@@ -592,7 +592,7 @@ function mutate()
                     p("Mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
                     p(#amino - j, " mutations left...")
                     p(s_mut - c_s)
-                    if b_m_fuze == true then
+                    if b_m_fuze then
                         fuze(sl_mut)
                     else
                         set_behavior_clash_importance(0.1)
@@ -624,25 +624,27 @@ end
 function all()
     overall = RequestSaveSlot()
     quicksave(overall)
-    if b_mutate == true then
+    if b_mutate then
     mutable = FindMutable()
     end
     for i = start_seg, end_seg do
         seg = i
         r = nil
         c_s = get_score(true)
-        if b_mutate == true then
+        if b_mutate then
             mutate()
         end
-        if b_snap == true then
+        if b_snap then
             _snap(seg)
         end
         for ii = 0, 4 do
             r = i + ii
-            if r > numsegs then r = numsegs end
+            if r > numsegs then
+                r = numsegs
+            end
             p(Version)
             p(seg, "-", r)
-            if b_rebuild == true then
+            if b_rebuild then
                 _rebuild()
             end
             gd("wl")
@@ -651,7 +653,7 @@ function all()
             gd("wa")
         end
     end
-    if bfuze == true then
+    if bfuze then
         fuze(sl)
     end
     quickload(overall)
