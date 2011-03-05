@@ -29,11 +29,10 @@ b_m_new     = true
 --#Rebuilding
 
 --Rebuilding#
-
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.956"
+Version     = "2.8.7.962"
 numsegs     = get_segment_count()
 s0          = get_score(true)
 c_s          = s0
@@ -149,7 +148,7 @@ if get_ss(numsegs) == 'M' then
 end
 --Ligand Check#
 
---#Fuzing Version = "1.0.2.128"
+--#Fuzing Version = "1.0.3.135"
 function fgain()
     set_behavior_clash_importance(1)
     select_all()
@@ -214,17 +213,19 @@ function s_fuze(option, cl1, cl2)
     fgain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
-        quicksave(sl_f)
+        sl_f[#sl_f + 1] = RequestSaveSlot()
+        quicksave(sl_f[#sl_f])
         p("+", s2_f - s1_f, "+")
     end
-    quickload(sl_f)
+    quickload(sl_f[1])
 end
 
 function fuze(sl)
     if b_fuze == true then
         select_all()
-        sl_f = RequestSaveSlot()
-        quicksave(sl_f)
+        sl_f = {}
+        sl_f[1] = RequestSaveSlot()
+        quicksave(sl_f[1])
         s_fuze(1, 0.1, 0.7)
         s_fuze(1, 0.3, 0.6)
         s_fuze(2, 0.5, 0.7)
@@ -234,10 +235,20 @@ function fuze(sl)
         s_fuze(5, 0.1, 0.4)
 -------------------#
         local s_f = get_score()
+        for i = 2, #sl_f do
+            quickload(sl_f[i])
+            s_f1 = get_score(true)
+            if s_f1 > s_f then
+                quicksave(sl_f[1])
+                s_f = s_f1
+            end
+        end
+        quickload(sl_f[1])
         if s_f > c_s then
             quicksave(sl)
             c_s = s_f
             p("++", c_s, "++")
+            fuze(sl)
         end
         deselect_all()
         quickload(sl)
@@ -390,21 +401,31 @@ function _snap(mutated)
 end
 --Snapping function#
 
---#Universal working function Version = "1.6.5.474"
+--#Universal working function Version = "1.6.5.475"
 function gd(g)
     local iter = 0
-    if rebuild == 1 then sl = rebuild1 elseif snapping == 1 then sl = snapwork else sl = overall end
+    if rebuild == 1 then
+        sl = rebuild1
+    elseif snapping == 1 then
+        sl = snapwork
+    else
+        sl = overall
+    end
     gsl = RequestSaveSlot()
     select_all()
     if g ~= "s" then
-        if g == "wl" then select() end
+        if g == "wl" then
+            select()
+        end
     else
         local list1 = GetSphere(seg, 8)
         local list2 = GetSphere(r, 8)
     end
     repeat
         iter = iter + 1
-        if iter ~= 1 then quicksave(gsl) end
+        if iter ~= 1 then
+            quicksave(gsl)
+        end
         s1 = get_score(true)
         if iter < maxiter then
             if g == "s" then
