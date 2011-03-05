@@ -23,7 +23,7 @@ fastfuze    = false     -- Every fuze will get tested and the best will be selec
 --Fuzing#
 
 --#Mutating
-b_m_new     = true
+b_m_new     = false
 --Mutating#
 
 --#Rebuilding
@@ -32,7 +32,7 @@ b_m_new     = true
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.965"
+Version     = "2.8.7.966"
 numsegs     = get_segment_count()
 s0          = get_score(true)
 c_s          = s0
