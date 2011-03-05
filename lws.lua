@@ -549,29 +549,29 @@ end
 function mutate()
     if b_mutate == true then
         if b_m_new == true then
-        select(mutable)
-        for i = 1, #amino do
-            p("Mutating segment ", seg)
-            sl_mut = RequestSaveSlot()
-            quicksave(sl_mut)
-            replace_aa(amino[i][1])
-            fgain()
-            repeat
+            select(mutable)
+            for i = 1, #amino do
+                p("Mutating segment ", seg)
+                sl_mut = RequestSaveSlot()
+                quicksave(sl_mut)
+                replace_aa(amino[i][1])
+                fgain()
                 repeat
-                    local mut_1 = get_score(true)
-                    do_mutate(1)
-                until get_score(true) - mut_1 < 0.01
+                    repeat
+                        local mut_1 = get_score(true)
+                        do_mutate(1)
+                    until get_score(true) - mut_1 < 0.01
                     mut_1 = get_score(true)
                     fgain()
-            until get_score(true) - mut_1 < 0.01
-            if get_score(true) > c_s then
-                c_s = get_score(true)
-                quicksave(overall)
+                until get_score(true) - mut_1 < 0.01
+                if get_score(true) > c_s then
+                    c_s = get_score(true)
+                    quicksave(overall)
+                end
+                quickload(sl_mut)
+                ReleaseSaveSlot(sl_mut)
             end
-            quickload(sl_mut)
         end
-    end
-    
         local _r = r
         r = nil
         b_mutating = false
@@ -581,36 +581,6 @@ function mutate()
             end
         end
         if b_mutating then
-        if not b_m_skip_f then
-        p("Fast Mutating segment ", seg)
-            sl_mut = RequestSaveSlot()
-            quicksave(sl_mut)
-            for j = 1, #amino do
-                if get_aa(seg) ~= amino[j][1] then
-                    select()
-                    replace_aa(amino[j][1])
-                    s_mut = get_score(true)
-                    p("Fast mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
-                    p(#amino - j, " mutations left...")
-                    p(s_mut - c_s)
-                    s_mut2 = get_score(true)
-                    if s_mut2 > s_mut then
-                        p("+", s_mut2 - s_mut, "+")
-                    else
-                        p(s_mut2 - s_mut)
-                    end
-                    p("~~~~~~~~~~~~~~~~")
-                    if s_mut2 > c_s then
-                        c_s = s_mut2
-                        quicksave(overall)
-                    end
-                    quickload(sl_mut)
-                    s_mut2 = get_score(true)
-                end
-            end
-            ReleaseSaveSlot(sl_mut)
-            quickload(overall)
-        end
             p("Mutating segment ", seg)
             sl_mut = RequestSaveSlot()
             quicksave(sl_mut)
@@ -625,6 +595,8 @@ function mutate()
                     if b_m_fuze == true then
                         fuze(sl_mut)
                     else
+                        set_behavior_clash_importance(0.1)
+                        do_shake(1)
                         fgain()
                     end
                     s_mut2 = get_score(true)
