@@ -34,7 +34,7 @@ b_m_fuze    = true
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.972"
+Version     = "2.8.7.973"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -274,7 +274,7 @@ end
 --Fuzing#
 
 --#Universal select function Version = "1.0.1.6"
-function select(list, more)
+function select(list, more)                 -- TODO: need some rewrite for mutate and other functions
     if not more then
         deselect_all()
     end
@@ -313,7 +313,7 @@ end
 --Freezing functions#
 
 --#Universal scoring function Version = "1.0.1.29"
-function score(g, sl)
+function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
     if more > gain then
         p("+", more, "+")
@@ -360,7 +360,7 @@ end
 --Universal scoring function#
 
 --#Snapping function Version = "1.0.2.169"
-function _snap(mutated)
+function _snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
     quicksave(snaps)
@@ -418,7 +418,7 @@ end
 --Snapping function#
 
 --#Universal working function Version = "1.6.5.476"
-function gd(g)
+function gd(g)                  -- TODO: need complete rewrite with score function
     local iter = 0
     if rebuild then
         sl = rebuild1
@@ -510,7 +510,7 @@ function _rebuild()
         p(get_score(true) - c_s)
         c_s = get_score(true)
         quicksave(rebuild1)
-        mutate()
+        mutate()                        -- TODO: add setting
         select_all()
         gd("s")
         gd("ws")
@@ -522,8 +522,8 @@ function _rebuild()
         quicksave(rebuildsl[i])
     end
     csr={}
-    for i = 1, #rebuildsl do
-        quickload(rebuildsl[i])
+    for i = 1, #rebuildsl do        -- TODO: handle together
+        quickload(rebuildsl[i])     -- vvvvvvvvvvvvvvvvvvvvvvv
         csr[i] = get_score(true)
     end
     for i = 1, #csr do
@@ -532,10 +532,10 @@ function _rebuild()
             quickload(rebuildsl[i])
         end
     end
-    p("+", c_s - cs_0, "+")
+    p("+", c_s - cs_0, "+")         -- =/=/=/=/=/=/=/=/=/=/=/=/
     for i = 1, #rebuildsl do
         ReleaseSaveSlot(rebuildsl[i])
-    end
+    end                             -- ^^^^^^^^^^^^^^^^^^^^^^^^
     ReleaseSaveSlot(rebuild1)
     if c_s < cs_0 then
         quickload(overall)
@@ -546,7 +546,7 @@ function _rebuild()
 end
 
 --#Mutate function Version = "1.0.3.136"
-function mutate()
+function mutate()          -- TODO: Test assert Saveslots
     if b_mutate then
         if b_m_new then
             select(mutable)
@@ -572,8 +572,8 @@ function mutate()
                 ReleaseSaveSlot(sl_mut)
             end
         end
-        local _r = r
-        r = nil
+        local _r = r    -- TODO: handle in select function
+        r = nil         -- TODO: handle in select function
         b_mutating = false
         for l = 1, #mutable do
             if seg == mutable[l] then
@@ -617,7 +617,7 @@ function mutate()
             ReleaseSaveSlot(sl_mut)
             quickload(overall)
         end
-        r = _r
+        r = _r          -- TODO: handle in select function
     end
 end
 
@@ -625,7 +625,7 @@ function all()
     overall = RequestSaveSlot()
     quicksave(overall)
     if b_mutate then
-    mutable = FindMutable()
+        mutable = FindMutable()
     end
     for i = start_seg, end_seg do
         seg = i
@@ -653,11 +653,13 @@ function all()
             gd("wa")
         end
     end
-    if bfuze then
+    if b_fuze then
         fuze(sl)
     end
     quickload(overall)
-    p("Overall Gain ", get_score(true) - s_0)    
+    s_1 = get_score(true)
+    p("+++ Overall Gain +++")
+    p("+++", s_1 - s_0, "+++")
 end
 
 all()
