@@ -32,7 +32,7 @@ b_m_new     = true
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.962"
+Version     = "2.8.7.965"
 numsegs     = get_segment_count()
 s0          = get_score(true)
 c_s          = s0
@@ -401,7 +401,7 @@ function _snap(mutated)
 end
 --Snapping function#
 
---#Universal working function Version = "1.6.5.475"
+--#Universal working function Version = "1.6.5.476"
 function gd(g)
     local iter = 0
     if rebuild == 1 then
