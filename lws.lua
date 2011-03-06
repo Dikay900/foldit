@@ -2,31 +2,31 @@
 -- Thanks goes to Rav3n_pl, Tlaloc
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
---#Settings
---#Working
-maxiter     = 3         -- max. iterations an action will do
-start_seg   = 283       -- the first segment to work with
-end_seg     = 294       -- the last segment to work with
-start_walk  = 0         -- with how many segs shall we work - Walker
-end_walk    = 4         -- starting at the current seg + start_walk to seg + end_walk
-b_rebuild   = false     -- should we rebuild
-b_mutate    = true      -- it's a mutating puzzle so we should mutate to get the best out of every single option
-b_snap      = false     -- should we snap every sidechain to different positions
-b_fuze      = true      -- should we fuze
+--#Settings Current Puzzle 402
+--#Working              default     description
+maxiter     = 20        -- 3        max. iterations an action will do
+start_seg   = 283       -- 1        the first segment to work with
+end_seg     = 294       -- numsegs  the last segment to work with
+start_walk  = 0         -- 0        with how many segs shall we work - Walker
+end_walk    = 4         -- 2        starting at the current seg + start_walk to seg + end_walk
+b_rebuild   = false     -- false    should we rebuild
+b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
+b_snap      = false     -- false    should we snap every sidechain to different positions
+b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Scoring
-step        = 0.05      -- an action tries to get this score, then it will repeat itself
-gain        = 0.25      -- Score will get applied after the score changed this value
+step        = 0.0005     -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.001      -- 0.05     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
-fastfuze    = false     -- Every fuze will get tested and the best will be selected, then fuze again if false
+fastfuze    = false     -- false    Every fuze will get tested and the best will be selected, then fuze again if false
 --Fuzing#
 
 --#Mutating
-b_m_new     = false
-b_m_fuze    = true
+b_m_new     = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
+b_m_fuze    = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
 --Mutating#
 
 --#Snapping
@@ -39,7 +39,7 @@ b_m_fuze    = true
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.975"
+Version     = "2.8.7.977"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -114,7 +114,7 @@ function GetSphere(seg, radius)
         if i > _seg then
             _seg, i = i, _seg
         end
-        if distances[seg][i] <= radius then
+        if distance[_seg][i] <= radius then
             sphere[#sphere + 1] = i
         end
     end
@@ -281,16 +281,18 @@ function fuze(sl)
 end
 --Fuzing#
 
---#Universal select function Version = "1.0.1.6"
+--#Universal select function Version = "1.0.1.7"
 function select(list, more)                 -- TODO: need some rewrite for mutate and other functions
+    local _r = r
+    local _seg = seg
     if not more then
         deselect_all()
     end
     if seg then
         if r and seg ~= r then
             if seg > r then
-                local _r = seg
-                local _seg = r
+                _r = seg
+                _seg = r
             end
             select_index_range(_seg, _r)
         else
@@ -320,7 +322,7 @@ function freeze(f) -- f not used yet
 end
 --Freezing functions#
 
---#Universal scoring function Version = "1.0.1.29"
+--#Universal scoring function Version = "1.0.1.30"
 function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
     if more > gain then
@@ -358,11 +360,12 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
             quickload(sl)
             if cfreezed then
                 do_unfreeze_all()
-                deselect_all()
                 select()
                 freeze()
             end
         end
+    else
+        quickload(sl)
     end
 end
 --Universal scoring function#
@@ -425,7 +428,7 @@ function _snap(mutated)         -- TODO: need complete rewrite
 end
 --Snapping function#
 
---#Universal working function Version = "1.6.5.476"
+--#Universal working function Version = "1.6.5.478"
 function gd(g)                  -- TODO: need complete rewrite with score function
     local iter = 0
     if rebuild then
@@ -436,13 +439,13 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         sl = overall
     end
     gsl = RequestSaveSlot()
-    select_all()
+    select_all()            -- TODO: handle in select function wa wb ws
     if g ~= "s" then
         if g == "wl" then
             select()
         end
     else
-        distances = GetDistances()
+        distance = GetDistances()
         local list1 = GetSphere(seg, 8)
         local list2 = GetSphere(r, 8)
     end
@@ -482,6 +485,9 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
                         quicksave(wl)
                     end
                     quickload(wl)
+                    if s_s2 == s_s1 then
+                        break
+                    end
                 end
                 ReleaseSaveSlot(wl)
             end
@@ -637,7 +643,6 @@ function all()
     end
     for i = start_seg, end_seg do
         seg = i
-        r = nil
         c_s = get_score(true)
         if b_mutate then
             mutate()
