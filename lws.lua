@@ -7,6 +7,8 @@
 maxiter     = 3         -- max. iterations an action will do
 start_seg   = 283       -- the first segment to work with
 end_seg     = 294       -- the last segment to work with
+start_walk  = 0         -- with how many segs shall we work - Walker
+end_walk    = 4         -- starting at the current seg + start_walk to seg + end_walk
 b_rebuild   = false     -- should we rebuild
 b_mutate    = true      -- it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- should we snap every sidechain to different positions
@@ -27,13 +29,17 @@ b_m_new     = false
 b_m_fuze    = true
 --Mutating#
 
+--#Snapping
+
+--Snapping#
+
 --#Rebuilding
 
 --Rebuilding#
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.974"
+Version     = "2.8.7.975"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -639,7 +645,7 @@ function all()
         if b_snap then
             _snap(seg)
         end
-        for ii = 0, 4 do
+        for ii = start_walk, end_walk do
             r = i + ii
             if r > numsegs then
                 r = numsegs
