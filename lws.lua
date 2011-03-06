@@ -39,7 +39,7 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.977"
+Version     = "2.8.7.978"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -322,7 +322,7 @@ function freeze(f) -- f not used yet
 end
 --Freezing functions#
 
---#Universal scoring function Version = "1.0.1.30"
+--#Universal scoring function Version = "1.0.1.31"
 function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
     if more > gain then
@@ -345,27 +345,25 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
                 gd("wa")
                 p("Rework after sidechain wiggle gain ended.")
             end
-        else
-            select()
-            f_sl=RequestSaveSlot()
-            quicksave(f_sl)
-            s1 = get_score(true)
-            do_local_wiggle(1)
-            s2 = get_score(true)
-            quickload(f_sl)
-            ReleaseSaveSlot(f_sl)
-            if s2 == s1 then
-                cfreezed = true
-            end
-            quickload(sl)
-            if cfreezed then
-                do_unfreeze_all()
-                select()
-                freeze()
-            end
         end
     else
+        select()
+        f_sl=RequestSaveSlot()
+        quicksave(f_sl)
+        s1 = get_score(true)
+        do_local_wiggle(1)
+        s2 = get_score(true)
+        quickload(f_sl)
+        ReleaseSaveSlot(f_sl)
+        if s2 == s1 then
+            cfreezed = true
+        end
         quickload(sl)
+        if cfreezed then
+            do_unfreeze_all()
+            select()
+            freeze()
+        end
     end
 end
 --Universal scoring function#
@@ -477,7 +475,7 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
             elseif g == "wl" then
                 wl = RequestSaveSlot()
                 quicksave(wl)
-                for i = iter, iter + 5 do
+                for i = iter, iter + 5 do           -- TODO: Think of testing every iter before applying gain
                     local s_s1 = get_score(true)
                     do_local_wiggle(iter)
                     local s_s2 = get_score(true)
