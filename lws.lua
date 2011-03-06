@@ -8,7 +8,7 @@ maxiter     = 20        -- 3        max. iterations an action will do
 start_seg   = 283       -- 1        the first segment to work with
 end_seg     = 294       -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
-end_walk    = 4         -- 2        starting at the current seg + start_walk to seg + end_walk
+end_walk    = 10        -- 2        starting at the current seg + start_walk to seg + end_walk
 b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
@@ -97,7 +97,7 @@ end
 
 --#External functions
 function GetDistances()
-	local distances = {}
+	distances = {}
     for i = 1, numsegs - 1 do
 		distances[i] = {}
         for j = i + 1, numsegs do
@@ -111,7 +111,7 @@ function GetSphere(seg, radius)
     local sphere={}
     local _seg = seg
     for i = 1, numsegs do
-        if i > _seg then
+        if _seg > i then
             _seg, i = i, _seg
         end
         if distance[_seg][i] <= radius then
