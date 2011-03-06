@@ -39,7 +39,7 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.979"
+Version     = "2.8.7.980"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
