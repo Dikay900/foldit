@@ -2,7 +2,7 @@
 -- Thanks goes to Rav3n_pl, Tlaloc
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
---#Settings Current Puzzle 402
+--#Settings Current Puzzle 402 lws
 --#Working              default     description
 maxiter     = 20        -- 3        max. iterations an action will do
 start_seg   = 283       -- 1        the first segment to work with
@@ -16,8 +16,8 @@ b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Scoring
-step        = 0.0005     -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.001      -- 0.05     Score will get applied after the score changed this value
+step        = 0.00005   -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.0001    -- 0.05     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -39,7 +39,7 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.978"
+Version     = "2.8.7.979"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
