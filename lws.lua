@@ -23,7 +23,6 @@ fastfuze    = false     -- Every fuze will get tested and the best will be selec
 --Fuzing#
 
 --#Mutating
-b_m_skip_f  = false
 b_m_new     = false
 b_m_fuze    = true
 --Mutating#
@@ -34,7 +33,7 @@ b_m_fuze    = true
 --Settings#
 
 --#Game vars
-Version     = "2.8.7.973"
+Version     = "2.8.7.974"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -259,6 +258,9 @@ function fuze(sl)
             end
         end
         quickload(sl_f[1])
+        for i = 1, #sl_f do
+            ReleaseSaveSlot(sl_f[i])
+        end
 --------EXTERNAL-FUZE-FUNCTIONS--------#
         if s_f > c_s then
             quicksave(sl)
