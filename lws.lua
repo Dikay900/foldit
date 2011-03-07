@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.988"
+Version     = "2.8.7.989"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -191,7 +191,7 @@ function gain()
     until s4_f - s3_f < step
 end
 
---#Fuzing Version = "1.0.3.137"
+--#Fuzing Version = "1.0.4.138"
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
     if g == "s" then
