@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.989"
+Version     = "2.8.7.990"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -15,7 +15,7 @@ maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
-end_walk    = 3         -- 2        starting at the current seg + start_walk to seg + end_walk
+end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions

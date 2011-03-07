@@ -1,1 +1,15 @@
 Here you can find my scripts (recipes) for the game fold.it!
+
+Tutorial or Tips for my Scripts:
+lws:
+Settings:
+maxiter: use higher number for a better gain but script needs a longer time
+start_* / end_* / b_*: adjust for your needs
+step / gain: adjust a lower value to get the lws script working on high evo- / solos
+
+Fuze:
+fastfuze: not recommend to set to true, false will get all points out of the puzzle
+
+Mutating:
+b_m_new: will get another structure! so just give it a shot if you want ;)
+b_m_fuze: will use the different methods of fuzing. if false then just a 0.1 shake the wiggle out faster with false more points with true
