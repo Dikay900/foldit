@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.986"
+Version     = "2.8.7.987"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -283,14 +283,18 @@ function fuze(sl)
 end
 --Fuzing#
 
---#Universal select function Version = "1.0.2.8"
+--#Universal select function Version = "1.0.2.9"
 function select(list, more)
     local _r = r
     local _seg = seg
     if not more then
         deselect_all()
     end
-    if seg then
+    if list then
+        for i = 1, #list do
+            select_index(list[i])
+        end
+    elseif seg then
         if r and seg ~= r and not snapping and not mutating then
             if seg > r then
                 _r = seg
@@ -302,12 +306,6 @@ function select(list, more)
         end
     else
         select_all()
-    end
-    if list then
-        deselect_all()
-        for i = 1, #list do
-            select_index(list[i])
-        end
     end
 end
 --Universal select function#
