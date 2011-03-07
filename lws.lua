@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.981"
+Version     = "2.8.7.982"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -47,32 +47,32 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 
 --#Constants
 saveSlots   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-amino       = { {'a','Ala','Alanine'},
-             -- {'b','Asx','Asparagine or Aspartic acid' }, 
-                {'c','Cys','Cysteine'},
-                {'d','Asp','Aspartic acid'},
-                {'e','Glu','Glutamic acid'},
-                {'f','Phe','Phenylalanine'},
-                {'g','Gly','Glycine'},
-                {'h','His','Histidine'},
-                {'i','Ile','Isoleucine'},
-             -- {'j','Xle','Leucine or Isoleucine' }, 
-                {'k','Lys','Lysine'},
-                {'l','Leu','Leucine'},
-                {'m','Met','Methionine '},
-                {'n','Asn','Asparagine'},
-             -- {'o','Pyl','Pyrrolysine' }, 
-                {'p','Pro','Proline'},
-                {'q','Gln','Glutamine'},
-                {'r','Arg','Arginine'},
-                {'s','Ser','Serine'},
-                {'t','Thr','Threonine'},
-             -- {'u','Sec','Selenocysteine' }, 
-                {'v','Val','Valine'},
-                {'w','Trp','Tryptophan'},
-             -- {'x','Xaa','Unspecified or unknown amino acid' },
-                {'y','Tyr','Tyrosine'},
-             -- {'z','Glx','Glutamine or glutamic acid' } 
+amino       = { {'a', 'Ala', 'Alanine'},
+             -- {'b', 'Asx', 'Asparagine or Aspartic acid'}, 
+                {'c', 'Cys', 'Cysteine'},
+                {'d', 'Asp', 'Aspartic acid'},
+                {'e', 'Glu', 'Glutamic acid'},
+                {'f', 'Phe', 'Phenylalanine'},
+                {'g', 'Gly', 'Glycine'},
+                {'h', 'His', 'Histidine'},
+                {'i', 'Ile', 'Isoleucine'},
+             -- {'j', 'Xle', 'Leucine or Isoleucine'}, 
+                {'k', 'Lys', 'Lysine'},
+                {'l', 'Leu', 'Leucine'},
+                {'m', 'Met', 'Methionine '},
+                {'n', 'Asn', 'Asparagine'},
+             -- {'o', 'Pyl', 'Pyrrolysine'}, 
+                {'p', 'Pro', 'Proline'},
+                {'q', 'Gln', 'Glutamine'},
+                {'r', 'Arg', 'Arginine'},
+                {'s', 'Ser', 'Serine'},
+                {'t', 'Thr', 'Threonine'},
+             -- {'u', 'Sec', 'Selenocysteine'}, 
+                {'v', 'Val', 'Valine'},
+                {'w', 'Trp', 'Tryptophan'},
+             -- {'x', 'Xaa', 'Unspecified or unknown amino acid'},
+                {'y', 'Tyr', 'Tyrosine'},
+             -- {'z', 'Glx', 'Glutamine or glutamic acid'} 
               }
 --Constants#
 
