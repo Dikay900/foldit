@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.987"
+Version     = "2.8.7.988"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -49,7 +49,7 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 saveSlots   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 amino       = {
                 {'a', 'Ala', 'Alanine'},
-             -- {'b', 'Asx', 'Asparagine or Aspartic acid'}, 
+             -- {'b', 'Asx', 'Asparagine or Aspartic acid'},
                 {'c', 'Cys', 'Cysteine'},
                 {'d', 'Asp', 'Aspartic acid'},
                 {'e', 'Glu', 'Glutamic acid'},
@@ -57,23 +57,23 @@ amino       = {
                 {'g', 'Gly', 'Glycine'},
                 {'h', 'His', 'Histidine'},
                 {'i', 'Ile', 'Isoleucine'},
-             -- {'j', 'Xle', 'Leucine or Isoleucine'}, 
+             -- {'j', 'Xle', 'Leucine or Isoleucine'},
                 {'k', 'Lys', 'Lysine'},
                 {'l', 'Leu', 'Leucine'},
                 {'m', 'Met', 'Methionine '},
                 {'n', 'Asn', 'Asparagine'},
-             -- {'o', 'Pyl', 'Pyrrolysine'}, 
+             -- {'o', 'Pyl', 'Pyrrolysine'},
                 {'p', 'Pro', 'Proline'},
                 {'q', 'Gln', 'Glutamine'},
                 {'r', 'Arg', 'Arginine'},
                 {'s', 'Ser', 'Serine'},
                 {'t', 'Thr', 'Threonine'},
-             -- {'u', 'Sec', 'Selenocysteine'}, 
+             -- {'u', 'Sec', 'Selenocysteine'},
                 {'v', 'Val', 'Valine'},
                 {'w', 'Trp', 'Tryptophan'},
              -- {'x', 'Xaa', 'Unspecified or unknown amino acid'},
                 {'y', 'Tyr', 'Tyrosine'},
-             -- {'z', 'Glx', 'Glutamine or glutamic acid'} 
+             -- {'z', 'Glx', 'Glutamine or glutamic acid'}
               }
 snapping    = false
 mutating    = false
@@ -156,7 +156,7 @@ function FindMutable()
         if get_aa(i) == "q" then    -- this segment is mutable
             mutable[#mutable + 1] = i
         end
-    end    
+    end
     p(#mutable, " mutables found")
     quickload(mut)
     ReleaseSaveSlot(mut)
@@ -369,7 +369,7 @@ end
 --Universal scoring function#
 
 --#Snapping function Version = "1.0.2.169"
-function _snap(mutated)         -- TODO: need complete rewrite
+function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
     quicksave(snaps)
@@ -429,7 +429,7 @@ end
 --#Universal working function Version = "1.6.5.478"
 function gd(g)                  -- TODO: need complete rewrite with score function
     local iter = 0
-    if rebuild then
+    if rebuilding then
         sl = rebuild1
     elseif snapping then
         sl = snapwork
@@ -502,8 +502,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
     score(g, sl)
 end
 
-function _rebuild()
-    rebuild = true
+function rebuild()
+    rebuilding = true
     rebuild1 = RequestSaveSlot()
     rebuildsl = {}
     for i = 1, 4 do
@@ -552,7 +552,7 @@ function _rebuild()
     else
         quicksave(overall)
     end
-    rebuild = false
+    rebuilding = false
 end
 
 --#Mutate function Version = "1.0.3.136"
@@ -643,7 +643,7 @@ function all()
             mutate()
         end
         if b_snap then
-            _snap(seg)
+            snap(seg)
         end
         for ii = start_walk, end_walk do
             r = i + ii
@@ -653,7 +653,7 @@ function all()
             p(Version)
             p(seg, "-", r)
             if b_rebuild then
-                _rebuild()
+                rebuild()
             end
             gd("wl")
             gd("wb")
@@ -662,7 +662,7 @@ function all()
         end
     end
     if b_fuze then
-        fuze(sl)
+        fuze(overall)
     end
     quickload(overall)
     s_1 = get_score(true)
