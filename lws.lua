@@ -2,13 +2,20 @@
 -- Thanks goes to Rav3n_pl, Tlaloc
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
---#Settings Current Puzzle 402 lws
+--#Game vars
+Version     = "2.8.7.981"
+numsegs     = get_segment_count()
+s_0         = get_score(true)
+c_s         = s_0
+--Game vars#
+
+--#Settings: Default
 --#Working              default     description
-maxiter     = 20        -- 3        max. iterations an action will do
-start_seg   = 283       -- 1        the first segment to work with
-end_seg     = 294       -- numsegs  the last segment to work with
+maxiter     = 5         -- 5        max. iterations an action will do
+start_seg   = 1         -- 1        the first segment to work with
+end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
-end_walk    = 10        -- 2        starting at the current seg + start_walk to seg + end_walk
+end_walk    = 3         -- 2        starting at the current seg + start_walk to seg + end_walk
 b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
@@ -16,8 +23,8 @@ b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Scoring
-step        = 0.00005   -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.0001    -- 0.05     Score will get applied after the score changed this value
+step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.02      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -38,43 +45,35 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Rebuilding#
 --Settings#
 
---#Game vars
-Version     = "2.8.7.980"
-numsegs     = get_segment_count()
-s_0         = get_score(true)
-c_s         = s_0
---Game vars#
-
 --#Constants
 saveSlots   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-amino       = {
-   {'a','Ala','Alanine'},
--- {'b','Asx','Asparagine or Aspartic acid' }, 
-   {'c','Cys','Cysteine'},
-   {'d','Asp','Aspartic acid'},
-   {'e','Glu','Glutamic acid'},
-   {'f','Phe','Phenylalanine'},
-   {'g','Gly','Glycine'},
-   {'h','His','Histidine'},
-   {'i','Ile','Isoleucine'},
--- {'j','Xle','Leucine or Isoleucine' }, 
-   {'k','Lys','Lysine'},
-   {'l','Leu','Leucine'},
-   {'m','Met','Methionine '},
-   {'n','Asn','Asparagine'},
--- {'o','Pyl','Pyrrolysine' }, 
-   {'p','Pro','Proline'},
-   {'q','Gln','Glutamine'},
-   {'r','Arg','Arginine'},
-   {'s','Ser','Serine'},
-   {'t','Thr','Threonine'},
--- {'u','Sec','Selenocysteine' }, 
-   {'v','Val','Valine'},
-   {'w','Trp','Tryptophan'},
--- {'x','Xaa','Unspecified or unknown amino acid' },
-   {'y','Tyr','Tyrosine'},
--- {'z','Glx','Glutamine or glutamic acid' } 
-}
+amino       = { {'a','Ala','Alanine'},
+             -- {'b','Asx','Asparagine or Aspartic acid' }, 
+                {'c','Cys','Cysteine'},
+                {'d','Asp','Aspartic acid'},
+                {'e','Glu','Glutamic acid'},
+                {'f','Phe','Phenylalanine'},
+                {'g','Gly','Glycine'},
+                {'h','His','Histidine'},
+                {'i','Ile','Isoleucine'},
+             -- {'j','Xle','Leucine or Isoleucine' }, 
+                {'k','Lys','Lysine'},
+                {'l','Leu','Leucine'},
+                {'m','Met','Methionine '},
+                {'n','Asn','Asparagine'},
+             -- {'o','Pyl','Pyrrolysine' }, 
+                {'p','Pro','Proline'},
+                {'q','Gln','Glutamine'},
+                {'r','Arg','Arginine'},
+                {'s','Ser','Serine'},
+                {'t','Thr','Threonine'},
+             -- {'u','Sec','Selenocysteine' }, 
+                {'v','Val','Valine'},
+                {'w','Trp','Tryptophan'},
+             -- {'x','Xaa','Unspecified or unknown amino acid' },
+                {'y','Tyr','Tyrosine'},
+             -- {'z','Glx','Glutamine or glutamic acid' } 
+              }
 --Constants#
 
 --#Securing for changes that will be made at Fold.it
