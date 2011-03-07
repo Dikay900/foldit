@@ -236,8 +236,12 @@ function s_fuze(option, cl1, cl2)
     gain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
-        sl_f[#sl_f + 1] = RequestSaveSlot()
-        quicksave(sl_f[#sl_f])
+        if fastfuze then
+            quicksave(sl_f[1])
+        else
+            sl_f[#sl_f + 1] = RequestSaveSlot()
+            quicksave(sl_f[#sl_f])
+        end
         p("+", s2_f - s1_f, "+")
     end
     quickload(sl_f[1])
@@ -257,17 +261,21 @@ function fuze(sl)
         s_fuze(4, 0.3, 0.3)
         s_fuze(5, 0.1, 0.4)
         local s_f = get_score()
-        for i = 2, #sl_f do
-            quickload(sl_f[i])
-            s_f1 = get_score(true)
-            if s_f1 > s_f then
-                quicksave(sl_f[1])
-                s_f = s_f1
+        if not fastfuze then
+            for i = 2, #sl_f do
+                quickload(sl_f[i])
+                s_f1 = get_score(true)
+                if s_f1 > s_f then
+                    quicksave(sl_f[1])
+                    s_f = s_f1
+                end
             end
         end
         quickload(sl_f[1])
-        for i = 1, #sl_f do
-            ReleaseSaveSlot(sl_f[i])
+        if not fastfuze then
+            for i = 1, #sl_f do
+                ReleaseSaveSlot(sl_f[i])
+            end
         end
 --------EXTERNAL-FUZE-FUNCTIONS--------#
         if s_f > c_s then
