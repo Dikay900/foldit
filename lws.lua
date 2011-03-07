@@ -283,8 +283,8 @@ function fuze(sl)
 end
 --Fuzing#
 
---#Universal select function Version = "1.0.1.7"
-function select(list, more)                 -- TODO: need some rewrite for mutate and other functions
+--#Universal select function Version = "1.0.2.8"
+function select(list, more)
     local _r = r
     local _seg = seg
     if not more then
@@ -524,7 +524,9 @@ function _rebuild()
         p(get_score(true) - c_s)
         c_s = get_score(true)
         quicksave(rebuild1)
-        mutate()                        -- TODO: add setting
+        if b_mutate then
+            mutate()
+        end
         select_all()
         gd("s")
         gd("ws")
