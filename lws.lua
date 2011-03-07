@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.983"
+Version     = "2.8.7.985"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -518,8 +518,7 @@ function _rebuild()
             p("Rebuilding Segment ", seg, "-", r)
         end
         p("Try ", i, "/4")
-        c_s = get_score(true)
-        cs_0 = c_s
+        cs_0 = get_score(true)
         do_local_rebuild(3 * i)
         p(get_score(true) - c_s)
         c_s = get_score(true)
@@ -538,20 +537,17 @@ function _rebuild()
         quicksave(rebuildsl[i])
     end
     csr={}
-    for i = 1, #rebuildsl do        -- TODO: handle together
-        quickload(rebuildsl[i])     -- vvvvvvvvvvvvvvvvvvvvvvv
+    for i = 1, #rebuildsl do
+        quickload(rebuildsl[i])
         csr[i] = get_score(true)
-    end
-    for i = 1, #csr do
         if csr[i] > c_s then
             c_s = csr[i]
-            quickload(rebuildsl[i])
+            quicksave(rebuild1)
         end
-    end
-    p("+", c_s - cs_0, "+")         -- =/=/=/=/=/=/=/=/=/=/=/=/
-    for i = 1, #rebuildsl do
         ReleaseSaveSlot(rebuildsl[i])
-    end                             -- ^^^^^^^^^^^^^^^^^^^^^^^^
+    end
+    p("+", c_s - cs_0, "+")
+    quickload(rebuild1)
     ReleaseSaveSlot(rebuild1)
     if c_s < cs_0 then
         quickload(overall)
