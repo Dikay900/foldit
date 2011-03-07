@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.985"
+Version     = "2.8.7.986"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -171,8 +171,7 @@ if get_ss(numsegs) == 'M' then
 end
 --Ligand Check#
 
---#Fuzing Version = "1.0.3.136"
-function fgain()
+function gain()
     set_behavior_clash_importance(1)
     select_all()
     local iter
@@ -192,6 +191,7 @@ function fgain()
     until s4_f - s3_f < step
 end
 
+--#Fuzing Version = "1.0.3.137"
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
     if g == "s" then
@@ -216,7 +216,7 @@ function floss(option, cl1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
         fstruct("s", cl1)
-        fgain()
+        gain()
         fstruct("s", cl2)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
@@ -233,7 +233,7 @@ end
 function s_fuze(option, cl1, cl2)
     local s1_f = get_score(true)
     floss(option, cl1, cl2)
-    fgain()
+    gain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
         sl_f[#sl_f + 1] = RequestSaveSlot()
@@ -568,14 +568,14 @@ function mutate()          -- TODO: Test assert Saveslots
                 sl_mut = RequestSaveSlot()
                 quicksave(sl_mut)
                 replace_aa(amino[i][1])
-                fgain()
+                gain()
                 repeat
                     repeat
                         local mut_1 = get_score(true)
                         do_mutate(1)
                     until get_score(true) - mut_1 < 0.01
                     mut_1 = get_score(true)
-                    fgain()
+                    gain()
                 until get_score(true) - mut_1 < 0.01
                 if get_score(true) > c_s then
                     c_s = get_score(true)
@@ -608,7 +608,7 @@ function mutate()          -- TODO: Test assert Saveslots
                     else
                         set_behavior_clash_importance(0.1)
                         do_shake(1)
-                        fgain()
+                        gain()
                     end
                     s_mut2 = get_score(true)
                     if s_mut2 > s_mut then
