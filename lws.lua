@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.982"
+Version     = "2.8.7.983"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -47,7 +47,8 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 
 --#Constants
 saveSlots   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-amino       = { {'a', 'Ala', 'Alanine'},
+amino       = {
+                {'a', 'Ala', 'Alanine'},
              -- {'b', 'Asx', 'Asparagine or Aspartic acid'}, 
                 {'c', 'Cys', 'Cysteine'},
                 {'d', 'Asp', 'Aspartic acid'},
@@ -74,6 +75,8 @@ amino       = { {'a', 'Ala', 'Alanine'},
                 {'y', 'Tyr', 'Tyrosine'},
              -- {'z', 'Glx', 'Glutamine or glutamic acid'} 
               }
+snapping    = false
+mutating    = false
 --Constants#
 
 --#Securing for changes that will be made at Fold.it
@@ -288,7 +291,7 @@ function select(list, more)                 -- TODO: need some rewrite for mutat
         deselect_all()
     end
     if seg then
-        if r and seg ~= r then
+        if r and seg ~= r and not snapping and not mutating then
             if seg > r then
                 _r = seg
                 _seg = r
@@ -558,6 +561,7 @@ end
 
 --#Mutate function Version = "1.0.3.136"
 function mutate()          -- TODO: Test assert Saveslots
+    mutating = true
     if b_mutate then
         if b_m_new then
             select(mutable)
@@ -583,8 +587,6 @@ function mutate()          -- TODO: Test assert Saveslots
                 ReleaseSaveSlot(sl_mut)
             end
         end
-        local _r = r    -- TODO: handle in select function
-        r = nil         -- TODO: handle in select function
         b_mutating = false
         for l = 1, #mutable do
             if seg == mutable[l] then
@@ -628,8 +630,8 @@ function mutate()          -- TODO: Test assert Saveslots
             ReleaseSaveSlot(sl_mut)
             quickload(overall)
         end
-        r = _r          -- TODO: handle in select function
     end
+    mutating = false
 end
 
 function all()
