@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.990"
+Version     = "2.8.7.991"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -109,7 +109,7 @@ function GetDistances()
 	return distances
 end
 
-function GetSphere(seg, radius)
+function GetSphere(seg, radius, distances)
     local sphere={}
     local _seg = seg
     for i = 1, numsegs do
@@ -452,8 +452,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         end
     else
         distance = GetDistances()
-        local list1 = GetSphere(seg, 8)
-        local list2 = GetSphere(r, 8)
+        local list1 = GetSphere(seg, 8, distance)
+        local list2 = GetSphere(r, 8, distance)
     end
     repeat
         iter = iter + 1
@@ -462,8 +462,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         end
         s1 = get_score(true)
         if iter < maxiter then
-            if g == "s" then
-                select(list1)
+            if g == "s" then                -- TODO: Handle in score function
+                select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
                 select(list2,true)
                 local s_s1 = s1
                 do_shake(1)
@@ -473,7 +473,7 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
                     p("+", s_s2 - s_s1, "+")
                     s1 = s_s2
                     c_s = s1
-                end
+                end                         -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             elseif g == "wb" then
                 do_global_wiggle_backbone(iter)
             elseif g == "ws" then
