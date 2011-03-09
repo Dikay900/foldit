@@ -172,7 +172,7 @@ local function _randomseed(x)
     lngX = x
 end
 
-local function _random(m\,n)
+local function _random(m,n)
     if n == nil and m ~= nil then
         n = m
         m = 1
@@ -379,14 +379,14 @@ function CreateBandsToCenter()
 end
 --CenterBands#
 
---#PushPull Version = "1.0.0.1"
-function PushPull()
+--#PushPull
+function Pull()
     distances = getdistances()
     for x = 1, numsegs - 2 do
         if hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if hydro[y] then
+                if hydro[y] and (math.random() < 0.5) then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
 				repeat
@@ -397,12 +397,19 @@ function PushPull()
 				band_set_length(band, maxdistance)
                 end
             end
-        else
+        end
+    end
+end
+
+function Push()
+    distances = getdistances()
+    for x = 1, numsegs - 2 do
+        if not hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if not hydro[y] then
+                if not hydro[y] and (math.random() < 0.5) then
                     local distance = distances[x][y]
-                    if  distance <= 15 then
+                    if distance <= 15 then
                         band_add_segment_segment(x, y)
 						local band = get_band_count()
                         band_set_strength(band, 2.0)
@@ -417,7 +424,7 @@ end
 
 --#BandMaxDist Version = "1.0.0.1"
 function BandMaxDist()
-	distances = getdistances()
+	distances = GetDistances()
     local maxdistance = 0
 	for i = 1, numsegs do
         for j = 1, numsegs do
@@ -817,32 +824,40 @@ function mutate()          -- TODO: Test assert Saveslots
 end
 --Mutate#
 
+--#Hydrocheck
+hydro = {}
+for i = 1, numsegs do
+hydro[i] = is_hydrophobic(i)
+end
+--Hydrocheck#
+
 function dist()
-check_hydro()
-overall=RequestSaveSlot()
-deselect_all()
-bandmaxdist()
+BandMaxDist()
 select_all()
 set_behavior_clash_importance(0.7)
 do_global_wiggle_backbone(1)
 band_delete()
-cs=get_score(true)
-quicksave(overall)
 fuze(overall)
-sc2=get_score(true)
-if cs<sc2 then quickload(overall) end
 set_behavior_clash_importance(0.01)
 do_shake(1)
-CreateBandsToCenter()
+Push()
+Pull()
 set_behavior_clash_importance(0.5)
 do_global_wiggle_backbone(1)
 band_delete()
-cs=get_score(true)
-quicksave(overall)
 fuze(overall)
-sc2=get_score(true)
-if cs<sc2 then quickload(overall) end
-deselect_all()
+Pull()
+select_all()
+set_behavior_clash_importance(0.7)
+do_global_wiggle_backbone(1)
+band_delete()
+fuze(overall)
+Push()
+select_all()
+set_behavior_clash_importance(0.7)
+do_global_wiggle_backbone(1)
+band_delete()
+fuze(overall)
 end
 
 function all()
@@ -885,4 +900,5 @@ function all()
     p("+++", s_1 - s_0, "+++")
 end
 
-all()
+--all()
+dist()
