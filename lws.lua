@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.991"
+Version     = "2.8.7.992"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -171,26 +171,6 @@ if get_ss(numsegs) == 'M' then
 end
 --Ligand Check#
 
-function gain()
-    set_behavior_clash_importance(1)
-    select_all()
-    local iter
-    repeat
-        iter = 0
-        repeat
-            iter = iter + 1
-            local s1_f = get_score(true)
-            if iter < maxiter then
-                do_global_wiggle_all(iter)
-            end
-            local s2_f = get_score(true)
-        until s2_f - s1_f < step
-        local s3_f = get_score(true)
-        do_shake(1)
-        local s4_f = get_score(true)
-    until s4_f - s3_f < step
-end
-
 --#Fuzing Version = "1.0.4.138"
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
@@ -216,7 +196,7 @@ function floss(option, cl1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
         fstruct("s", cl1)
-        gain()
+        fgain()
         fstruct("s", cl2)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
@@ -233,7 +213,7 @@ end
 function s_fuze(option, cl1, cl2)
     local s1_f = get_score(true)
     floss(option, cl1, cl2)
-    gain()
+    fgain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
         if fastfuze then
@@ -277,7 +257,6 @@ function fuze(sl)
                 ReleaseSaveSlot(sl_f[i])
             end
         end
---------EXTERNAL-FUZE-FUNCTIONS--------#
         if s_f > c_s then
             quicksave(sl)
             p("+", s_f - c_s, "+")
@@ -286,12 +265,40 @@ function fuze(sl)
             fuze(sl)
         end
         quickload(sl)
---------EXTERNAL-FUZE-FUNCTIONS--------#
     end
 end
 --Fuzing#
 
---#Universal select function Version = "1.0.2.9"
+--#BandMaxDist Version = "1.0.0.1"
+function BandMaxDist()
+	distances = getdistances()
+    local maxdistance = 0
+	for i = 1, numsegs do
+        for j = 1, numsegs do
+			if i ~= j then
+			    local x = i
+				local y = j
+				if x > y then
+                    x, y = y, x
+                end
+				if distances[x][y] > maxdistance then
+                    maxdistance = distances[x][y]
+                    maxx = i
+                    maxy = j
+				end
+			end
+        end
+    end
+	band_add_segment_segment(maxx, maxy)
+	repeat
+        maxdistance = maxdistance * 3 / 4
+	until maxdistance <= 20
+	band_set_strength(get_band_count(), maxdistance / 15)
+	band_set_length(get_band_count(), maxdistance)
+end
+--BandMaxDist#
+
+--#Universal select Version = "1.0.2.9"
 function select(list, more)
     local _r = r
     local _seg = seg
@@ -316,9 +323,9 @@ function select(list, more)
         select_all()
     end
 end
---Universal select function#
+--Universal select#
 
---Freezing functions
+--#Freezing functions
 function freeze(f) -- f not used yet
     if not f then
         do_freeze(true, true)
@@ -330,7 +337,28 @@ function freeze(f) -- f not used yet
 end
 --Freezing functions#
 
---#Universal scoring function Version = "1.0.1.31"
+--#Scoring
+function fgain()
+    set_behavior_clash_importance(1)
+    select_all()
+    local iter
+    repeat
+        iter = 0
+        repeat
+            iter = iter + 1
+            local s1_f = get_score(true)
+            if iter < maxiter then
+                do_global_wiggle_all(iter)
+            end
+            local s2_f = get_score(true)
+        until s2_f - s1_f < step
+        local s3_f = get_score(true)
+        do_shake(1)
+        local s4_f = get_score(true)
+    until s4_f - s3_f < step
+end
+
+--#Universal scoring Version = "1.0.1.31"
 function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
     if more > gain then
@@ -374,9 +402,87 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
         end
     end
 end
---Universal scoring function#
+--Universal scoring#
+--Scoring#
 
---#Snapping function Version = "1.0.2.169"
+--#Universal working Version = "1.6.5.478"
+function gd(g)                  -- TODO: need complete rewrite with score function
+    local iter = 0
+    if rebuilding then
+        sl = rebuild1
+    elseif snapping then
+        sl = snapwork
+    else
+        sl = overall
+    end
+    gsl = RequestSaveSlot()
+    select_all()            -- TODO: handle in select function wa wb ws
+    if g ~= "s" then
+        if g == "wl" then
+            select()
+        end
+    else
+        distance = GetDistances()
+        local list1 = GetSphere(seg, 8, distance)
+        local list2 = GetSphere(r, 8, distance)
+    end
+    repeat
+        iter = iter + 1
+        if iter ~= 1 then
+            quicksave(gsl)
+        end
+        s1 = get_score(true)
+        if iter < maxiter then
+            if g == "s" then                -- TODO: Handle in score function
+                select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+                select(list2, true)
+                local s_s1 = s1
+                do_shake(1)
+                local s_s2 = get_score(true)
+                if s_s2 > s_s1 then
+                    quicksave(sl)
+                    p("+", s_s2 - s_s1, "+")
+                    s1 = s_s2
+                    c_s = s1
+                end                         -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            elseif g == "wb" then
+                do_global_wiggle_backbone(iter)
+            elseif g == "ws" then
+                do_global_wiggle_sidechains(iter)
+            elseif g == "wa" then
+                do_global_wiggle_all(iter)
+            elseif g == "wl" then
+                wl = RequestSaveSlot()
+                quicksave(wl)
+                for i = iter, iter + 5 do           -- TODO: Think of testing every iter before applying gain
+                    local s_s1 = get_score(true)
+                    do_local_wiggle(iter)
+                    local s_s2 = get_score(true)
+                    if s_s2 > s_s1 then
+                        quicksave(wl)
+                    end
+                    quickload(wl)
+                    if s_s2 == s_s1 then
+                        break
+                    end
+                end
+                ReleaseSaveSlot(wl)
+            end
+        end
+        s2 = get_score(true)
+    until s2 - s1 < (step * iter)
+    if s2 < s1 then
+        quickload(gsl)
+    else
+        s1 = s2
+    end
+    ReleaseSaveSlot(gsl)
+    deselect_all()
+    score(g, sl)
+end
+--Working#
+
+--#Snapping Version = "1.0.2.169"
 function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
@@ -432,84 +538,9 @@ function snap(mutated)         -- TODO: need complete rewrite
         quicksave(overall)
     end
 end
---Snapping function#
+--Snapping#
 
---#Universal working function Version = "1.6.5.478"
-function gd(g)                  -- TODO: need complete rewrite with score function
-    local iter = 0
-    if rebuilding then
-        sl = rebuild1
-    elseif snapping then
-        sl = snapwork
-    else
-        sl = overall
-    end
-    gsl = RequestSaveSlot()
-    select_all()            -- TODO: handle in select function wa wb ws
-    if g ~= "s" then
-        if g == "wl" then
-            select()
-        end
-    else
-        distance = GetDistances()
-        local list1 = GetSphere(seg, 8, distance)
-        local list2 = GetSphere(r, 8, distance)
-    end
-    repeat
-        iter = iter + 1
-        if iter ~= 1 then
-            quicksave(gsl)
-        end
-        s1 = get_score(true)
-        if iter < maxiter then
-            if g == "s" then                -- TODO: Handle in score function
-                select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                select(list2,true)
-                local s_s1 = s1
-                do_shake(1)
-                local s_s2 = get_score(true)
-                if s_s2 > s_s1 then
-                    quicksave(sl)
-                    p("+", s_s2 - s_s1, "+")
-                    s1 = s_s2
-                    c_s = s1
-                end                         -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            elseif g == "wb" then
-                do_global_wiggle_backbone(iter)
-            elseif g == "ws" then
-                do_global_wiggle_sidechains(iter)
-            elseif g == "wa" then
-                do_global_wiggle_all(iter)
-            elseif g == "wl" then
-                wl = RequestSaveSlot()
-                quicksave(wl)
-                for i = iter, iter + 5 do           -- TODO: Think of testing every iter before applying gain
-                    local s_s1 = get_score(true)
-                    do_local_wiggle(iter)
-                    local s_s2 = get_score(true)
-                    if s_s2 > s_s1 then
-                        quicksave(wl)
-                    end
-                    quickload(wl)
-                    if s_s2 == s_s1 then
-                        break
-                    end
-                end
-                ReleaseSaveSlot(wl)
-            end
-        end
-        s2 = get_score(true)
-    until s2 - s1 < (step * iter)
-    if s2 < s1 then
-        quickload(gsl)
-    else
-        s1 = s2
-    end
-    ReleaseSaveSlot(gsl)
-    deselect_all()
-    score(g, sl)
-end
-
+--#Rebuilding Version = "1.0.0.1"
 function rebuild()
     rebuilding = true
     rebuild1 = RequestSaveSlot()
@@ -562,6 +593,7 @@ function rebuild()
     end
     rebuilding = false
 end
+--Rebuilding#
 
 --#Mutate function Version = "1.0.3.136"
 function mutate()          -- TODO: Test assert Saveslots
@@ -574,14 +606,14 @@ function mutate()          -- TODO: Test assert Saveslots
                 sl_mut = RequestSaveSlot()
                 quicksave(sl_mut)
                 replace_aa(amino[i][1])
-                gain()
+                fgain()
                 repeat
                     repeat
                         local mut_1 = get_score(true)
                         do_mutate(1)
                     until get_score(true) - mut_1 < 0.01
                     mut_1 = get_score(true)
-                    gain()
+                    fgain()
                 until get_score(true) - mut_1 < 0.01
                 if get_score(true) > c_s then
                     c_s = get_score(true)
@@ -614,7 +646,7 @@ function mutate()          -- TODO: Test assert Saveslots
                     else
                         set_behavior_clash_importance(0.1)
                         do_shake(1)
-                        gain()
+                        fgain()
                     end
                     s_mut2 = get_score(true)
                     if s_mut2 > s_mut then
@@ -637,6 +669,7 @@ function mutate()          -- TODO: Test assert Saveslots
     end
     mutating = false
 end
+--Mutate#
 
 function all()
     overall = RequestSaveSlot()
