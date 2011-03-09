@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.994"
+Version     = "2.8.7.995"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -832,12 +832,14 @@ end
 --Hydrocheck#
 
 function dist()
-BandMaxDist()
-select_all()
-set_behavior_clash_importance(0.7)
-do_global_wiggle_backbone(1)
-band_delete()
-fuze(overall)
+overall = RequestSaveSlot()
+quicksave(overall)
+--BandMaxDist()
+--select_all()
+--set_behavior_clash_importance(0.7)
+--do_global_wiggle_backbone(1)
+--band_delete()
+--fuze(overall)
 set_behavior_clash_importance(0.01)
 do_shake(1)
 Push()
