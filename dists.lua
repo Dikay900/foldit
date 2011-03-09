@@ -1,4 +1,21 @@
 ﻿numsegs=get_segment_count()
+saveSlots   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+p=print
+maxiter=5
+step = 0.01
+gain = 2*step
+--#Saveslot manager
+function ReleaseSaveSlot(slot)
+    saveSlots[#saveSlots + 1] = slot
+end
+
+function RequestSaveSlot()
+    local saveSlot = saveSlots[#saveSlots]
+    saveSlots[#saveSlots] = nil
+    return saveSlot
+end
+--Saveslot manager#
+
 function getdistances()
 	distances={}
     for i=1,numsegs-1 do
@@ -156,7 +173,7 @@ function floss(option, cl1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
         fstruct("s", cl1)
-        gain()
+        fgain()
         fstruct("s", cl2)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
@@ -170,10 +187,36 @@ function floss(option, cl1, cl2)
     end
 end
 
+--#Ligand Check
+if get_ss(numsegs) == 'M' then
+    numsegs = numsegs - 1
+end
+--Ligand Check#
+
+function fgain()
+    set_behavior_clash_importance(1)
+    select_all()
+    local iter
+    repeat
+        iter = 0
+        repeat
+            iter = iter + 1
+            local s1_f = get_score(true)
+            if iter < maxiter then
+                do_global_wiggle_all(iter)
+            end
+            local s2_f = get_score(true)
+        until s2_f - s1_f < step
+        local s3_f = get_score(true)
+        do_shake(1)
+        local s4_f = get_score(true)
+    until s4_f - s3_f < step
+end
+
 function s_fuze(option, cl1, cl2)
     local s1_f = get_score(true)
     floss(option, cl1, cl2)
-    gain()
+    fgain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
         if fastfuze then
@@ -188,7 +231,6 @@ function s_fuze(option, cl1, cl2)
 end
 
 function fuze(sl)
-    if b_fuze then
         select_all()
         sl_f = {}
         sl_f[1] = RequestSaveSlot()
@@ -212,16 +254,12 @@ function fuze(sl)
             end
         end
         quickload(sl_f[1])
-        if not fastfuze then
-            for i = 1, #sl_f do
                 ReleaseSaveSlot(sl_f[i])
-            end
-        end
-    end
 end
 --Fuzing#
 
 check_hydro()
+overall=RequestSaveSlot()
 for i=0,numsegs do
 deselect_all()
 bandmaxdist()
@@ -230,9 +268,10 @@ set_behavior_clash_importance(0.7)
 do_global_wiggle_backbone(1)
 band_delete()
 cs=get_score(true)
-fuze()
+quicksave(overall)
+fuze(overall)
 sc2=get_score(true)
-if cs<sc2 then reset_recent_best() end
+if cs<sc2 then quickload(overall) end
 set_behavior_clash_importance(0.01)
 do_shake(1)
 CreateBandsToCenter()
@@ -240,8 +279,9 @@ set_behavior_clash_importance(0.5)
 do_global_wiggle_backbone(1)
 band_delete()
 cs=get_score(true)
-fuze()
+quicksave(overall)
+fuze(overall)
 sc2=get_score(true)
-if cs<sc2 then reset_recent_best() end
+if cs<sc2 then quickload(overall) end
 deselect_all()
 end
