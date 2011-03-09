@@ -381,12 +381,12 @@ end
 
 --#PushPull
 function Pull()
-    distances = getdistances()
+    distances = GetDistances()
     for x = 1, numsegs - 2 do
         if hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if hydro[y] and (math.random() < 0.5) then
+                if hydro[y] and (math.random() < 0.1) then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
 				repeat
@@ -402,12 +402,12 @@ function Pull()
 end
 
 function Push()
-    distances = getdistances()
+    distances = GetDistances()
     for x = 1, numsegs - 2 do
         if not hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if not hydro[y] and (math.random() < 0.5) then
+                if not hydro[y] and (math.random() < 0.1) then
                     local distance = distances[x][y]
                     if distance <= 15 then
                         band_add_segment_segment(x, y)
