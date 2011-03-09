@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.992"
+Version     = "2.8.7.993"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -98,6 +98,103 @@ end
 --Debug#
 
 --#External functions
+-----------------------------------------
+-- math library
+
+-----------------------------------------
+-- The original random script this was ported from has the following notices:
+
+-- Copyright (c) 2007 Richard L. Mueller
+-- Hilltop Lab web site - http://www.rlmueller.net
+-- Version 1.0 - January 2\, 2007
+
+-- You have a royalty-free right to use\, modify\, reproduce\, and distribute this script file in any
+-- way you find useful\, provided that you agree that the copyright owner above has no warranty\,
+-- obligations\, or liability for such use.
+
+-- This function is not covered by the Creative Commons license given at the start of the script\,
+-- and is instead covered by the comment given here.
+-----------------------------------------
+
+local lngX = 1000
+local lngC = 48313
+
+local function _MWC()
+    local S_Hi
+    local S_Lo
+    local C_Hi
+    local C_Lo
+    local F1
+    local F2
+    local F3
+    local T1
+    local T2
+    local T3
+
+    local A_Hi = 63551
+    local A_Lo = 25354
+    local M = 4294967296
+
+    local H = 65536
+
+    local S_Hi = math.floor(lngX / H)
+    local S_Lo = lngX - (S_Hi * H)
+    local C_Hi = math.floor(lngC / H)
+    local C_Lo = lngC - (C_Hi * H)
+
+    local F1 = A_Hi * S_Hi
+    local F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
+    local F3 = (A_Lo * S_Lo) + C_Lo
+
+    local T1 = math.floor(F2 / H)
+    local T2 = F2 - (T1 * H)
+    lngX = (T2 * H) + F3
+    local T3 = math.floor(lngX / M)
+    lngX = lngX - (T3 * M)
+
+    lngC = math.floor((F2 / H) + F1)
+
+    return lngX
+end
+
+local function _abs(value)
+    if value < 0 then
+        value = -value
+    end
+    return value
+end
+
+local function _floor(value)
+    return value - (value % 1)
+end
+
+local function _randomseed(x)
+    lngX = x
+end
+
+local function _random(m\,n)
+    if n == nil and m ~= nil then
+        n = m
+        m = 1
+    end
+    if (m == nil) and (n == nil) then
+        return _MWC() / 4294967296
+    else
+        if n < m then
+            return nil
+        end
+        return math.floor((_MWC() / 4294967296) * (n - m + 1)) + m
+    end
+end
+
+math=
+{
+    floor = _floor,
+    random = _random,
+    randomseed = _randomseed,
+}
+-- End math library
+
 function GetDistances()
 	distances = {}
     for i = 1, numsegs - 1 do
@@ -268,6 +365,55 @@ function fuze(sl)
     end
 end
 --Fuzing#
+
+--#CenterBands
+function CreateBandsToCenter()
+   local indexCenter = FastCenter()
+   for i=1,numsegs do
+       if(i ~= indexCenter) then
+           if hydro[i] then
+               band_add_segment_segment(i,indexCenter)
+           end
+       end
+   end
+end
+--CenterBands#
+
+--#PushPull Version = "1.0.0.1"
+function PushPull()
+    distances = getdistances()
+    for x = 1, numsegs - 2 do
+        if hydro[x] then
+            for y = x + 2, numsegs do
+                math.randomseed(distances[x][y])
+                if hydro[y] then
+                    maxdistance = distances[x][y]
+                    band_add_segment_segment(x, y)
+				repeat
+                    maxdistance = maxdistance * 3 / 4
+				until maxdistance <= 20
+				local band = get_band_count()
+				band_set_strength(band, maxdistance / 15)
+				band_set_length(band, maxdistance)
+                end
+            end
+        else
+            for y = x + 2, numsegs do
+                math.randomseed(distances[x][y])
+                if not hydro[y] then
+                    local distance = distances[x][y]
+                    if  distance <= 15 then
+                        band_add_segment_segment(x, y)
+						local band = get_band_count()
+                        band_set_strength(band, 2.0)
+                        band_set_length(band, distance + 5)
+                    end
+                end
+            end
+        end
+    end
+end
+--PushPull#
 
 --#BandMaxDist Version = "1.0.0.1"
 function BandMaxDist()
@@ -670,6 +816,34 @@ function mutate()          -- TODO: Test assert Saveslots
     mutating = false
 end
 --Mutate#
+
+function dist()
+check_hydro()
+overall=RequestSaveSlot()
+deselect_all()
+bandmaxdist()
+select_all()
+set_behavior_clash_importance(0.7)
+do_global_wiggle_backbone(1)
+band_delete()
+cs=get_score(true)
+quicksave(overall)
+fuze(overall)
+sc2=get_score(true)
+if cs<sc2 then quickload(overall) end
+set_behavior_clash_importance(0.01)
+do_shake(1)
+CreateBandsToCenter()
+set_behavior_clash_importance(0.5)
+do_global_wiggle_backbone(1)
+band_delete()
+cs=get_score(true)
+quicksave(overall)
+fuze(overall)
+sc2=get_score(true)
+if cs<sc2 then quickload(overall) end
+deselect_all()
+end
 
 function all()
     overall = RequestSaveSlot()
