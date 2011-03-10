@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.997"
+Version     = "2.8.7.998"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -43,6 +43,10 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --#Rebuilding
 
 --Rebuilding#
+
+--#Dist
+b_dist = false
+--Dist#
 --Settings#
 
 --#Constants
@@ -838,14 +842,14 @@ end
 function dist()
 overall = RequestSaveSlot()
 quicksave(overall)
+if b_dist then
 BandMaxDist()
 select_all()
 set_behavior_clash_importance(0.7)
 do_global_wiggle_backbone(1)
 band_delete()
 fuze(overall)
-set_behavior_clash_importance(0.01)
-do_shake(1)
+end
 Push()
 Pull()
 set_behavior_clash_importance(0.8)
