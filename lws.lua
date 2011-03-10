@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.995"
+Version     = "2.8.7.996"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -386,7 +386,7 @@ function Pull()
         if hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if hydro[y] and (math.random() < 0.1) then
+                if hydro[y] and (math.random() < 0.07) then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
 				repeat
@@ -407,7 +407,7 @@ function Push()
         if not hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if not hydro[y] and (math.random() < 0.1) then
+                if not hydro[y] and (math.random() < 0.07) then
                     local distance = distances[x][y]
                     if distance <= 15 then
                         band_add_segment_segment(x, y)
@@ -844,7 +844,7 @@ set_behavior_clash_importance(0.01)
 do_shake(1)
 Push()
 Pull()
-set_behavior_clash_importance(0.5)
+set_behavior_clash_importance(0.8)
 do_global_wiggle_backbone(1)
 band_delete()
 fuze(overall)
