@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.996"
+Version     = "2.8.7.997"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -359,10 +359,14 @@ function fuze(sl)
             p("+", s_f - c_s, "+")
             c_s = s_f
             p("++", c_s, "++")
-            fuze(sl)
+            r_fuze(sl)
         end
         quickload(sl)
     end
+end
+
+function r_fuze(sl)
+fuze(sl)
 end
 --Fuzing#
 
@@ -834,12 +838,12 @@ end
 function dist()
 overall = RequestSaveSlot()
 quicksave(overall)
---BandMaxDist()
---select_all()
---set_behavior_clash_importance(0.7)
---do_global_wiggle_backbone(1)
---band_delete()
---fuze(overall)
+BandMaxDist()
+select_all()
+set_behavior_clash_importance(0.7)
+do_global_wiggle_backbone(1)
+band_delete()
+fuze(overall)
 set_behavior_clash_importance(0.01)
 do_shake(1)
 Push()
