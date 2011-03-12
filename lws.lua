@@ -23,8 +23,8 @@ b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Scoring
-step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.02      -- 0.02     Score will get applied after the score changed this value
+step        = 0.0001      -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.0005      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -912,7 +912,7 @@ function all()
     p("+++", s_1 - s_0, "+++")
 end
 
---all()
-dist()
+all()
+--dist()
 
-quickload(overall)
+--quickload(overall)
