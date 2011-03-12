@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1001"
+Version     = "2.9.1.1002"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -841,7 +841,7 @@ end
 function dist()
     dist = RequestSaveSlot()
     quicksave(dist)
-    dist = get_score()
+    s_dist = get_score()
     if b_comp then
         BandMaxDist()
         select_all()
@@ -849,7 +849,7 @@ function dist()
         do_global_wiggle_backbone(1)
         band_delete()
         fuze(dist)
-        if get_score() < dist then
+        if get_score() < s_dist then
             quickload(overall)
         end
     end
@@ -859,7 +859,7 @@ function dist()
     do_global_wiggle_backbone(1)
     band_delete()
     fuze(dist)
-    if get_score() < dist then
+    if get_score() < s_dist then
         quickload(overall)
     end
     Pull()
@@ -868,7 +868,7 @@ function dist()
     do_global_wiggle_backbone(1)
     band_delete()
     fuze(dist)
-    if get_score() < dist then
+    if get_score() < s_dist then
         quickload(overall)
     end
     Push()
@@ -877,7 +877,7 @@ function dist()
     do_global_wiggle_backbone(1)
     band_delete()
     fuze(dist)
-    if get_score() < dist then
+    if get_score() < s_dist then
         quickload(overall)
     end
 end
