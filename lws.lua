@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1000"
+Version     = "2.9.1.1001"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
