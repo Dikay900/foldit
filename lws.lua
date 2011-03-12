@@ -263,13 +263,21 @@ end
 --External functions#
 
 --#Internal functions
+--#Prerecipefunctions
+--#Hydrocheck
+hydro = {}
+for i = 1, numsegs do
+hydro[i] = is_hydrophobic(i)
+end
+--Hydrocheck#
+
 --#Ligand Check
 if get_ss(numsegs) == 'M' then
     numsegs = numsegs - 1
 end
 --Ligand Check#
 
---#Fuzing Version = "1.0.4.138"
+--#Fuzing Version = "1.0.4.141"
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
     if g == "s" then
@@ -829,13 +837,7 @@ function mutate()          -- TODO: Test assert Saveslots
 end
 --Mutate#
 
---#Hydrocheck
-hydro = {}
-for i = 1, numsegs do
-hydro[i] = is_hydrophobic(i)
-end
---Hydrocheck#
-
+--#dist Version = "1.0.2.12"
 function dist()
     dist = RequestSaveSlot()
     quicksave(dist)
@@ -879,6 +881,7 @@ function dist()
         quickload(overall)
     end
 end
+--dist#
 
 function all()
     overall = RequestSaveSlot()
