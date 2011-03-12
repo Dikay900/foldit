@@ -3,13 +3,18 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.8.7.999"
+Version     = "2.9.1.1000"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
 --Game vars#
 
 --#Settings: Default
+--#Dist
+b_dist = true
+b_comp = false
+--Dist#
+
 --#Working              default     description
 maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
@@ -23,8 +28,8 @@ b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Scoring
-step        = 0.0001      -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.0005      -- 0.02     Score will get applied after the score changed this value
+step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.05      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -43,10 +48,6 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --#Rebuilding
 
 --Rebuilding#
-
---#Dist
-b_dist = false
---Dist#
 --Settings#
 
 --#Constants
@@ -200,24 +201,20 @@ math=
 -- End math library
 
 function GetDistances()
-	distances = {}
+    distances = {}
     for i = 1, numsegs - 1 do
-		distances[i] = {}
+        distances[i] = {}
         for j = i + 1, numsegs do
             distances[i][j] = get_segment_distance(i , j)
         end
     end
-	return distances
+    return distances
 end
 
-function GetSphere(seg, radius, distances)
+function GetSphere(seg, radius)
     local sphere={}
-    local _seg = seg
     for i = 1, numsegs do
-        if _seg > i then
-            _seg, i = i, _seg
-        end
-        if distance[_seg][i] <= radius then
+        if get_segment_distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
         end
     end
@@ -364,8 +361,9 @@ function fuze(sl)
             c_s = s_f
             p("++", c_s, "++")
             r_fuze(sl)
+        else
+            quickload(sl)
         end
-        quickload(sl)
     end
 end
 
@@ -397,12 +395,12 @@ function Pull()
                 if hydro[y] and math.random() < 0.02 then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
-				repeat
+                repeat
                     maxdistance = maxdistance * 3 / 4
-				until maxdistance <= 20
-				local band = get_band_count()
-				band_set_strength(band, maxdistance / 15)
-				band_set_length(band, maxdistance)
+                until maxdistance <= 20
+                local band = get_band_count()
+                band_set_strength(band, maxdistance / 15)
+                band_set_length(band, maxdistance)
                 end
             end
         end
@@ -419,7 +417,7 @@ function Push()
                     local distance = distances[x][y]
                     if distance <= 15 then
                         band_add_segment_segment(x, y)
-						local band = get_band_count()
+                        local band = get_band_count()
                         band_set_strength(band, 2.0)
                         band_set_length(band, distance + 5)
                     end
@@ -432,30 +430,30 @@ end
 
 --#BandMaxDist Version = "1.0.0.1"
 function BandMaxDist()
-	distances = GetDistances()
+    distances = GetDistances()
     local maxdistance = 0
-	for i = 1, numsegs do
+    for i = 1, numsegs do
         for j = 1, numsegs do
-			if i ~= j then
-			    local x = i
-				local y = j
-				if x > y then
+            if i ~= j then
+                local x = i
+                local y = j
+                if x > y then
                     x, y = y, x
                 end
-				if distances[x][y] > maxdistance then
+                if distances[x][y] > maxdistance then
                     maxdistance = distances[x][y]
                     maxx = i
                     maxy = j
-				end
-			end
+                end
+            end
         end
     end
-	band_add_segment_segment(maxx, maxy)
-	repeat
+    band_add_segment_segment(maxx, maxy)
+    repeat
         maxdistance = maxdistance * 3 / 4
-	until maxdistance <= 20
-	band_set_strength(get_band_count(), maxdistance / 15)
-	band_set_length(get_band_count(), maxdistance)
+    until maxdistance <= 20
+    band_set_strength(get_band_count(), maxdistance / 15)
+    band_set_length(get_band_count(), maxdistance)
 end
 --BandMaxDist#
 
@@ -583,9 +581,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
             select()
         end
     else
-        distance = GetDistances()
-        local list1 = GetSphere(seg, 8, distance)
-        local list2 = GetSphere(r, 8, distance)
+        local list1 = GetSphere(seg, 8)
+        local list2 = GetSphere(r, 8)
     end
     repeat
         iter = iter + 1
@@ -840,71 +837,86 @@ end
 --Hydrocheck#
 
 function dist()
-overall = RequestSaveSlot()
-quicksave(overall)
-dist = RequestSaveSlot()
-quicksave(dist)
-if b_dist then
-BandMaxDist()
-select_all()
-set_behavior_clash_importance(0.7)
-do_global_wiggle_backbone(1)
-band_delete()
-fuze(dist)
-end
-Push()
-Pull()
-set_behavior_clash_importance(0.8)
-do_global_wiggle_backbone(1)
-band_delete()
-fuze(dist)
-Pull()
-select_all()
-set_behavior_clash_importance(0.7)
-do_global_wiggle_backbone(1)
-band_delete()
-fuze(dist)
-Push()
-select_all()
-set_behavior_clash_importance(0.7)
-do_global_wiggle_backbone(1)
-band_delete()
-fuze(dist)
+    dist = RequestSaveSlot()
+    quicksave(dist)
+    dist = get_score()
+    if b_comp then
+        BandMaxDist()
+        select_all()
+        set_behavior_clash_importance(0.7)
+        do_global_wiggle_backbone(1)
+        band_delete()
+        fuze(dist)
+        if get_score() < dist then
+            quickload(overall)
+        end
+    end
+    Push()
+    Pull()
+    set_behavior_clash_importance(0.8)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(dist)
+    if get_score() < dist then
+        quickload(overall)
+    end
+    Pull()
+    select_all()
+    set_behavior_clash_importance(0.7)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(dist)
+    if get_score() < dist then
+        quickload(overall)
+    end
+    Push()
+    select_all()
+    set_behavior_clash_importance(0.7)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(dist)
+    if get_score() < dist then
+        quickload(overall)
+    end
 end
 
 function all()
     overall = RequestSaveSlot()
     quicksave(overall)
-    if b_mutate then
-        mutable = FindMutable()
-    end
-    for i = start_seg, end_seg do
-        seg = i
-        c_s = get_score(true)
+    if b_dist then
+        dist()
+    else
         if b_mutate then
-            mutate()
+            mutable = FindMutable()
         end
-        if b_snap then
-            snap(seg)
-        end
-        for ii = start_walk, end_walk do
-            r = i + ii
-            if r > numsegs then
-                r = numsegs
+        for i = start_seg, end_seg do
+            seg = i
+            c_s = get_score(true)
+            if b_mutate then
+                mutate()
             end
-            p(Version)
-            p(seg, "-", r)
-            if b_rebuild then
-                rebuild()
+            if b_snap then
+                snap(seg)
             end
-            gd("wl")
-            gd("wb")
-            gd("ws")
-            gd("wa")
+            for ii = start_walk, end_walk do
+                r = i + ii
+                if r > numsegs then
+                    r = numsegs
+                end
+                p(Version)
+                p(seg, "-", r)
+                if b_rebuild then
+                    rebuild()
+                end
+                gd("wl")
+                gd("wb")
+                gd("ws")
+                gd("wa")
+            end
         end
-    end
-    if b_fuze then
-        fuze(overall)
+        if b_fuze then
+            fuze(overall)
+        end
     end
     quickload(overall)
     s_1 = get_score(true)
@@ -913,6 +925,3 @@ function all()
 end
 
 all()
---dist()
-
---quickload(overall)
