@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1002"
+Version     = "2.9.1.1003"
 numsegs     = get_segment_count()
 s_0         = get_score(true)
 c_s         = s_0
@@ -11,7 +11,7 @@ c_s         = s_0
 
 --#Settings: Default
 --#Dist
-b_dist = true
+b_dist = false
 b_comp = false
 --Dist#
 
@@ -19,9 +19,9 @@ b_comp = false
 maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
-start_walk  = 0         -- 0        with how many segs shall we work - Walker
-end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_rebuild   = false     -- false    should we rebuild
+start_walk  = 1         -- 0        with how many segs shall we work - Walker
+end_walk    = 2         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_rebuild   = true      -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
@@ -277,7 +277,7 @@ if get_ss(numsegs) == 'M' then
 end
 --Ligand Check#
 
---#Fuzing Version = "1.0.4.141"
+--#Fuzing Version = "1.0.5.142"
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
     if g == "s" then
@@ -365,10 +365,13 @@ function fuze(sl)
         end
         if s_f > c_s then
             quicksave(sl)
-            p("+", s_f - c_s, "+")
+            s_fg = s_f - c_s
+            p("+", s_fg, "+")
             c_s = s_f
             p("++", c_s, "++")
-            r_fuze(sl)
+            if s_fg > gain then
+                r_fuze(sl)
+            end
         else
             quickload(sl)
         end
@@ -602,6 +605,7 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
             if g == "s" then                -- TODO: Handle in score function
                 select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
                 select(list2, true)
+                select_all()
                 local s_s1 = s1
                 do_shake(1)
                 local s_s2 = get_score(true)
@@ -751,6 +755,7 @@ function rebuild()
     end
     p("+", c_s - cs_0, "+")
     quickload(rebuild1)
+    fuze(rebuild1)
     ReleaseSaveSlot(rebuild1)
     if c_s < cs_0 then
         quickload(overall)
