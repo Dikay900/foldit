@@ -3,10 +3,8 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1003"
+Version     = "2.9.1.1004"
 numsegs     = get_segment_count()
-s_0         = get_score(true)
-c_s         = s_0
 --Game vars#
 
 --#Settings: Default
@@ -889,47 +887,48 @@ end
 --dist#
 
 function all()
-    overall = RequestSaveSlot()
-    quicksave(overall)
     if b_dist then
         dist()
-    else
+    end
+    if b_mutate then
+        mutable = FindMutable()
+    end
+    for i = start_seg, end_seg do
+        seg = i
+        c_s = get_score(true)
         if b_mutate then
-            mutable = FindMutable()
+            mutate()
         end
-        for i = start_seg, end_seg do
-            seg = i
-            c_s = get_score(true)
-            if b_mutate then
-                mutate()
-            end
-            if b_snap then
-                snap(seg)
-            end
-            for ii = start_walk, end_walk do
-                r = i + ii
-                if r > numsegs then
-                    r = numsegs
-                end
-                p(Version)
-                p(seg, "-", r)
-                if b_rebuild then
-                    rebuild()
-                end
-                gd("wl")
-                gd("wb")
-                gd("ws")
-                gd("wa")
-            end
+        if b_snap then
+            snap(seg)
         end
-        if b_fuze then
-            fuze(overall)
+        for ii = start_walk, end_walk do
+            r = i + ii
+            if r > numsegs then
+                r = numsegs
+            end
+            p(Version)
+            p(seg, "-", r)
+            if b_rebuild then
+                rebuild()
+            end
+            gd("wl")
+            gd("wb")
+            gd("ws")
+            gd("wa")
         end
     end
-    quickload(overall)
-    s_1 = get_score(true)
-    p("+++ Overall Gain +++")
-    p("+++", s_1 - s_0, "+++")
+    if b_fuze then
+        fuze(overall)
+    end
 end
 
+s_0 = get_score(true)
+c_s = s_0
+overall = RequestSaveSlot()
+quicksave(overall)
 all()
+quickload(overall)
+s_1 = get_score(true)
+p("+++ Overall Gain +++")
+p("+++", s_1 - s_0, "+++")
