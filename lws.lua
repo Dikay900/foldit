@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1004"
+Version     = "2.9.1.1005"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -19,6 +19,7 @@ start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 1         -- 0        with how many segs shall we work - Walker
 end_walk    = 2         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws       = true      -- true
 b_rebuild   = true      -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
@@ -40,11 +41,12 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Mutating#
 
 --#Snapping
-
 --Snapping#
 
 --#Rebuilding
-
+max_rebuilds= 4
+b_r_dist    = false
+b_r_fuze    = true
 --Rebuilding#
 --Settings#
 
@@ -101,38 +103,25 @@ end
 --Debug#
 
 --#External functions
------------------------------------------
--- math library
-
------------------------------------------
+--#math library
 -- The original random script this was ported from has the following notices:
 
 -- Copyright (c) 2007 Richard L. Mueller
 -- Hilltop Lab web site - http://www.rlmueller.net
--- Version 1.0 - January 2\, 2007
+-- Version 1.0 - January 2, 2007
 
--- You have a royalty-free right to use\, modify\, reproduce\, and distribute this script file in any
--- way you find useful\, provided that you agree that the copyright owner above has no warranty\,
--- obligations\, or liability for such use.
+-- You have a royalty-free right to use, modify, reproduce, and distribute this script file in any
+-- way you find useful, provided that you agree that the copyright owner above has no warranty,
+-- obligations, or liability for such use.
 
--- This function is not covered by the Creative Commons license given at the start of the script\,
+-- This function is not covered by the Creative Commons license given at the start of the script,
 -- and is instead covered by the comment given here.
 -----------------------------------------
 
-local lngX = 1000
-local lngC = 48313
+lngX = 1000
+lngC = 48313
 
 local function _MWC()
-    local S_Hi
-    local S_Lo
-    local C_Hi
-    local C_Lo
-    local F1
-    local F2
-    local F3
-    local T1
-    local T2
-    local T3
 
     local A_Hi = 63551
     local A_Lo = 25354
@@ -158,13 +147,6 @@ local function _MWC()
     lngC = math.floor((F2 / H) + F1)
 
     return lngX
-end
-
-local function _abs(value)
-    if value < 0 then
-        value = -value
-    end
-    return value
 end
 
 local function _floor(value)
@@ -577,7 +559,7 @@ end
 function gd(g)                  -- TODO: need complete rewrite with score function
     local iter = 0
     if rebuilding then
-        sl = rebuild1
+        sl = sl_re
     elseif snapping then
         sl = snapwork
     else
@@ -708,28 +690,31 @@ function snap(mutated)         -- TODO: need complete rewrite
 end
 --Snapping#
 
---#Rebuilding Version = "1.0.0.1"
+--#Rebuilding Version = "1.0.0.2"
 function rebuild()
     rebuilding = true
-    rebuild1 = RequestSaveSlot()
+    sl_re = RequestSaveSlot()
     rebuildsl = {}
-    for i = 1, 4 do
+    for i = 1, max_rebuilds do
         quickload(overall)
-        quicksave(rebuild1)
+        quicksave(sl_re)
         select()
         if r == seg then
             p("Rebuilding Segment ", seg)
         else
             p("Rebuilding Segment ", seg, "-", r)
         end
-        p("Try ", i, "/4")
+        p("Try ", i, "/", max_rebuilds)
         cs_0 = get_score(true)
         do_local_rebuild(3 * i)
         p(get_score(true) - c_s)
         c_s = get_score(true)
-        quicksave(rebuild1)
+        quicksave(sl_re)
         if b_mutate then
             mutate()
+        end
+        if b_r_dist then
+            dist()
         end
         select_all()
         gd("s")
@@ -737,7 +722,7 @@ function rebuild()
         gd("wl")
         gd("s")
         gd("wa")
-        quickload(rebuild1)
+        quickload(sl_re)
         rebuildsl[i] = RequestSaveSlot()
         quicksave(rebuildsl[i])
     end
@@ -747,14 +732,16 @@ function rebuild()
         csr[i] = get_score(true)
         if csr[i] > c_s then
             c_s = csr[i]
-            quicksave(rebuild1)
+            quicksave(sl_re)
         end
         ReleaseSaveSlot(rebuildsl[i])
     end
     p("+", c_s - cs_0, "+")
-    quickload(rebuild1)
-    fuze(rebuild1)
-    ReleaseSaveSlot(rebuild1)
+    quickload(sl_re)
+    if b_r_fuze then
+        fuze(sl_re)
+    end
+    ReleaseSaveSlot(sl_re)
     if c_s < cs_0 then
         quickload(overall)
     else
@@ -894,6 +881,7 @@ function all()
         mutable = FindMutable()
     end
     for i = start_seg, end_seg do
+        p(Version)
         seg = i
         c_s = get_score(true)
         if b_mutate then
@@ -907,15 +895,16 @@ function all()
             if r > numsegs then
                 r = numsegs
             end
-            p(Version)
             p(seg, "-", r)
             if b_rebuild then
                 rebuild()
             end
-            gd("wl")
-            gd("wb")
-            gd("ws")
-            gd("wa")
+            if b_lws then
+                gd("wl")
+                gd("wb")
+                gd("ws")
+                gd("wa")
+            end
         end
     end
     if b_fuze then
