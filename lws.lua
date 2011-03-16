@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1005"
+Version     = "2.9.1.1006"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -17,10 +17,10 @@ b_comp = false
 maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
-start_walk  = 1         -- 0        with how many segs shall we work - Walker
-end_walk    = 2         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws       = true      -- true
-b_rebuild   = true      -- false    should we rebuild
+start_walk  = 0         -- 0        with how many segs shall we work - Walker
+end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws       = false     -- true
+b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
@@ -282,8 +282,10 @@ function floss(option, cl1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
         fstruct("s", cl1)
-        fgain()
+        fstruct("w", 1)
         fstruct("s", cl2)
+        fstruct("w", 1)
+        fstruct("s", cl1 - 0.02)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
         fstruct("w", cl1)
