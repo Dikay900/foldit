@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1006"
+Version     = "2.9.1.1007"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -19,7 +19,7 @@ start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
 end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws       = false     -- true
+b_lws       = true      -- true
 b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
@@ -28,7 +28,7 @@ b_fuze      = true      -- true     should we fuze
 
 --#Scoring
 step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.05      -- 0.02     Score will get applied after the score changed this value
+gain        = 0.02      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -510,7 +510,7 @@ function fgain()
     until s4_f - s3_f < step
 end
 
---#Universal scoring Version = "1.0.1.31"
+--#Universal scoring Version = "1.0.1.33"
 function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
     if more > gain then
@@ -518,46 +518,28 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
         p("++", s1, "++")
         c_s = s1
         quicksave(sl)
-        if more > step then
-            if g == "wb" then
-                p("Rework after backbone wiggle gain.")
-                gd("s")
-                gd("ws")
-                gd("wa")
-                p("Rework after backbone wiggle gain ended.")
-            elseif g == "ws" then
-                p("Rework after sidechain wiggle gain.")
-                gd("s")
-                gd("wb")
-                gd("wl")
-                gd("wa")
-                p("Rework after sidechain wiggle gain ended.")
-            end
+        if g == "wb" then
+            p("Rework after backbone wiggle gain.")
+            gd("s")
+            gd("ws")
+            gd("wa")
+            p("Rework after backbone wiggle gain ended.")
+        elseif g == "ws" then
+            p("Rework after sidechain wiggle gain.")
+            gd("s")
+            gd("wb")
+            gd("wl")
+            gd("wa")
+            p("Rework after sidechain wiggle gain ended.")
         end
     else
-        select()
-        f_sl=RequestSaveSlot()
-        quicksave(f_sl)
-        s1 = get_score(true)
-        do_local_wiggle(1)
-        s2 = get_score(true)
-        quickload(f_sl)
-        ReleaseSaveSlot(f_sl)
-        if s2 == s1 then
-            cfreezed = true
-        end
         quickload(sl)
-        if cfreezed then
-            do_unfreeze_all()
-            select()
-            freeze()
-        end
     end
 end
 --Universal scoring#
 --Scoring#
 
---#Universal working Version = "1.6.5.478"
+--#Universal working Version = "1.6.5.483"
 function gd(g)                  -- TODO: need complete rewrite with score function
     local iter = 0
     if rebuilding then
