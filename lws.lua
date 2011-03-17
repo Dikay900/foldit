@@ -18,7 +18,7 @@ maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
-end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
+end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws       = true      -- true
 b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
@@ -27,8 +27,8 @@ b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Scoring
-step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.02      -- 0.02     Score will get applied after the score changed this value
+step        = 0.0001      -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.0001      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -522,6 +522,7 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
             p("Rework after backbone wiggle gain.")
             gd("s")
             gd("ws")
+            gd("wl")
             gd("wa")
             p("Rework after backbone wiggle gain ended.")
         elseif g == "ws" then
@@ -529,6 +530,13 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
             gd("s")
             gd("wb")
             gd("wl")
+            gd("wa")
+            p("Rework after sidechain wiggle gain ended.")
+        elseif g == "wl" then
+            p("Rework after sidechain wiggle gain.")
+            gd("s")
+            gd("wb")
+            gd("ws")
             gd("wa")
             p("Rework after sidechain wiggle gain ended.")
         end
@@ -634,17 +642,11 @@ function snap(mutated)         -- TODO: need complete rewrite
             c_s = get_score(true)
             snapwork = RequestSaveSlot()
             quicksave(snapwork)
-            freeze()
             gd("s")
             gd("wa")
             gd("ws")
             gd("wb")
-            do_unfreeze_all()
             gd("wl")
-            gd("wa")
-            gd("s")
-            gd("wl")
-            gd("wa")
         end
         quickload(snaps)
         cs2 = get_score(true)
@@ -690,7 +692,9 @@ function rebuild()
         end
         p("Try ", i, "/", max_rebuilds)
         cs_0 = get_score(true)
+        set_behavior_clash_importance(0.01)
         do_local_rebuild(3 * i)
+        set_behavior_clash_importance(1)
         p(get_score(true) - c_s)
         c_s = get_score(true)
         quicksave(sl_re)
