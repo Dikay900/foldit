@@ -833,6 +833,7 @@ function dist()
     end
     Push()
     Pull()
+    select_all()
     set_behavior_clash_importance(0.8)
     do_global_wiggle_backbone(1)
     band_delete()
@@ -895,9 +896,7 @@ function all()
             end
         end
     end
-    if b_fuze then
         fuze(overall)
-    end
 end
 
 s_0 = get_score(true)
