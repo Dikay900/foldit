@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1010"
+Version     = "2.9.1.1011"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -685,7 +685,7 @@ end
 function rebuild()
     rebuilding = true
     sl_re = RequestSaveSlot()
-    rebuildsl = {}
+    sl_best = RequestSaveSlot()
     for i = 1, max_rebuilds do
         quickload(overall)
         quicksave(sl_re)
@@ -713,32 +713,25 @@ function rebuild()
             dists()
         end
         select_all()
+        if b_r_fuze then
+            fuze(sl_re)
+        end
         gd("s")
         gd("ws")
         gd("wb")
         gd("wa")
         gd("wl")
-        gd("s")
-        gd("wa")
         quickload(sl_re)
-        rebuildsl[i] = RequestSaveSlot()
-        quicksave(rebuildsl[i])
-    end
-    csr={}
-    for i = 1, #rebuildsl do
-        quickload(rebuildsl[i])
-        csr[i] = get_score(true)
-        if csr[i] > c_s then
-            c_s = csr[i]
-            quicksave(sl_re)
+        if csr and csr < get_score(true) then
+            local csr = get_score(true)
+            quicksave(sl_best)
         end
-        ReleaseSaveSlot(rebuildsl[i])
     end
+    if csr then c_s = csr end
+    quickload(sl_best)
+    ReleaseSaveSlot(sl_best)
     p("+", c_s - cs_0, "+")
     quickload(sl_re)
-    if b_r_fuze then
-        fuze(sl_re)
-    end
     ReleaseSaveSlot(sl_re)
     if c_s < cs_0 then
         quickload(overall)
