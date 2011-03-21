@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1009"
+Version     = "2.9.1.1010"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -12,11 +12,11 @@ numsegs     = get_segment_count()
 maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
-start_walk  = 0         -- 0        with how many segs shall we work - Walker
+start_walk  = 1         -- 0        with how many segs shall we work - Walker
 end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws       = false      -- true
+b_lws       = false     -- true
 b_dist      = false     -- false
-b_rebuild   = true     -- false    should we rebuild
+b_rebuild   = true      -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
@@ -523,23 +523,22 @@ function score(g, sl)               -- TODO: need complete rewrite with gd (work
             p("Rework after backbone wiggle gain.")
             gd("s")
             gd("ws")
-            gd("wl")
             gd("wa")
             p("Rework after backbone wiggle gain ended.")
         elseif g == "ws" then
             p("Rework after sidechain wiggle gain.")
             gd("s")
             gd("wb")
-            gd("wl")
             gd("wa")
             p("Rework after sidechain wiggle gain ended.")
         elseif g == "wl" then
-            p("Rework after sidechain wiggle gain.")
+            p("Rework after local wiggle gain.")
             gd("s")
             gd("wb")
             gd("ws")
             gd("wa")
-            p("Rework after sidechain wiggle gain ended.")
+            gd("wl")
+            p("Rework after local wiggle gain ended.")
         end
     else
         quickload(sl)
@@ -599,10 +598,11 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
                 wl = RequestSaveSlot()
                 quicksave(wl)
                 for i = iter, iter + 5 do           -- TODO: Think of testing every iter before applying gain
+                    if iter > 10 then break end
                     local s_s1 = get_score(true)
                     do_local_wiggle(iter)
                     local s_s2 = get_score(true)
-                    if s_s2 > s_s1 then
+                    if s_s2 - s_s1 > step / 2 * i then
                         quicksave(wl)
                     end
                     quickload(wl)
@@ -715,6 +715,8 @@ function rebuild()
         select_all()
         gd("s")
         gd("ws")
+        gd("wb")
+        gd("wa")
         gd("wl")
         gd("s")
         gd("wa")
@@ -891,6 +893,7 @@ function all()
             r = i + ii
             if r > numsegs then
                 r = numsegs
+                break
             end
             p(seg, "-", r)
             if b_rebuild then
@@ -906,6 +909,10 @@ function all()
     end
         fuze(overall)
 end
+
+select_all()
+replace_ss("L")
+deselect_all()
 
 s_0 = get_score(true)
 c_s = s_0
