@@ -3,16 +3,11 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1007"
+Version     = "2.9.1.1008"
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: Default
---#Dist
-b_dist = false
-b_comp = false
---Dist#
-
 --#Working              default     description
 maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
@@ -20,15 +15,20 @@ end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
 end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws       = true      -- true
+b_dist      = false     -- false
 b_rebuild   = false     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
 --Working#
 
+--#Dist
+b_comp      = false     -- false
+--Dist#
+
 --#Scoring
-step        = 0.0001      -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.0001      -- 0.02     Score will get applied after the score changed this value
+step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
+gain        = 0.02      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -44,9 +44,10 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Snapping#
 
 --#Rebuilding
-max_rebuilds= 4
-b_r_dist    = false
-b_r_fuze    = true
+max_rebuilds= 4         -- 4
+rebuild_str = 1         -- 1
+b_r_dist    = false     -- false
+b_r_fuze    = true      -- true
 --Rebuilding#
 --Settings#
 
@@ -693,9 +694,12 @@ function rebuild()
         p("Try ", i, "/", max_rebuilds)
         cs_0 = get_score(true)
         set_behavior_clash_importance(0.01)
-        do_local_rebuild(3 * i)
+        do_local_rebuild(rebuild_str * i)
+        if get_score(true) == cs_0 then
+        do_local_rebuild(rebuild_str * i * 2)
+        end
         set_behavior_clash_importance(1)
-        p(get_score(true) - c_s)
+        p(get_score(true) - cs_0)
         c_s = get_score(true)
         quicksave(sl_re)
         if b_mutate then
