@@ -14,9 +14,9 @@ start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 0         -- 0        with how many segs shall we work - Walker
 end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws       = true      -- true
+b_lws       = false      -- true
 b_dist      = false     -- false
-b_rebuild   = false     -- false    should we rebuild
+b_rebuild   = true     -- false    should we rebuild
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
@@ -44,7 +44,7 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Snapping#
 
 --#Rebuilding
-max_rebuilds= 4         -- 4
+max_rebuilds= 5         -- 5
 rebuild_str = 1         -- 1
 b_r_dist    = false     -- false
 b_r_fuze    = true      -- true
