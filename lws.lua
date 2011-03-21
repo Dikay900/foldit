@@ -3,7 +3,7 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1008"
+Version     = "2.9.1.1009"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -369,7 +369,7 @@ end
 --#CenterBands
 function CreateBandsToCenter()
    local indexCenter = FastCenter()
-   for i=1,numsegs do
+   for i=start_seg,end_seg do
        if(i ~= indexCenter) then
            if hydro[i] then
                band_add_segment_segment(i,indexCenter)
@@ -382,11 +382,11 @@ end
 --#PushPull
 function Pull()
     distances = GetDistances()
-    for x = 1, numsegs - 2 do
+    for x = start_seg, end_seg - 2 do
         if hydro[x] then
-            for y = x + 2, numsegs do
+            for y = x + 2, end_seg do
                 math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < 0.02 then
+                if hydro[y] and math.random() < 0.03 then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
                 repeat
@@ -403,9 +403,9 @@ end
 
 function Push()
     distances = GetDistances()
-    for x = 1, numsegs - 2 do
+    for x = start_seg, end_seg - 2 do
         if not hydro[x] then
-            for y = x + 2, numsegs do
+            for y = x + 2, end_seg do
                 math.randomseed(distances[x][y])
                 if not hydro[y] and math.random() < 0.04 then
                     local distance = distances[x][y]
@@ -426,8 +426,8 @@ end
 function BandMaxDist()
     distances = GetDistances()
     local maxdistance = 0
-    for i = 1, numsegs do
-        for j = 1, numsegs do
+    for i = start_seg, end_seg do
+        for j = start_seg, end_seg do
             if i ~= j then
                 local x = i
                 local y = j
@@ -565,8 +565,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
             select()
         end
     else
-        local list1 = GetSphere(seg, 8)
-        local list2 = GetSphere(r, 8)
+        --local list1 = GetSphere(seg, 8)          -- TODO: Fix sphered Shake ...
+        --local list2 = GetSphere(r, 8)
     end
     repeat
         iter = iter + 1
@@ -576,9 +576,10 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         s1 = get_score(true)
         if iter < maxiter then
             if g == "s" then                -- TODO: Handle in score function
-                select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                select(list2, true)
+                --select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+                --select(list2, true)
                 select_all()
+                deselect_index(seg)
                 local s_s1 = s1
                 do_shake(1)
                 local s_s2 = get_score(true)
@@ -629,10 +630,13 @@ end
 function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
+    c_snap = get_score(true)
+        cs = get_score(true)
     quicksave(snaps)
     iii = get_sidechain_snap_count(seg)
     p("Snapcount: ", iii, " - Segment ", seg)
     if iii ~= 1 then
+    snapwork = RequestSaveSlot()
         for ii = 1, iii do
             quickload(snaps)
             p("Snap ", ii, "/ ", iii)
@@ -641,20 +645,20 @@ function snap(mutated)         -- TODO: need complete rewrite
             do_sidechain_snap(seg, ii)
             p(get_score(true) - c_s)
             c_s = get_score(true)
-            snapwork = RequestSaveSlot()
             quicksave(snapwork)
             gd("s")
             gd("wa")
             gd("ws")
             gd("wb")
             gd("wl")
+            if c_snap < get_score(true) then
+            c_snap = get_score(true)
+            end
         end
         quickload(snaps)
-        cs2 = get_score(true)
         quickload(snapwork)
         ReleaseSaveSlot(snapwork)
-        cs3 = get_score(true)
-        if cs3 > cs2 then
+        if cs < c_snap then
             quicksave(snaps)
         else
             quickload(snaps)
@@ -706,7 +710,7 @@ function rebuild()
             mutate()
         end
         if b_r_dist then
-            dist()
+            dists()
         end
         select_all()
         gd("s")
@@ -820,7 +824,7 @@ end
 --Mutate#
 
 --#dist Version = "1.0.2.12"
-function dist()
+function dists()
     dist = RequestSaveSlot()
     quicksave(dist)
     s_dist = get_score()
@@ -868,7 +872,7 @@ end
 
 function all()
     if b_dist then
-        dist()
+        dists()
     end
     if b_mutate then
         mutable = FindMutable()
@@ -881,7 +885,7 @@ function all()
             mutate()
         end
         if b_snap then
-            snap(seg)
+            snap()
         end
         for ii = start_walk, end_walk do
             r = i + ii
