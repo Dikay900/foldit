@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1014"
+Version     = "2.9.1.1015"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -17,8 +17,8 @@ end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 1         -- 0        with how many segs shall we work - Walker
 end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws       = false     -- true     do local wiggle and rewiggle
-b_dist      = true      -- false    push / pull together and alone then fuze see #Dist
-b_rebuild   = false     -- false    rebuild see #Rebuilding
+b_dist      = false     -- false    push / pull together and alone then fuze see #Dist
+b_rebuild   = true      -- false    rebuild see #Rebuilding
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
@@ -210,7 +210,7 @@ end
 
 function FindMutable()
     p("Finding Mutable Segments -- Programm will get stuck a bit")
-    mut = RequestSaveSlot()
+    local mut = RequestSaveSlot()
     quicksave(mut)
     local mutable = {}
     local isG = {}
