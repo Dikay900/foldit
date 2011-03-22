@@ -1,9 +1,11 @@
--- This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
--- Thanks goes to Rav3n_pl, Tlaloc
--- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
+[[
+This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
+Thanks goes to Rav3n_pl, Tlaloc
+Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
+]]
 
 --#Game vars
-Version     = "2.9.1.1012"
+Version     = "2.9.1.1013"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -14,10 +16,10 @@ start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 1         -- 0        with how many segs shall we work - Walker
 end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws       = false     -- true
-b_dist      = false     -- false
-b_rebuild   = true      -- false    should we rebuild
-b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option
+b_lws       = false     -- true     do local wiggle and rewiggle
+b_dist      = false     -- false    push / pull together and alone then fuze see #Dist
+b_rebuild   = true      -- false    rebuild see #Rebuilding
+b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
 --Working#
@@ -106,48 +108,37 @@ end
 
 --#External functions
 --#math library
--- The original random script this was ported from has the following notices:
-
--- Copyright (c) 2007 Richard L. Mueller
--- Hilltop Lab web site - http://www.rlmueller.net
--- Version 1.0 - January 2, 2007
-
--- You have a royalty-free right to use, modify, reproduce, and distribute this script file in any
--- way you find useful, provided that you agree that the copyright owner above has no warranty,
--- obligations, or liability for such use.
-
--- This function is not covered by the Creative Commons license given at the start of the script,
--- and is instead covered by the comment given here.
------------------------------------------
-
+[[
+The original random script this was ported from has the following notices:
+Copyright (c) 2007 Richard L. Mueller
+Hilltop Lab web site - http://www.rlmueller.net
+Version 1.0 - January 2, 2007
+You have a royalty-free right to use, modify, reproduce, and distribute this script file in any
+way you find useful, provided that you agree that the copyright owner above has no warranty,
+obligations, or liability for such use.
+This function is not covered by the Creative Commons license given at the start of the script,
+and is instead covered by the comment given here.
+]]
 lngX = 1000
 lngC = 48313
-
 local function _MWC()
-
     local A_Hi = 63551
     local A_Lo = 25354
     local M = 4294967296
-
     local H = 65536
-
     local S_Hi = math.floor(lngX / H)
     local S_Lo = lngX - (S_Hi * H)
     local C_Hi = math.floor(lngC / H)
     local C_Lo = lngC - (C_Hi * H)
-
     local F1 = A_Hi * S_Hi
     local F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
     local F3 = (A_Lo * S_Lo) + C_Lo
-
     local T1 = math.floor(F2 / H)
     local T2 = F2 - (T1 * H)
     lngX = (T2 * H) + F3
     local T3 = math.floor(lngX / M)
     lngX = lngX - (T3 * M)
-
     lngC = math.floor((F2 / H) + F1)
-
     return lngX
 end
 
@@ -160,11 +151,11 @@ local function _randomseed(x)
 end
 
 local function _random(m,n)
-    if n == nil and m ~= nil then
+    if not n and m then
         n = m
         m = 1
     end
-    if (m == nil) and (n == nil) then
+    if not m and not n then
         return _MWC() / 4294967296
     else
         if n < m then
@@ -176,9 +167,9 @@ end
 
 math=
 {
-    floor = _floor,
-    random = _random,
-    randomseed = _randomseed,
+    floor       = _floor,
+    random      = _random,
+    randomseed  = _randomseed
 }
 -- End math library
 
@@ -245,7 +236,6 @@ end
 --External functions#
 
 --#Internal functions
---#Prerecipefunctions
 --#Hydrocheck
 hydro = {}
 for i = 1, numsegs do
@@ -259,7 +249,7 @@ if get_ss(numsegs) == 'M' then
 end
 --Ligand Check#
 
---#Fuzing Version = "1.0.5.142"
+--#Fuzing
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
     if g == "s" then
@@ -416,7 +406,7 @@ function Push()
 end
 --PushPull#
 
---#BandMaxDist Version = "1.0.0.1"
+--#BandMaxDist
 function BandMaxDist()
     distances = GetDistances()
     local maxdistance = 0
@@ -445,7 +435,7 @@ function BandMaxDist()
 end
 --BandMaxDist#
 
---#Universal select Version = "1.0.2.9"
+--#Universal select
 function select(list, more)
     local _r = r
     local _seg = seg
@@ -513,7 +503,7 @@ function fgain()
     until s4_f - s3_f < step
 end
 
---#Universal scoring Version = "1.0.1.33"
+--#Universal scoring
 function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
     if more > gain then
@@ -549,7 +539,7 @@ end
 --Universal scoring#
 --Scoring#
 
---#Universal working Version = "1.6.5.483"
+--#Universal working
 function gd(g)                  -- TODO: need complete rewrite with score function
     local iter = 0
     if rebuilding then
@@ -626,7 +616,7 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
 end
 --Working#
 
---#Snapping Version = "1.0.2.169"
+--#Snapping
 function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
@@ -681,7 +671,7 @@ function snap(mutated)         -- TODO: need complete rewrite
 end
 --Snapping#
 
---#Rebuilding Version = "1.0.0.2"
+--#Rebuilding
 function rebuild()
     rebuilding = true
     sl_re = RequestSaveSlot()
@@ -744,7 +734,7 @@ function rebuild()
 end
 --Rebuilding#
 
---#Mutate function Version = "1.0.3.136"
+--#Mutate function
 function mutate()          -- TODO: Test assert Saveslots
     mutating = true
     if b_mutate then
@@ -820,7 +810,7 @@ function mutate()          -- TODO: Test assert Saveslots
 end
 --Mutate#
 
---#dist Version = "1.0.2.12"
+--#dist
 function dists()
     dist = RequestSaveSlot()
     quicksave(dist)
