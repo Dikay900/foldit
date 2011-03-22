@@ -1,11 +1,11 @@
-[[
+--[[
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks goes to Rav3n_pl, Tlaloc
 Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 ]]
 
 --#Game vars
-Version     = "2.9.1.1013"
+Version     = "2.9.1.1014"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -17,15 +17,16 @@ end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 1         -- 0        with how many segs shall we work - Walker
 end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws       = false     -- true     do local wiggle and rewiggle
-b_dist      = false     -- false    push / pull together and alone then fuze see #Dist
-b_rebuild   = true      -- false    rebuild see #Rebuilding
+b_dist      = true      -- false    push / pull together and alone then fuze see #Dist
+b_rebuild   = false     -- false    rebuild see #Rebuilding
 b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap      = false     -- false    should we snap every sidechain to different positions
 b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Dist
-b_comp      = false     -- false
+b_comp      = true      -- false
+i_d_trys    = 10        -- 10
 --Dist#
 
 --#Scoring
@@ -108,7 +109,7 @@ end
 
 --#External functions
 --#math library
-[[
+--[[
 The original random script this was ported from has the following notices:
 Copyright (c) 2007 Richard L. Mueller
 Hilltop Lab web site - http://www.rlmueller.net
@@ -859,7 +860,9 @@ end
 
 function all()
     if b_dist then
-        dists()
+        for i = 1, i_d_trys do
+            dists()
+        end
     end
     if b_mutate then
         mutable = FindMutable()
