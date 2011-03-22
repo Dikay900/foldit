@@ -3,11 +3,11 @@
 -- Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
 
 --#Game vars
-Version     = "2.9.1.1011"
+Version     = "2.9.1.1012"
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: Default
+--#Settings: 405 rebuild
 --#Working              default     description
 maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
@@ -32,7 +32,6 @@ gain        = 0.02      -- 0.02     Score will get applied after the score chang
 --Scoring#
 
 --#Fuzing
-fastfuze    = false     -- false    Every fuze will get tested and the best will be selected, then fuze again if false
 --Fuzing#
 
 --#Mutating
@@ -48,6 +47,8 @@ max_rebuilds= 5         -- 5
 rebuild_str = 1         -- 1
 b_r_dist    = false     -- false
 b_r_fuze    = true      -- true
+b_r_deep    = false     -- false
+i_deep_sc   = 10        -- 10
 --Rebuilding#
 --Settings#
 
@@ -193,7 +194,7 @@ function GetDistances()
 end
 
 function GetSphere(seg, radius)
-    local sphere={}
+    sphere = {}
     for i = 1, numsegs do
         if get_segment_distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
@@ -262,6 +263,14 @@ end
 function fstruct(g, cl)
     set_behavior_clash_importance(cl)
     if g == "s" then
+        if rebuilding then
+        list1 = GetSphere(seg, 10)
+        list2 = GetSphere(r, 10)
+        select(list1)
+        select(list2, true)
+        else
+        select_all()
+        end
         do_shake(1)
     elseif g == "w" then
         do_global_wiggle_all(1)
@@ -305,64 +314,49 @@ function s_fuze(option, cl1, cl2)
     fgain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
-        if fastfuze then
-            quicksave(sl_f[1])
-        else
-            sl_f[#sl_f + 1] = RequestSaveSlot()
-            quicksave(sl_f[#sl_f])
-        end
+        quicksave(sl_f2)
         p("+", s2_f - s1_f, "+")
     end
-    quickload(sl_f[1])
+    quickload(sl_f1)
 end
 
 function fuze(sl)
-    if b_fuze then
-        select_all()
-        sl_f = {}
-        sl_f[1] = RequestSaveSlot()
-        quicksave(sl_f[1])
-        s_fuze(1, 0.1, 0.7)
-        s_fuze(1, 0.3, 0.6)
-        s_fuze(2, 0.5, 0.7)
-        s_fuze(2, 0.7, 0.5)
-        s_fuze(3, 0.05, 0.07)
-        s_fuze(4, 0.3, 0.3)
-        s_fuze(5, 0.1, 0.4)
-        local s_f = get_score()
-        if not fastfuze then
-            for i = 2, #sl_f do
-                quickload(sl_f[i])
-                s_f1 = get_score(true)
-                if s_f1 > s_f then
-                    quicksave(sl_f[1])
-                    s_f = s_f1
-                end
-            end
+    select_all()
+    s_f = get_score()
+    sl_f1 = RequestSaveSlot()
+    sl_f2 = RequestSaveSlot()
+    quicksave(sl_f1)
+    s_fuze(1, 0.1, 0.7)
+    s_fuze(1, 0.3, 0.6)
+    s_fuze(2, 0.5, 0.7)
+    s_fuze(2, 0.7, 0.5)
+    s_fuze(3, 0.05, 0.07)
+    s_fuze(4, 0.3, 0.3)
+    s_fuze(5, 0.1, 0.4)
+    quickload(sl_f2)
+    s_f2 = get_score(true)
+    if s_f2 > s_f then
+        quicksave(sl_f2)
+        s_f = s_f2
+    end
+    ReleaseSaveSlot(sl_f1)
+    ReleaseSaveSlot(sl_f2)
+    if s_f > c_s then
+        quicksave(sl)
+        s_fg = s_f - c_s
+        p("+", s_fg, "+")
+        c_s = s_f
+        p("++", c_s, "++")
+        if not rebuilding and s_fg > gain then
+            r_fuze(sl)
         end
-        quickload(sl_f[1])
-        if not fastfuze then
-            for i = 1, #sl_f do
-                ReleaseSaveSlot(sl_f[i])
-            end
-        end
-        if s_f > c_s then
-            quicksave(sl)
-            s_fg = s_f - c_s
-            p("+", s_fg, "+")
-            c_s = s_f
-            p("++", c_s, "++")
-            if s_fg > gain then
-                r_fuze(sl)
-            end
-        else
-            quickload(sl)
-        end
+    else
+        quickload(sl)
     end
 end
 
 function r_fuze(sl)
-fuze(sl)
+    fuze(sl)
 end
 --Fuzing#
 
@@ -506,6 +500,14 @@ function fgain()
             local s2_f = get_score(true)
         until s2_f - s1_f < step
         local s3_f = get_score(true)
+        if rebuilding then
+        list1 = GetSphere(seg, 10)
+        list2 = GetSphere(r, 10)
+        select(list1)
+        select(list2, true)
+        else
+        select_all()
+        end
         do_shake(1)
         local s4_f = get_score(true)
     until s4_f - s3_f < step
@@ -564,8 +566,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
             select()
         end
     else
-        --local list1 = GetSphere(seg, 8)          -- TODO: Fix sphered Shake ...
-        --local list2 = GetSphere(r, 8)
+        list1 = GetSphere(seg, 10)
+        list2 = GetSphere(r, 10)
     end
     repeat
         iter = iter + 1
@@ -575,10 +577,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         s1 = get_score(true)
         if iter < maxiter then
             if g == "s" then                -- TODO: Handle in score function
-                --select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                --select(list2, true)
-                select_all()
-                deselect_index(seg)
+                select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+                select(list2, true)
                 local s_s1 = s1
                 do_shake(1)
                 local s_s2 = get_score(true)
@@ -720,7 +720,9 @@ function rebuild()
         gd("ws")
         gd("wb")
         gd("wa")
-        gd("wl")
+        if b_r_deep or cs_0 - c_s < i_deep_sc then
+            gd("wl")
+        end
         quickload(sl_re)
         if csr and csr < get_score(true) then
             local csr = get_score(true)
@@ -900,12 +902,10 @@ function all()
             end
         end
     end
+    if b_fuze then
         fuze(overall)
+    end
 end
-
-select_all()
-replace_ss("L")
-deselect_all()
 
 s_0 = get_score(true)
 c_s = s_0
