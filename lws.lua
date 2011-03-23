@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1015"
+Version     = "2.9.1.1016"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -15,7 +15,7 @@ maxiter     = 5         -- 5        max. iterations an action will do
 start_seg   = 1         -- 1        the first segment to work with
 end_seg     = numsegs   -- numsegs  the last segment to work with
 start_walk  = 1         -- 0        with how many segs shall we work - Walker
-end_walk    = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
+end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws       = false     -- true     do local wiggle and rewiggle
 b_dist      = false     -- false    push / pull together and alone then fuze see #Dist
 b_rebuild   = true      -- false    rebuild see #Rebuilding
@@ -46,9 +46,10 @@ b_m_fuze    = true      -- true     fuze a change or just wiggling out (could ge
 --Snapping#
 
 --#Rebuilding
+b_struct_re = true
 max_rebuilds= 5         -- 5
 rebuild_str = 1         -- 1
-b_r_dist    = false     -- false
+b_r_dist    = true     -- false
 b_r_fuze    = true      -- true
 b_r_deep    = false     -- false
 i_deep_sc   = 10        -- 10
@@ -858,11 +859,60 @@ function dists()
 end
 --dist#
 
+--#fast ss
+ss = {}
+for i = 1, numsegs do
+    ss[i] = get_ss(i)
+end
+local i
+he = {}
+for i = 1, numsegs do
+    if ss[i] == "H" and not helix then
+        helix = true
+        he[#he + 1] = {}
+    end
+    if helix then
+        if ss[i] == "H" then
+            he[#he][#he[#he]+1] = i
+        else
+            helix = false
+        end
+    end
+end
+p("Found ", #he, " Helixes")
+--fastss#
+
+--#struct rebuild
+function struct_rebuild()
+    set_behavior_clash_importance(0)
+    local iter = 1
+    for i = 1, #he do
+        deselect_all()
+        str_rs = get_score(true)
+        select_index_range(he[i][1] - 1, he[i][#he[i]])
+        while get_score(true) == str_rs do
+            do_local_rebuild(iter)
+            iter = iter + 1
+        end
+        str_rs = get_score(true)
+        while get_score(true) == str_rs do
+            do_local_rebuild(iter + 1)
+            iter = iter + 1
+        end
+        fuze(overall)
+    end
+    set_behavior_clash_importance(1)
+end
+--struct rebuild#
+
 function all()
     if b_dist then
         for i = 1, i_d_trys do
             dists()
         end
+    end
+    if b_struct_re then
+        struct_rebuild()
     end
     if b_mutate then
         mutable = FindMutable()
