@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1016"
+Version     = "2.9.1.1017"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -25,8 +25,9 @@ b_fuze      = true      -- true     should we fuze
 --Working#
 
 --#Dist
-b_comp      = true      -- false
-i_d_trys    = 10        -- 10
+b_comp      = false      -- false
+i_d_trys    = 1        -- 10
+b_str_re_dist = true
 --Dist#
 
 --#Scoring
@@ -318,7 +319,7 @@ function fuze(sl)
     sl_f1 = RequestSaveSlot()
     sl_f2 = RequestSaveSlot()
     quicksave(sl_f1)
-    s_fuze(1, 0.1, 0.7)
+    s_fuze(1, 0.1, 0.7)             -- TODO: Combine Fuzes S > W --> QSTAB (?)>=(?) BF PF1 > PF2
     s_fuze(1, 0.3, 0.6)
     s_fuze(2, 0.5, 0.7)
     s_fuze(2, 0.7, 0.5)
@@ -879,17 +880,32 @@ for i = 1, numsegs do
         end
     end
 end
-p("Found ", #he, " Helixes")
 --fastss#
 
 --#struct rebuild
 function struct_rebuild()
-    set_behavior_clash_importance(0)
+    p("Found ", #he, " Helixes")
     local iter = 1
     for i = 1, #he do
         deselect_all()
         str_rs = get_score(true)
-        select_index_range(he[i][1] - 1, he[i][#he[i]])
+        seg = he[i][1] - 1
+        if seg <= 0 then
+            seg = 1
+        end
+        r = he[i][#he[i]]
+        if r > numsegs then
+            r = numsegs
+        end
+        for ii = he[i][1], he[i][#he[i]] do
+            for iii = 2, he[i][#he[i]] - he[i][1] do
+                band_add_segment_segment(ii, ii + iii)
+                band_set_length(get_band_count(), 1.26 * iii)
+            end
+        end
+        do_global_wiggle_all(1)
+        set_behavior_clash_importance(0.01)
+        select_index_range(seg, r)
         while get_score(true) == str_rs do
             do_local_rebuild(iter)
             iter = iter + 1
@@ -899,9 +915,15 @@ function struct_rebuild()
             do_local_rebuild(iter + 1)
             iter = iter + 1
         end
-        fuze(overall)
+        set_behavior_clash_importance(1)
+        if b_str_re_dist then
+            dists()
+        else
+            rebuilding = true
+            fuze(overall)
+        end
     end
-    set_behavior_clash_importance(1)
+    rebuilding = false
 end
 --struct rebuild#
 
@@ -952,6 +974,7 @@ end
 
 s_0 = get_score(true)
 c_s = s_0
+p("Starting Score: ", c_s)
 overall = RequestSaveSlot()
 quicksave(overall)
 all()
