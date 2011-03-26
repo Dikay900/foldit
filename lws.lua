@@ -5,11 +5,11 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1018"
+Version     = "2.9.1.1019"
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: 406 strcut rebuild
+--#Settings: 406 struct rebuild
 --#Working                  default     description
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
@@ -48,6 +48,7 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 
 --#Rebuilding
 b_struct_re     = true
+b_str_re_band   = true
 max_rebuilds    = 5         -- 5
 rebuild_str     = 1         -- 1
 b_r_dist        = false     -- false
@@ -896,32 +897,38 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
+        if b_str_re_band then
         for ii = he[i][1], he[i][#he[i]] do
-            for iii = he[i][1] + 2, he[i][#he[i]] do
+            for iii = he[i][1] + 3, he[i][#he[i]] do
                 if iii > ii then
                 local len = 1.26 + (1.26 * (iii - ii))
                 if len > 20 then len = 20 end
                 if len > 0 then band_add_segment_segment(ii, iii) end
                 band_set_length(get_band_count(), len)
                 local dist = get_segment_distance(ii, iii)
-                dist = dist / 20
+                while dist > 1 do
+                dist = dist /5
+                end
+                while dist < 1 do
+                dist = dist * 2
+                end
                 band_set_strength(get_band_count(), dist)
                 end
             end
         end
-        deselect_all()
-        select_index_range(seg, r)
+        select_all()
         do_global_wiggle_all(1)
         band_delete()
-        set_behavior_clash_importance(0.01)
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        set_behavior_clash_importance(0)
+        for i = 1, 5 do
         while get_score(true) == str_rs do
             do_local_rebuild(iter)
-            iter = iter + 1
+            iter = iter + i
         end
         str_rs = get_score(true)
-        while get_score(true) == str_rs do
-            iter = iter + 1
-            do_local_rebuild(iter)
         end
         set_behavior_clash_importance(1)
         if b_str_re_dist then
