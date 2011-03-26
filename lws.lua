@@ -5,99 +5,99 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1017"
+Version     = "2.9.1.1018"
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: 405 rebuild
---#Working              default     description
-maxiter     = 5         -- 5        max. iterations an action will do
-start_seg   = 1         -- 1        the first segment to work with
-end_seg     = numsegs   -- numsegs  the last segment to work with
-start_walk  = 1         -- 0        with how many segs shall we work - Walker
-end_walk    = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws       = false     -- true     do local wiggle and rewiggle
-b_dist      = false     -- false    push / pull together and alone then fuze see #Dist
-b_rebuild   = true      -- false    rebuild see #Rebuilding
-b_mutate    = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_snap      = false     -- false    should we snap every sidechain to different positions
-b_fuze      = true      -- true     should we fuze
+--#Settings: 406 strcut rebuild
+--#Working                  default     description
+maxiter         = 5         -- 5        max. iterations an action will do
+start_seg       = 1         -- 1        the first segment to work with
+end_seg         = numsegs   -- numsegs  the last segment to work with
+start_walk      = 0         -- 0        with how many segs shall we work - Walker
+end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws           = false     -- true     do local wiggle and rewiggle
+b_dist          = false     -- false    push / pull together and alone then fuze see #Dist
+b_rebuild       = false     -- false    rebuild see #Rebuilding
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_snap          = false     -- false    should we snap every sidechain to different positions
+b_fuze          = true      -- true     should we fuze
 --Working#
 
 --#Dist
-b_comp      = false      -- false
-i_d_trys    = 1        -- 10
-b_str_re_dist = true
+b_comp          = false     -- false
+i_d_trys        = 2         -- 2
+b_str_re_dist   = true      -- false
 --Dist#
 
 --#Scoring
-step        = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain        = 0.02      -- 0.02     Score will get applied after the score changed this value
+step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
+gain            = 0.02      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
 --Fuzing#
 
 --#Mutating
-b_m_new     = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
-b_m_fuze    = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
+b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
+b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
 --Mutating#
 
 --#Snapping
 --Snapping#
 
 --#Rebuilding
-b_struct_re = true
-max_rebuilds= 5         -- 5
-rebuild_str = 1         -- 1
-b_r_dist    = true     -- false
-b_r_fuze    = true      -- true
-b_r_deep    = false     -- false
-i_deep_sc   = 10        -- 10
+b_struct_re     = true
+max_rebuilds    = 5         -- 5
+rebuild_str     = 1         -- 1
+b_r_dist        = false     -- false
+b_r_fuze        = true      -- true
+b_r_deep        = false     -- false
+i_deep_sc       = 10        -- 10
 --Rebuilding#
 --Settings#
 
 --#Constants
-saveSlots   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-amino       = {
-                {'a', 'Ala', 'Alanine'},
-             -- {'b', 'Asx', 'Asparagine or Aspartic acid'},
-                {'c', 'Cys', 'Cysteine'},
-                {'d', 'Asp', 'Aspartic acid'},
-                {'e', 'Glu', 'Glutamic acid'},
-                {'f', 'Phe', 'Phenylalanine'},
-                {'g', 'Gly', 'Glycine'},
-                {'h', 'His', 'Histidine'},
-                {'i', 'Ile', 'Isoleucine'},
-             -- {'j', 'Xle', 'Leucine or Isoleucine'},
-                {'k', 'Lys', 'Lysine'},
-                {'l', 'Leu', 'Leucine'},
-                {'m', 'Met', 'Methionine '},
-                {'n', 'Asn', 'Asparagine'},
-             -- {'o', 'Pyl', 'Pyrrolysine'},
-                {'p', 'Pro', 'Proline'},
-                {'q', 'Gln', 'Glutamine'},
-                {'r', 'Arg', 'Arginine'},
-                {'s', 'Ser', 'Serine'},
-                {'t', 'Thr', 'Threonine'},
-             -- {'u', 'Sec', 'Selenocysteine'},
-                {'v', 'Val', 'Valine'},
-                {'w', 'Trp', 'Tryptophan'},
-             -- {'x', 'Xaa', 'Unspecified or unknown amino acid'},
-                {'y', 'Tyr', 'Tyrosine'},
-             -- {'z', 'Glx', 'Glutamine or glutamic acid'}
-              }
-snapping    = false
-mutating    = false
+saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+amino           =   {
+                    {'a', 'Ala', 'Alanine'},
+                 -- {'b', 'Asx', 'Asparagine or Aspartic acid'},
+                    {'c', 'Cys', 'Cysteine'},
+                    {'d', 'Asp', 'Aspartic acid'},
+                    {'e', 'Glu', 'Glutamic acid'},
+                    {'f', 'Phe', 'Phenylalanine'},
+                    {'g', 'Gly', 'Glycine'},
+                    {'h', 'His', 'Histidine'},
+                    {'i', 'Ile', 'Isoleucine'},
+                 -- {'j', 'Xle', 'Leucine or Isoleucine'},
+                    {'k', 'Lys', 'Lysine'},
+                    {'l', 'Leu', 'Leucine'},
+                    {'m', 'Met', 'Methionine '},
+                    {'n', 'Asn', 'Asparagine'},
+                 -- {'o', 'Pyl', 'Pyrrolysine'},
+                    {'p', 'Pro', 'Proline'},
+                    {'q', 'Gln', 'Glutamine'},
+                    {'r', 'Arg', 'Arginine'},
+                    {'s', 'Ser', 'Serine'},
+                    {'t', 'Thr', 'Threonine'},
+                 -- {'u', 'Sec', 'Selenocysteine'},
+                    {'v', 'Val', 'Valine'},
+                    {'w', 'Trp', 'Tryptophan'},
+                 -- {'x', 'Xaa', 'Unspecified or unknown amino acid'},
+                    {'y', 'Tyr', 'Tyrosine'},
+                 -- {'z', 'Glx', 'Glutamine or glutamic acid'}
+                    }
+snapping        = false
+mutating        = false
 --Constants#
 
 --#Securing for changes that will be made at Fold.it
-assert      = nil
-error       = nil
+assert          = nil
+error           = nil
 --Securing#
 
 --#Optimizing
-p = print
+p               = print
 --Optimizing#
 
 --#Debug
@@ -110,7 +110,7 @@ end
 --Debug#
 
 --#External functions
---#math library
+--#Math library
 --[[
 The original random script this was ported from has the following notices:
 Copyright (c) 2007 Richard L. Mueller
@@ -169,12 +169,11 @@ local function _random(m,n)
 end
 
 math=
-{
-    floor       = _floor,
+{   floor       = _floor,
     random      = _random,
     randomseed  = _randomseed
 }
--- End math library
+--Math library#
 
 function GetDistances()
     distances = {}
@@ -893,27 +892,36 @@ function struct_rebuild()
         if seg <= 0 then
             seg = 1
         end
-        r = he[i][#he[i]]
+        r = he[i][#he[i]] + 1
         if r > numsegs then
             r = numsegs
         end
         for ii = he[i][1], he[i][#he[i]] do
-            for iii = 2, he[i][#he[i]] - he[i][1] do
-                band_add_segment_segment(ii, ii + iii)
-                band_set_length(get_band_count(), 1.26 * iii)
+            for iii = he[i][1] + 2, he[i][#he[i]] do
+                if iii > ii then
+                local len = 1.26 + (1.26 * (iii - ii))
+                if len > 20 then len = 20 end
+                if len > 0 then band_add_segment_segment(ii, iii) end
+                band_set_length(get_band_count(), len)
+                local dist = get_segment_distance(ii, iii)
+                dist = dist / 20
+                band_set_strength(get_band_count(), dist)
+                end
             end
         end
-        do_global_wiggle_all(1)
-        set_behavior_clash_importance(0.01)
+        deselect_all()
         select_index_range(seg, r)
+        do_global_wiggle_all(1)
+        band_delete()
+        set_behavior_clash_importance(0.01)
         while get_score(true) == str_rs do
             do_local_rebuild(iter)
             iter = iter + 1
         end
         str_rs = get_score(true)
         while get_score(true) == str_rs do
-            do_local_rebuild(iter + 1)
             iter = iter + 1
+            do_local_rebuild(iter)
         end
         set_behavior_clash_importance(1)
         if b_str_re_dist then
