@@ -5,29 +5,30 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1020"
+Version     = "2.9.1.1021"
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: 406 struct rebuild
+--#Settings: default
 --#Working                  default     description
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false     -- true     do local wiggle and rewiggle
-b_dist          = true      -- false    push / pull together and alone then fuze see #Dist
+b_lws           = true      -- true     do local wiggle and rewiggle
+b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
+b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
 --Working#
 
---#Dist
-b_comp          = true     -- false
-i_d_trys        = 2         -- 2
---Dist#
+--#Push Pull
+b_comp          = false     -- false
+i_pp_trys       = 2         -- 2
+--Push Pull#
 
 --#Scoring
 step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
@@ -46,9 +47,6 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 --Snapping#
 
 --#Rebuilding
-b_struct_re     = false
-b_str_re_dist   = false     -- false
-b_str_re_band   = false
 max_rebuilds    = 5         -- 5
 rebuild_str     = 1         -- 1
 b_r_dist        = false     -- false
@@ -56,6 +54,11 @@ b_r_fuze        = true      -- true
 b_r_deep        = false     -- false
 i_deep_sc       = 10        -- 10
 --Rebuilding#
+
+--#Structed rebuilding
+b_str_re_dist   = false     -- false
+b_str_re_band   = false     -- false
+--Structed rebuilding#
 --Settings#
 
 --#Constants
@@ -813,10 +816,10 @@ function mutate()          -- TODO: Test assert Saveslots
 end
 --Mutate#
 
---#dist
+--#Push Pull
 function dists()
-    dist = RequestSaveSlot()
-    quicksave(dist)
+    pp = RequestSaveSlot()
+    quicksave(pp)
     s_dist = get_score()
     if b_comp then
         BandMaxDist()
@@ -824,7 +827,7 @@ function dists()
         set_behavior_clash_importance(0.7)
         do_global_wiggle_backbone(1)
         band_delete()
-        fuze(dist)
+        fuze(pp)
         if get_score() < s_dist then
             quickload(overall)
         end
@@ -835,7 +838,7 @@ function dists()
     set_behavior_clash_importance(0.8)
     do_global_wiggle_backbone(1)
     band_delete()
-    fuze(dist)
+    fuze(pp)
     if get_score() < s_dist then
         quickload(overall)
     end
@@ -844,7 +847,7 @@ function dists()
     set_behavior_clash_importance(0.7)
     do_global_wiggle_backbone(1)
     band_delete()
-    fuze(dist)
+    fuze(pp)
     if get_score() < s_dist then
         quickload(overall)
     end
@@ -853,12 +856,12 @@ function dists()
     set_behavior_clash_importance(0.7)
     do_global_wiggle_backbone(1)
     band_delete()
-    fuze(dist)
+    fuze(pp)
     if get_score() < s_dist then
         quickload(overall)
     end
 end
---dist#
+--Push Pull#
 
 --#fast ss
 ss = {}
@@ -901,18 +904,22 @@ function struct_rebuild()
         for ii = he[i][1], he[i][#he[i]] do
             for iii = he[i][1] + 3, he[i][#he[i]] do
                 if iii > ii then
-                local len = 1.26 + (1.26 * (iii - ii))
-                if len > 20 then len = 20 end
-                if len > 0 then band_add_segment_segment(ii, iii) end
-                band_set_length(get_band_count(), len)
-                local dist = get_segment_distance(ii, iii)
-                while dist > 1 do
-                dist = dist /5
-                end
-                while dist < 1 do
-                dist = dist * 2
-                end
-                band_set_strength(get_band_count(), dist)
+                    local len = 1.26 + (1.26 * (iii - ii))
+                    if len > 20 then
+                        len = 20
+                    end
+                    if len > 0 then
+                        band_add_segment_segment(ii, iii)
+                    end
+                    band_set_length(get_band_count(), len)
+                    local pp = get_segment_distance(ii, iii)
+                    while pp > 1 do
+                        pp = pp /5
+                    end
+                    while pp < 1 do
+                        pp = pp * 2
+                    end
+                    band_set_strength(get_band_count(), pp)
                 end
             end
         end
@@ -943,12 +950,12 @@ end
 --struct rebuild#
 
 function all()
-    if b_dist then
-        for i = 1, i_d_trys do
+    if b_pp then
+        for i = 1, i_pp_trys do
             dists()
         end
     end
-    if b_struct_re then
+    if b_str_re then
         struct_rebuild()
     end
     if b_mutate then
