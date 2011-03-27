@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1023"
+Version     = "2.9.1.1024"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -15,14 +15,14 @@ maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
+end_walk        = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = true      -- true     do local wiggle and rewiggle
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_fuze          = true      -- true     should we fuze
+b_fuze          = false      -- true     should we fuze
 --Working#
 
 --#Push Pull
@@ -31,11 +31,12 @@ i_pp_trys       = 2         -- 2
 --Push Pull#
 
 --#Scoring
-step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain            = 0.02      -- 0.02     Score will get applied after the score changed this value
+step            = 0.001      -- 0.01     an action tries to get this score, then it will repeat itself
+gain            = 0.002      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
+b_f_deep        = false
 --Fuzing#
 
 --#Mutating
@@ -63,7 +64,7 @@ b_str_re_band   = false     -- false
 
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-amino           =   {
+amino           = {
                     {'a', 'Ala', 'Alanine'},
                  -- {'b', 'Asx', 'Asparagine or Aspartic acid'},
                     {'c', 'Cys', 'Cysteine'},
@@ -90,7 +91,7 @@ amino           =   {
                  -- {'x', 'Xaa', 'Unspecified or unknown amino acid'},
                     {'y', 'Tyr', 'Tyrosine'},
                  -- {'z', 'Glx', 'Glutamine or glutamic acid'}
-                    }
+                  }
 snapping        = false
 mutating        = false
 --Constants#
@@ -214,7 +215,7 @@ end
 --Saveslot manager#
 
 function FindMutable()
-    p("Finding Mutable Segments -- Programm will get stuck a bit")
+    p("Finding mutable segments -- programm will get stuck a bit")
     local mut = RequestSaveSlot()
     quicksave(mut)
     local mutable = {}
@@ -237,6 +238,7 @@ function FindMutable()
     p(#mutable, " mutables found")
     quickload(mut)
     ReleaseSaveSlot(mut)
+    deselect_all()
     return mutable
 end
 --External functions#
@@ -255,22 +257,69 @@ if get_ss(numsegs) == 'M' then
 end
 --Ligand Check#
 
---#Fuzing
-function fstruct(g, cl)
-    set_behavior_clash_importance(cl)
-    if g == "s" then
-        if rebuilding then
-        list1 = GetSphere(seg, 10)
-        list2 = GetSphere(r, 10)
-        select(list1)
-        select(list2, true)
-        else
-        select_all()
-        end
-        do_shake(1)
-    elseif g == "w" then
-        do_global_wiggle_all(1)
+--#rewritten foldit tools
+function work(_g, iter, cl)
+    if cl then
+        set_behavior_clash_importance(cl)
     end
+    if rebuilding and _g == "s" then
+        select_segs(true, seg, r)
+    else
+        select_segs()
+    end
+    if not g then
+        do_global_wiggle_all(iter)
+    elseif _g == "s" then
+    do_shake(1)
+        if fuzing then
+            repeat
+                local sc1 = get_score()
+                do_global_wiggle_backbone(1)
+                do_shake(1)
+                local sc2 = get_score()
+            until sc2 - sc1 < gain
+        end
+    elseif _g == "wb" then
+        do_global_wiggle_backbone(iter)
+    elseif _g == "ws" then
+        do_global_wiggle_sidechains(iter)
+    elseif _g == "wl" then
+        wl = RequestSaveSlot()
+        quicksave(wl)
+        for i = iter, iter + 5 do
+            local s_s1 = get_score(true)
+            do_local_wiggle(iter)
+            local s_s2 = get_score(true)
+            if s_s2 - s_s1 > step / 2 * i then
+                quicksave(wl)
+            end
+            quickload(wl)
+            if s_s2 == s_s1 then
+                break
+            end
+        end
+        ReleaseSaveSlot(wl)
+    end
+end
+--Shake#
+
+--#Fuzing
+function fgain(g)
+    local iter
+    repeat
+        iter = 0
+        repeat
+            iter = iter + 1
+            local s1_f = get_score(true)
+            if iter < maxiter then
+                work(g, iter)
+            end
+            local s2_f = get_score(true)
+        until s2_f - s1_f < step
+        local s3_f = get_score(true)
+        work("s")
+        local s4_f = get_score(true)
+    until s4_f - s3_f < step
 end
 
 function floss(option, cl1, cl2)
@@ -278,29 +327,29 @@ function floss(option, cl1, cl2)
     p("cl1 ", cl1, ", cl2 ", cl2)
     if option == 1 then
         p("Pink Fuse cl1-s-cl2-wa")
-        fstruct("s", cl1)
-        fstruct("w", cl2)
+        work("s", 1, cl1)
+        work("wa", 1, cl2)
     elseif option == 2 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        fstruct("w", cl1)
-        fstruct("w", 1)
-        fstruct("w", cl2)
+        work("wa", 1, cl1)
+        work("wa", 1, 1)
+        work("wa", 1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
-        fstruct("s", cl1)
-        fstruct("w", 1)
-        fstruct("s", cl2)
-        fstruct("w", 1)
-        fstruct("s", cl1 - 0.02)
+        work("s", 1, cl1)
+        work("wa", 1, 1)
+        work("s", 1, cl2)
+        work("wa", 1, 1)
+        work("s", 1, cl1 - 0.02)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
-        fstruct("w", cl1)
-        fstruct("w", cl2)
+        work("wa", 1, cl1)
+        work("wa", 1, cl2)
     elseif option == 5 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        fstruct("s", cl1)
-        fstruct("w", cl2)
-        fstruct("s", 1)
+        work("s", 1, cl1)
+        work("wa", 1, cl2)
+        work("s", 1, 1)
     end
 end
 
@@ -310,45 +359,39 @@ function s_fuze(option, cl1, cl2)
     fgain()
     local s2_f = get_score(true)
     if s2_f > s1_f then
-        quicksave(sl_f2)
+        quicksave(sl_f1)
         p("+", s2_f - s1_f, "+")
     end
     quickload(sl_f1)
 end
 
 function fuze(sl)
+    fuzing = true
     select_all()
-    s_f = get_score()
-    sl_f1 = RequestSaveSlot()
-    sl_f2 = RequestSaveSlot()
     quicksave(sl_f1)
-    s_fuze(1, 0.1, 0.7)             -- TODO: Combine Fuzes S > W --> QSTAB (?)>=(?) BF PF1 > PF2
+    s_fuze(5, 0.1, 0.4)
+    s_fuze(1, 0.1, 0.7)
     s_fuze(1, 0.3, 0.6)
+    s_fuze(3, 0.05, 0.07)
     s_fuze(2, 0.5, 0.7)
     s_fuze(2, 0.7, 0.5)
-    s_fuze(3, 0.05, 0.07)
     s_fuze(4, 0.3, 0.3)
-    s_fuze(5, 0.1, 0.4)
-    quickload(sl_f2)
-    s_f2 = get_score(true)
-    if s_f2 > s_f then
-        quicksave(sl_f2)
-        s_f = s_f2
-    end
+    quickload(sl_f1)
+    s_f = get_score(true)
     ReleaseSaveSlot(sl_f1)
-    ReleaseSaveSlot(sl_f2)
     if s_f > c_s then
         quicksave(sl)
         s_fg = s_f - c_s
         p("+", s_fg, "+")
         c_s = s_f
         p("++", c_s, "++")
-        if not rebuilding and s_fg > gain then
+        if b_f_deep then
             r_fuze(sl)
         end
     else
         quickload(sl)
     end
+    fuzing = false
 end
 
 function r_fuze(sl)
@@ -442,28 +485,39 @@ end
 --BandMaxDist#
 
 --#Universal select
-function select(list, more)
-    local _r = r
-    local _seg = seg
-    if not more then
+function select_segs(sphered, start, _end, more)
+    local _start = start
+    if not more or not _end then
         deselect_all()
+        _end = _start
     end
+    if start then
+        if sphered then
+            if _end and _start ~= _end then
+                local list1 = GetSphere(_end, 10)
+                select_list(list1)
+            end
+            local list1 = GetSphere(_start, 10)
+            select_list(list1)
+        elseif _end and _start ~= _end then
+            if _start > _end then
+                _start = _end
+                _end = start
+            end
+            select_index_range(_start, _end)
+        else
+            select_index(_start)
+        end
+    else
+        select_all()
+    end
+end
+
+function select_list(list)
     if list then
         for i = 1, #list do
             select_index(list[i])
         end
-    elseif seg then
-        if r and seg ~= r and not snapping and not mutating then
-            if seg > r then
-                _r = seg
-                _seg = r
-            end
-            select_index_range(_seg, _r)
-        else
-            select_index(seg)
-        end
-    else
-        select_all()
     end
 end
 --Universal select#
@@ -481,34 +535,6 @@ end
 --Freezing functions#
 
 --#Scoring
-function fgain()
-    set_behavior_clash_importance(1)
-    select_all()
-    local iter
-    repeat
-        iter = 0
-        repeat
-            iter = iter + 1
-            local s1_f = get_score(true)
-            if iter < maxiter then
-                do_global_wiggle_all(iter)
-            end
-            local s2_f = get_score(true)
-        until s2_f - s1_f < step
-        local s3_f = get_score(true)
-        if rebuilding then
-        list1 = GetSphere(seg, 10)
-        list2 = GetSphere(r, 10)
-        select(list1)
-        select(list2, true)
-        else
-        select_all()
-        end
-        do_shake(1)
-        local s4_f = get_score(true)
-    until s4_f - s3_f < step
-end
-
 --#Universal scoring
 function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
     local more = s1 - c_s
@@ -556,12 +582,13 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         sl = overall
     end
     gsl = RequestSaveSlot()
-    select_all()            -- TODO: handle in select function wa wb ws
+    select(false, seg, r)            -- TODO: handle in select function wa wb ws
     if g ~= "s" then
         if g == "wl" then
-            select()
+            select_segs()
         end
     else
+        deselect_all()
         list1 = GetSphere(seg, 10)
         list2 = GetSphere(r, 10)
     end
@@ -573,8 +600,8 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         s1 = get_score(true)
         if iter < maxiter then
             if g == "s" then                -- TODO: Handle in score function
-                select(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                select(list2, true)
+                select_list(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+                select_list(list2)
                 local s_s1 = s1
                 do_shake(1)
                 local s_s2 = get_score(true)
@@ -685,7 +712,7 @@ function rebuild()
     for i = 1, max_rebuilds do
         quickload(overall)
         quicksave(sl_re)
-        select()
+        select_segs(false, seg, r)
         if r == seg then
             p("Rebuilding Segment ", seg)
         else
@@ -977,12 +1004,10 @@ end
 end
 do_global_wiggle_backbone(1)
 band_delete()
-else
 p("Compressing Segment ",seg,"-",r)
 sphere1={}
 sphere2={}
 range=0
-end
 end
 --Compressor#
 
