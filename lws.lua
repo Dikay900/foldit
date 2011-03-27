@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1019"
+Version     = "2.9.1.1020"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -17,7 +17,7 @@ end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = false     -- true     do local wiggle and rewiggle
-b_dist          = false     -- false    push / pull together and alone then fuze see #Dist
+b_dist          = true      -- false    push / pull together and alone then fuze see #Dist
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
@@ -25,9 +25,8 @@ b_fuze          = true      -- true     should we fuze
 --Working#
 
 --#Dist
-b_comp          = false     -- false
+b_comp          = true     -- false
 i_d_trys        = 2         -- 2
-b_str_re_dist   = true      -- false
 --Dist#
 
 --#Scoring
@@ -47,8 +46,9 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 --Snapping#
 
 --#Rebuilding
-b_struct_re     = true
-b_str_re_band   = true
+b_struct_re     = false
+b_str_re_dist   = false     -- false
+b_str_re_band   = false
 max_rebuilds    = 5         -- 5
 rebuild_str     = 1         -- 1
 b_r_dist        = false     -- false
