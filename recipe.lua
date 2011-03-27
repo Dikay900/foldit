@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1024"
+Version     = "2.9.1.1025"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -15,14 +15,14 @@ maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 5         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = true      -- true     do local wiggle and rewiggle
+end_walk        = 0         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws           = false      -- true     do local wiggle and rewiggle
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_fuze          = false      -- true     should we fuze
+b_fuze          = true      -- true     should we fuze
 --Working#
 
 --#Push Pull
@@ -31,12 +31,12 @@ i_pp_trys       = 2         -- 2
 --Push Pull#
 
 --#Scoring
-step            = 0.001      -- 0.01     an action tries to get this score, then it will repeat itself
-gain            = 0.002      -- 0.02     Score will get applied after the score changed this value
+step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
+gain            = 0.02      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
-b_f_deep        = false
+b_f_deep        = false     -- false
 --Fuzing#
 
 --#Mutating
@@ -94,6 +94,9 @@ amino           = {
                   }
 snapping        = false
 mutating        = false
+rebuilding      = false
+fuzing          = false
+sc_changed      = true
 --Constants#
 
 --#Securing for changes that will be made at Fold.it
@@ -267,18 +270,10 @@ function work(_g, iter, cl)
     else
         select_segs()
     end
-    if not g then
+    if not _g then
         do_global_wiggle_all(iter)
     elseif _g == "s" then
-    do_shake(1)
-        if fuzing then
-            repeat
-                local sc1 = get_score()
-                do_global_wiggle_backbone(1)
-                do_shake(1)
-                local sc2 = get_score()
-            until sc2 - sc1 < gain
-        end
+        do_shake(1)
     elseif _g == "wb" then
         do_global_wiggle_backbone(iter)
     elseif _g == "ws" then
@@ -368,6 +363,7 @@ end
 function fuze(sl)
     fuzing = true
     select_all()
+    local sl_f1 = RequestSaveSlot()
     quicksave(sl_f1)
     s_fuze(5, 0.1, 0.4)
     s_fuze(1, 0.1, 0.7)
@@ -385,7 +381,7 @@ function fuze(sl)
         p("+", s_fg, "+")
         c_s = s_f
         p("++", c_s, "++")
-        if b_f_deep then
+        if b_f_deep and s_fg > gain then
             r_fuze(sl)
         end
     else
@@ -536,9 +532,10 @@ end
 
 --#Scoring
 --#Universal scoring
-function score(g, sl)               -- TODO: need complete rewrite with gd (work) function
+function score(g, sl)
     local more = s1 - c_s
     if more > gain then
+        sc_changed = true
         p("+", more, "+")
         p("++", s1, "++")
         c_s = s1
@@ -572,7 +569,7 @@ end
 --Scoring#
 
 --#Universal working
-function gd(g)                  -- TODO: need complete rewrite with score function
+function gd(g)
     local iter = 0
     if rebuilding then
         sl = sl_re
@@ -582,16 +579,6 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         sl = overall
     end
     gsl = RequestSaveSlot()
-    select(false, seg, r)            -- TODO: handle in select function wa wb ws
-    if g ~= "s" then
-        if g == "wl" then
-            select_segs()
-        end
-    else
-        deselect_all()
-        list1 = GetSphere(seg, 10)
-        list2 = GetSphere(r, 10)
-    end
     repeat
         iter = iter + 1
         if iter ~= 1 then
@@ -599,42 +586,7 @@ function gd(g)                  -- TODO: need complete rewrite with score functi
         end
         s1 = get_score(true)
         if iter < maxiter then
-            if g == "s" then                -- TODO: Handle in score function
-                select_list(list1)               -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                select_list(list2)
-                local s_s1 = s1
-                do_shake(1)
-                local s_s2 = get_score(true)
-                if s_s2 > s_s1 then
-                    quicksave(sl)
-                    p("+", s_s2 - s_s1, "+")
-                    s1 = s_s2
-                    c_s = s1
-                end                         -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            elseif g == "wb" then
-                do_global_wiggle_backbone(iter)
-            elseif g == "ws" then
-                do_global_wiggle_sidechains(iter)
-            elseif g == "wa" then
-                do_global_wiggle_all(iter)
-            elseif g == "wl" then
-                wl = RequestSaveSlot()
-                quicksave(wl)
-                for i = iter, iter + 5 do           -- TODO: Think of testing every iter before applying gain
-                    if iter > 10 then break end
-                    local s_s1 = get_score(true)
-                    do_local_wiggle(iter)
-                    local s_s2 = get_score(true)
-                    if s_s2 - s_s1 > step / 2 * i then
-                        quicksave(wl)
-                    end
-                    quickload(wl)
-                    if s_s2 == s_s1 then
-                        break
-                    end
-                end
-                ReleaseSaveSlot(wl)
-            end
+            work(g, iter)
         end
         s2 = get_score(true)
     until s2 - s1 < (step * iter)
@@ -1121,9 +1073,12 @@ function all()
             end
             if b_lws then
                 gd("wl")
-                gd("wb")
-                gd("ws")
-                gd("wa")
+                if sc_changed then
+                    gd("wb")
+                    gd("ws")
+                    gd("wa")
+                    sc_changed = false
+                end
             end
         end
     end
