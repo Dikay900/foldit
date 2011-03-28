@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1025"
+Version     = "2.9.1.1026"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -16,7 +16,7 @@ start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 0         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false      -- true     do local wiggle and rewiggle
+b_lws           = true      -- true     do local wiggle and rewiggle
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
@@ -259,44 +259,6 @@ if get_ss(numsegs) == 'M' then
     numsegs = numsegs - 1
 end
 --Ligand Check#
-
---#rewritten foldit tools
-function work(_g, iter, cl)
-    if cl then
-        set_behavior_clash_importance(cl)
-    end
-    if rebuilding and _g == "s" then
-        select_segs(true, seg, r)
-    else
-        select_segs()
-    end
-    if not _g then
-        do_global_wiggle_all(iter)
-    elseif _g == "s" then
-        do_shake(1)
-    elseif _g == "wb" then
-        do_global_wiggle_backbone(iter)
-    elseif _g == "ws" then
-        do_global_wiggle_sidechains(iter)
-    elseif _g == "wl" then
-        wl = RequestSaveSlot()
-        quicksave(wl)
-        for i = iter, iter + 5 do
-            local s_s1 = get_score(true)
-            do_local_wiggle(iter)
-            local s_s2 = get_score(true)
-            if s_s2 - s_s1 > step / 2 * i then
-                quicksave(wl)
-            end
-            quickload(wl)
-            if s_s2 == s_s1 then
-                break
-            end
-        end
-        ReleaseSaveSlot(wl)
-    end
-end
---Shake#
 
 --#Fuzing
 function fgain(g)
@@ -569,6 +531,42 @@ end
 --Scoring#
 
 --#Universal working
+function work(_g, iter, cl)
+    if cl then
+        set_behavior_clash_importance(cl)
+    end
+    if rebuilding and _g == "s" then
+        select_segs(true, seg, r)
+    else
+        select_segs()
+    end
+    if not _g then
+        do_global_wiggle_all(iter)
+    elseif _g == "s" then
+        do_shake(1)
+    elseif _g == "wb" then
+        do_global_wiggle_backbone(iter)
+    elseif _g == "ws" then
+        do_global_wiggle_sidechains(iter)
+    elseif _g == "wl" then
+        wl = RequestSaveSlot()
+        quicksave(wl)
+        for i = iter, iter + 5 do
+            local s_s1 = get_score(true)
+            do_local_wiggle(iter)
+            local s_s2 = get_score(true)
+            if s_s2 - s_s1 > step / 2 * i then
+                quicksave(wl)
+            end
+            quickload(wl)
+            if s_s2 == s_s1 then
+                break
+            end
+        end
+        ReleaseSaveSlot(wl)
+    end
+end
+
 function gd(g)
     local iter = 0
     if rebuilding then
