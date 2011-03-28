@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1027"
+Version     = "2.9.1.1028"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -14,9 +14,9 @@ numsegs     = get_segment_count()
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
-start_walk      = 1         -- 0        with how many segs shall we work - Walker
-end_walk        = 2         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = true      -- true     do local wiggle and rewiggle
+start_walk      = 4         -- 0        with how many segs shall we work - Walker
+end_walk        = 4         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws           = false      -- true     do local wiggle and rewiggle
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = true     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
@@ -326,6 +326,7 @@ function fuze(sl)
     fuzing = true
     select_all()
     sl_f1 = RequestSaveSlot()
+	work("s", 1, 0)
     quicksave(sl_f1)
     s_fuze(5, 0.1, 0.4)
     s_fuze(1, 0.1, 0.7)
@@ -444,27 +445,27 @@ end
 
 --#Universal select
 function select_segs(sphered, start, _end, more)
-    local _start = start
-    if not more or not _end then
+    if not more and not _end then
         deselect_all()
-        _end = _start
+        _end = start
     end
     if start then
         if sphered then
-            if _end and _start ~= _end then
+            if start ~= _end then
                 local list1 = GetSphere(_end, 10)
                 select_list(list1)
             end
-            local list1 = GetSphere(_start, 10)
+            local list1 = GetSphere(start, 10)
             select_list(list1)
-        elseif _end and _start ~= _end then
-            if _start > _end then
-                _start = _end
+        elseif start ~= _end then
+            if start > _end then
+                local _start = _end
                 _end = start
+				start = _start
             end
-            select_index_range(_start, _end)
+            select_index_range(start, _end)
         else
-            select_index(_start)
+            select_index(start)
         end
     else
         select_all()
@@ -672,7 +673,7 @@ function rebuild()
         cs_0 = get_score(true)
         set_behavior_clash_importance(0.01)
         do_local_rebuild(rebuild_str * i)
-        if get_score(true) == cs_0 then
+        while get_score(true) == cs_0 do
         do_local_rebuild(rebuild_str * i * 2)
         end
         set_behavior_clash_importance(1)
@@ -686,9 +687,6 @@ function rebuild()
             dists()
         end
         select_all()
-        if b_r_fuze then
-            fuze(sl_re)
-        end
         gd("s")
         gd("ws")
         gd("wb")
@@ -706,7 +704,9 @@ function rebuild()
     quickload(sl_best)
     ReleaseSaveSlot(sl_best)
     p("+", c_s - cs_0, "+")
-    quickload(sl_re)
+	if b_r_fuze then
+       fuze(sl_re)
+    end
     ReleaseSaveSlot(sl_re)
     if c_s < cs_0 then
         quickload(overall)
