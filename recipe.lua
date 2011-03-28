@@ -14,11 +14,11 @@ numsegs     = get_segment_count()
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
-start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 0         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false      -- true     do local wiggle and rewiggle
+start_walk      = 1         -- 0        with how many segs shall we work - Walker
+end_walk        = 2         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws           = true      -- true     do local wiggle and rewiggle
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
-b_rebuild       = false     -- false    rebuild see #Rebuilding
+b_rebuild       = true     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
@@ -48,7 +48,7 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 --Snapping#
 
 --#Rebuilding
-max_rebuilds    = 5         -- 5
+max_rebuilds    = 4         -- 5
 rebuild_str     = 1         -- 1
 b_r_dist        = false     -- false
 b_r_fuze        = true      -- true
@@ -261,7 +261,7 @@ end
 --Ligand Check#
 
 --#Fuzing
-function fgain(g)
+function fgain(g, cl)
     local iter
     repeat
         iter = 0
@@ -269,7 +269,7 @@ function fgain(g)
             iter = iter + 1
             local s1_f = get_score(true)
             if iter < maxiter then
-                work(g, iter)
+                work(g, iter, cl)
             end
             local s2_f = get_score(true)
         until s2_f - s1_f < step
@@ -294,9 +294,9 @@ function floss(option, cl1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
         work("s", 1, cl1)
-        fgain("wa")
+        fgain("wa", 1)
         work("s", 1, cl2)
-        fgain("wa")
+        fgain("wa", 1)
         work("s", 1, cl1 - 0.02)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
@@ -313,7 +313,7 @@ end
 function s_fuze(option, cl1, cl2)
     local s1_f = get_score(true)
     floss(option, cl1, cl2)
-    fgain("wa")
+    fgain("wa", 1)
     local s2_f = get_score(true)
     if s2_f > s1_f then
         quicksave(sl_f1)
