@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1026"
+Version     = "2.9.1.1027"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -16,7 +16,7 @@ start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 0         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = true      -- true     do local wiggle and rewiggle
+b_lws           = false      -- true     do local wiggle and rewiggle
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
@@ -294,9 +294,9 @@ function floss(option, cl1, cl2)
     elseif option == 3 then
         p("Blue Fuse cl1-s; cl2-s;")
         work("s", 1, cl1)
-        work("wa", 1, 1)
+        fgain("wa")
         work("s", 1, cl2)
-        work("wa", 1, 1)
+        fgain("wa")
         work("s", 1, cl1 - 0.02)
     elseif option == 4 then
         p("cl1-wa[-cl2-wa]")
@@ -313,7 +313,7 @@ end
 function s_fuze(option, cl1, cl2)
     local s1_f = get_score(true)
     floss(option, cl1, cl2)
-    fgain()
+    fgain("wa")
     local s2_f = get_score(true)
     if s2_f > s1_f then
         quicksave(sl_f1)
@@ -325,7 +325,7 @@ end
 function fuze(sl)
     fuzing = true
     select_all()
-    local sl_f1 = RequestSaveSlot()
+    sl_f1 = RequestSaveSlot()
     quicksave(sl_f1)
     s_fuze(5, 0.1, 0.4)
     s_fuze(1, 0.1, 0.7)
@@ -540,7 +540,7 @@ function work(_g, iter, cl)
     else
         select_segs()
     end
-    if not _g then
+    if _g == "wa" then
         do_global_wiggle_all(iter)
     elseif _g == "s" then
         do_shake(1)
@@ -728,14 +728,14 @@ function mutate()          -- TODO: Test assert Saveslots
                 sl_mut = RequestSaveSlot()
                 quicksave(sl_mut)
                 replace_aa(amino[i][1])
-                fgain()
+                fgain("wa")
                 repeat
                     repeat
                         local mut_1 = get_score(true)
                         do_mutate(1)
                     until get_score(true) - mut_1 < 0.01
                     mut_1 = get_score(true)
-                    fgain()
+                    fgain("wa")
                 until get_score(true) - mut_1 < 0.01
                 if get_score(true) > c_s then
                     c_s = get_score(true)
@@ -768,7 +768,7 @@ function mutate()          -- TODO: Test assert Saveslots
                     else
                         set_behavior_clash_importance(0.1)
                         do_shake(1)
-                        fgain()
+                        fgain("wa")
                     end
                     s_mut2 = get_score(true)
                     if s_mut2 > s_mut then
