@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1029"
+Version     = "2.9.1.1030"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -359,15 +359,33 @@ end
 --Fuzing#
 
 --#CenterBands
-function CreateBandsToCenter()
-   local indexCenter = FastCenter()
-   for i=start_seg,end_seg do
-       if(i ~= indexCenter) then
-           if hydro[i] then
-               band_add_segment_segment(i,indexCenter)
-           end
-       end
-   end
+function CenterPull()
+    local indexCenter = FastCenter()
+    for i=start_seg,end_seg do
+        if(i ~= indexCenter) then
+            if hydro[i] then
+                band_add_segment_segment(i,indexCenter)
+            end
+        end
+    end
+end
+
+function CenterPush()
+    local indexCenter = FastCenter()
+    for i = start_seg, end_seg do
+        if(i ~= indexCenter) then
+            if not hydro[i] then
+                band_add_segment_segment(i,indexCenter)
+                local band = get_band_count()
+                local distance = get_segment_distance(i, indexCenter)
+                if distance > 20 then
+                    band_delete(band)
+                else
+                    band_set_length(band, 20)
+                end
+            end
+        end
+    end
 end
 --CenterBands#
 
