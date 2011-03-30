@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1033"
+Version     = "2.9.1.1034"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -15,12 +15,13 @@ maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 0         -- 3        starting at the current seg + start_walk to seg + end_walk
+end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = true      -- true     do local wiggle and rewiggle
-b_fast_lws      = false
-b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
+b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
+b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_str_re        = true     -- false    rebuild based on structure (Implemented Helix only for now)
+b_predict_ss    = false     -- false    predicting a new structure with some easy methods
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
@@ -1189,10 +1190,14 @@ end
 --Bands#
 
 function all()
+    p(Version)
     if b_pp then
         for i = 1, i_pp_trys do
             dists()
         end
+    end
+    if b_predict_ss then
+        predict_ss()
     end
     if b_str_re then
         struct_rebuild()
@@ -1201,7 +1206,6 @@ function all()
         mutable = FindMutable()
     end
     for i = start_seg, end_seg do
-        p(Version)
         seg = i
         c_s = get_score(true)
         if b_mutate then
