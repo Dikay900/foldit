@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1028"
+Version     = "2.9.1.1029"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -14,11 +14,12 @@ numsegs     = get_segment_count()
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
-start_walk      = 4         -- 0        with how many segs shall we work - Walker
-end_walk        = 4         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false      -- true     do local wiggle and rewiggle
+start_walk      = 0         -- 0        with how many segs shall we work - Walker
+end_walk        = 0         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws           = true      -- true     do local wiggle and rewiggle
+b_fast_lws      = false
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
-b_rebuild       = true     -- false    rebuild see #Rebuilding
+b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
@@ -32,7 +33,7 @@ i_pp_trys       = 2         -- 2
 
 --#Scoring
 step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain            = 0.02      -- 0.02     Score will get applied after the score changed this value
+gain            = 0.01      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -48,7 +49,7 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 --Snapping#
 
 --#Rebuilding
-max_rebuilds    = 4         -- 5
+max_rebuilds    = 2         -- 2
 rebuild_str     = 1         -- 1
 b_r_dist        = false     -- false
 b_r_fuze        = true      -- true
@@ -326,7 +327,6 @@ function fuze(sl)
     fuzing = true
     select_all()
     sl_f1 = RequestSaveSlot()
-	work("s", 1, 0)
     quicksave(sl_f1)
     s_fuze(5, 0.1, 0.4)
     s_fuze(1, 0.1, 0.7)
@@ -445,9 +445,8 @@ end
 
 --#Universal select
 function select_segs(sphered, start, _end, more)
-    if not more and not _end then
+    if not more then
         deselect_all()
-        _end = start
     end
     if start then
         if sphered then
@@ -552,6 +551,13 @@ function work(_g, iter, cl)
     elseif _g == "wl" then
         wl = RequestSaveSlot()
         quicksave(wl)
+        if b_fast_lws then
+        repeat
+        local s_s1 = get_score(true)
+        do_local_wiggle(iter)
+        local s_s2 = get_score(true)
+        until s_s1 > s_s2
+        else
         for i = iter, iter + 5 do
             local s_s1 = get_score(true)
             do_local_wiggle(iter)
@@ -563,6 +569,7 @@ function work(_g, iter, cl)
             if s_s2 == s_s1 then
                 break
             end
+        end
         end
         ReleaseSaveSlot(wl)
     end
@@ -686,13 +693,8 @@ function rebuild()
         if b_r_dist then
             dists()
         end
-        select_all()
-        gd("s")
-        gd("ws")
-        gd("wb")
-        gd("wa")
-        if b_r_deep or cs_0 - c_s < i_deep_sc then
-            gd("wl")
+        if b_r_fuze then
+            fuze(sl_re)
         end
         quickload(sl_re)
         if csr and csr < get_score(true) then
@@ -704,10 +706,7 @@ function rebuild()
     quickload(sl_best)
     ReleaseSaveSlot(sl_best)
     p("+", c_s - cs_0, "+")
-	if b_r_fuze then
-       fuze(sl_re)
-    end
-    ReleaseSaveSlot(sl_re)
+	ReleaseSaveSlot(sl_re)
     if c_s < cs_0 then
         quickload(overall)
     else
@@ -845,12 +844,25 @@ ss = {}
 for i = 1, numsegs do
     ss[i] = get_ss(i)
 end
-local i
 he = {}
+sh = {}
+lo = {}
 for i = 1, numsegs do
     if ss[i] == "H" and not helix then
         helix = true
+        sheet = false
+        loop = false
         he[#he + 1] = {}
+    elseif ss[i] == "E" and not sheet then
+        sheet = true
+        loop = false
+        helix = false
+        sh[#sh + 1] = {}
+    elseif ss[i] == "L" and not loop then
+        loop = true
+        helix = false
+        sheet = false
+        lo[#lo + 1] = {}
     end
     if helix then
         if ss[i] == "H" then
@@ -859,12 +871,37 @@ for i = 1, numsegs do
             helix = false
         end
     end
+    if sheet then
+        if ss[i] == "E" then
+            sh[#sh][#sh[#sh]+1] = i
+        else
+            sheet = false
+        end
+    end
+    if loop then
+        if ss[i] == "L" then
+            lo[#lo][#lo[#lo]+1] = i
+        else
+            loop = false
+        end
+    end
 end
 --fastss#
 
+--#predictss
+function predict_ss()
+he = {}
+sh = {}
+lo = {}
+for i = 1, numsegs do
+
+end
+end
+--predictss#
+
 --#struct rebuild
 function struct_rebuild()
-    p("Found ", #he, " Helixes")
+    p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
     for i = 1, #he do
         deselect_all()
@@ -1065,11 +1102,11 @@ function all()
                 r = numsegs
                 break
             end
-            p(seg, "-", r)
             if b_rebuild then
                 rebuild()
             end
             if b_lws then
+                p(seg, "-", r)
                 gd("wl")
                 if sc_changed then
                     gd("wb")
@@ -1084,6 +1121,8 @@ function all()
         fuze(overall)
     end
 end
+
+predict_ss()
 
 s_0 = get_score(true)
 c_s = s_0
