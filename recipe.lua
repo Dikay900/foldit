@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1035"
+Version     = "2.9.1.1036"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -20,8 +20,8 @@ b_lws           = true      -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_predict_ss    = true     -- false    predicting a new structure with some easy methods
-b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
+b_predict_ss    = false     -- false    predicting a new structure with some easy methods
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
@@ -60,7 +60,6 @@ i_deep_sc       = 10        -- 10
 
 --#Structed rebuilding
 b_str_re_dist   = false     -- false
-b_str_re_band   = false     -- false
 --Structed rebuilding#
 --Settings#
 
@@ -190,10 +189,9 @@ function GetDistances()
     for i = 1, numsegs - 1 do
         distances[i] = {}
         for j = i + 1, numsegs do
-            distances[i][j] = get_segment_distance(i , j)
+            distances[i][j] = get_segment_distance(i, j)
         end
     end
-    return distances
 end
 
 function GetSphere(seg, radius)
@@ -392,7 +390,7 @@ end
 
 --#PushPull
 function Pull()
-    distances = GetDistances()
+    GetDistances()
     for x = start_seg, end_seg - 2 do
         if hydro[x] then
             for y = x + 2, end_seg do
@@ -413,7 +411,7 @@ function Pull()
 end
 
 function Push()
-    distances = GetDistances()
+    GetDistances()
     for x = start_seg, end_seg - 2 do
         if not hydro[x] then
             for y = x + 2, end_seg do
@@ -571,24 +569,24 @@ function work(_g, iter, cl)
         wl = RequestSaveSlot()
         quicksave(wl)
         if b_fast_lws then
-        repeat
-        local s_s1 = get_score(true)
-        do_local_wiggle(iter)
-        local s_s2 = get_score(true)
-        until s_s1 > s_s2
+            repeat
+                local s_s1 = get_score(true)
+                do_local_wiggle(iter)
+                local s_s2 = get_score(true)
+            until s_s1 > s_s2
         else
-        for i = iter, iter + 5 do
-            local s_s1 = get_score(true)
-            do_local_wiggle(iter)
-            local s_s2 = get_score(true)
-            if s_s2 - s_s1 > step / 2 * i then
-                quicksave(wl)
+            for i = iter, iter + 5 do
+                local s_s1 = get_score(true)
+                do_local_wiggle(iter)
+                local s_s2 = get_score(true)
+                if s_s2 - s_s1 > step / 2 * i then
+                    quicksave(wl)
+                end
+                quickload(wl)
+                if s_s2 == s_s1 then
+                    break
+                end
             end
-            quickload(wl)
-            if s_s2 == s_s1 then
-                break
-            end
-        end
         end
         ReleaseSaveSlot(wl)
     end
@@ -631,7 +629,7 @@ function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
     c_snap = get_score(true)
-        cs = get_score(true)
+    cs = get_score(true)
     quicksave(snaps)
     iii = get_sidechain_snap_count(seg)
     p("Snapcount: ", iii, " - Segment ", seg)
@@ -686,47 +684,49 @@ function rebuild()
     rebuilding = true
     sl_re = RequestSaveSlot()
     sl_best = RequestSaveSlot()
-        quickload(overall)
-        quicksave(sl_re)
-        select_segs(false, seg, r)
-        if r == seg then
-            p("Rebuilding Segment ", seg)
-        else
-            p("Rebuilding Segment ", seg, "-", r)
-        end
-        for i = 1, max_rebuilds do
+    quickload(overall)
+    quicksave(sl_re)
+    select_segs(false, seg, r)
+    if r == seg then
+        p("Rebuilding Segment ", seg)
+    else
+        p("Rebuilding Segment ", seg, "-", r)
+    end
+    for i = 1, max_rebuilds do
         p("Try ", i, "/", max_rebuilds)
         cs_0 = get_score(true)
         set_behavior_clash_importance(0.01)
         do_local_rebuild(rebuild_str * i)
         while get_score(true) == cs_0 do
-        do_local_rebuild(rebuild_str * i * iter)
-        iter = iter + i
+            do_local_rebuild(rebuild_str * i * iter)
+            iter = iter + i
         end
         if re_sc or re_sc < str_rs then
             re_sc = str_rs
             quicksave(sl_re)
         end
-        end
-        set_behavior_clash_importance(1)
-        p(get_score(true) - cs_0)
-        c_s = get_score(true)
-        quicksave(sl_re)
-        if b_mutate then
-            mutate()
-        end
-        if b_r_dist then
-            dists()
-        end
-        if b_r_fuze then
-            fuze(sl_re)
-        end
-        quickload(sl_re)
-        if csr and csr < get_score(true) then
-            local csr = get_score(true)
-            quicksave(sl_best)
-        end
-    if csr then c_s = csr end
+    end
+    set_behavior_clash_importance(1)
+    p(get_score(true) - cs_0)
+    c_s = get_score(true)
+    quicksave(sl_re)
+    if b_mutate then
+        mutate()
+    end
+    if b_r_dist then
+        dists()
+    end
+    if b_r_fuze then
+        fuze(sl_re)
+    end
+    quickload(sl_re)
+    if csr and csr < get_score(true) then
+        local csr = get_score(true)
+        quicksave(sl_best)
+    end
+    if csr then
+        c_s = csr
+    end
     quickload(sl_best)
     ReleaseSaveSlot(sl_best)
     p("+", c_s - cs_0, "+")
@@ -860,152 +860,173 @@ function dists()
     if get_score() < s_dist then
         quickload(overall)
     end
+    CenterPull()
+    CenterPush()
+    select_all()
+    set_behavior_clash_importance(0.7)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(pp)
+    if get_score() < s_dist then
+        quickload(overall)
+    end
+    CenterPull()
+    select_all()
+    set_behavior_clash_importance(0.7)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(pp)
+    if get_score() < s_dist then
+        quickload(overall)
+    end
+    CenterPush()
+    select_all()
+    set_behavior_clash_importance(0.7)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(pp)
+    if get_score() < s_dist then
+        quickload(overall)
+    end
 end
 --Push Pull#
 
 --#fast ss
 function fast_ss()
-ss = {}
-for i = 1, numsegs do
-    ss[i] = get_ss(i)
-end
-local helix
-local sheet
-local loop
-he = {}
-sh = {}
-lo = {}
-for i = 1, numsegs do
-    if ss[i] == "H" and not helix then
-        helix = true
-        sheet = false
-        loop = false
-        he[#he + 1] = {}
-    elseif ss[i] == "E" and not sheet then
-        sheet = true
-        loop = false
-        helix = false
-        sh[#sh + 1] = {}
-    elseif ss[i] == "L" and not loop then
-        loop = true
-        helix = false
-        sheet = false
-        lo[#lo + 1] = {}
+    ss = {}
+    for i = 1, numsegs do
+        ss[i] = get_ss(i)
     end
-    if helix then
-        if ss[i] == "H" then
-            he[#he][#he[#he]+1] = i
-        else
-            helix = false
-        end
-    end
-    if sheet then
-        if ss[i] == "E" then
-            sh[#sh][#sh[#sh]+1] = i
-        else
+    local helix
+    local sheet
+    local loop
+    he = {}
+    sh = {}
+    lo = {}
+    for i = 1, numsegs do
+        if ss[i] == "H" and not helix then
+            helix = true
             sheet = false
-        end
-    end
-    if loop then
-        if ss[i] == "L" then
-            lo[#lo][#lo[#lo]+1] = i
-        else
             loop = false
+            he[#he + 1] = {}
+        elseif ss[i] == "E" and not sheet then
+            sheet = true
+            loop = false
+            helix = false
+            sh[#sh + 1] = {}
+        elseif ss[i] == "L" and not loop then
+            loop = true
+            helix = false
+            sheet = false
+            lo[#lo + 1] = {}
+        end
+        if helix then
+            if ss[i] == "H" then
+                he[#he][#he[#he]+1] = i
+            else
+                helix = false
+            end
+        end
+        if sheet then
+            if ss[i] == "E" then
+                sh[#sh][#sh[#sh]+1] = i
+            else
+                sheet = false
+            end
+        end
+        if loop then
+            if ss[i] == "L" then
+                lo[#lo][#lo[#lo]+1] = i
+            else
+                loop = false
+            end
         end
     end
-end
 end
 --fastss#
 
 --#predictss
 function predict_ss()
-p_he = {}
-p_sh = {}
-p_lo = {}
-local helix
-local sheet
-local loop
-local i = 1
-while i < numsegs - 2 do
-    loop = false
-    if hydro[i] then
-        if hydro[i + 1] and not hydro[i + 2] or not hydro[i + 1] and not hydro[i + 2] then
-            if not helix then
-                p("starting Helix")
-                helix = true
-                p_he[#p_he + 1] = {}
+    local p_he = {}
+    local p_sh = {}
+    local p_lo = {}
+    local helix
+    local sheet
+    local loop
+    local i = 1
+    while i < numsegs - 2 do
+        loop = false
+        if hydro[i] then
+            if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                if not helix then
+                    helix = true
+                    p_he[#p_he + 1] = {}
+                end
+            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] and hydro[i + 4] then
+                if not sheet then
+                    sheet = true
+                    p_sh[#p_sh + 1] = {}
+                end
+            else
+                p_lo[#p_lo + 1] = {}
+                loop = true
             end
-        elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
-            if not sheet then
-                p("starting Sheets")
-                sheet = true
-                p_sh[#p_sh + 1] = {}
+        elseif not hydro[i] then
+            if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
+                if not helix then
+                    helix = true
+                    p_he[#p_he + 1] = {}
+                end
+            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] and not hydro[i + 4] then
+                if not sheet then
+                    sheet = true
+                    p_sh[#p_sh + 1] = {}
+                end
+            else
+                p_lo[#p_lo + 1] = {}
+                loop = true
+            end
+        end
+        if helix then
+            p_he[#p_he][#p_he[#p_he] + 1] = i
+            if loop or sheet then
+                helix = false
+                p_he[#p_he][#p_he[#p_he] + 1] = i + 1
+                p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+                p_he[#p_he][#p_he[#p_he] + 1] = i + 3
+                i = i + 3
+            end
+        elseif sheet then
+            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
+            if loop then
+                sheet = false
+                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
+                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
+                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
+                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 4
+                i = i + 4
             end
         else
-            p_lo[#p_lo + 1] = {}
-            loop = true
+            p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
         end
-    elseif not hydro[i] then
-        if hydro[i + 1] and hydro[i + 2] or not hydro[i + 1] and hydro[i + 2] then
-            if not helix then
-                p("starting Helix")
-                helix = true
-                p_he[#p_he + 1] = {}
-            end
-        elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-            if not sheet then
-                p("starting Sheets")
-                sheet = true
-                p_sh[#p_sh + 1] = {}
-            end
-        else
-            p("starting Loops")
-            p_lo[#p_lo + 1] = {}
-            loop = true
-        end
+        i = i + 1
     end
-    if helix then
-        p("Helix ", i)
-        p_he[#p_he][#p_he[#p_he] + 1] = i
-        if loop or sheet then
-            p("Helix end", i + 1, " ", i + 2)
-            helix = false
-            p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-            p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-            i = i + 2
-        end
-    elseif sheet then
-        p("Sheet ", i)
-        p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
-        if loop then
-            p("Sheet end", i + 1)
-            sheet = false
-            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
-            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
-            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
-            i = i + 3
-        end
-    else
-        p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
-    end
-    i = i + 1
-end
-    p("Found ", #p_he, " Helixes ", #p_sh, " Sheets and ", #p_lo, " Loops")
+    p("Found ", #p_he, " Helix ", #p_sh, " Sheet and ", #p_lo, " Loop parts... Combining...")
     select_all()
     replace_ss("L")
     for i = 1, #p_he do
-    deselect_all()
-    for ii = p_he[i][1], p_he[i][#p_he[i]] do
-        select_index(ii)
-    end
-    replace_ss("H")
+        deselect_all()
+        for ii = p_he[i][1], p_he[i][#p_he[i]] do
+            select_index(ii)
+        end
+        replace_ss("H")
     end
     for i = 1, #p_sh do
-    deselect_all()
-    for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
-        select_index(ii)
-    end
-    replace_ss("E")
+        deselect_all()
+        for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
+            select_index(ii)
+        end
+        replace_ss("E")
     end
 end
 --predictss#
@@ -1018,6 +1039,41 @@ function struct_rebuild()
     for i = 1, #he do
         deselect_all()
         str_rs = get_score(true)
+        seg = he[i][1] - 3
+        if seg <= 0 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        for ii = he[i][1], he[i][#he[i]], 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        band_delete(get_band_count())
+        for ii = he[i][1] + 2, he[i][#he[i]], 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        band_delete(get_band_count())
+        deselect_all()
+        select_index_range(seg, r)
+        set_behavior_clash_importance(0.01)
+        best = RequestSaveSlot()
+        quicksave(best)
+        for i = 1, 3 do
+            while get_score(true) == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + i
+            end
+            str_rs = get_score(true)
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
+            end
+        end
+        str_sc = nil
+        quickload(best)
+        band_delete()
         seg = he[i][1] - 1
         if seg <= 0 then
             seg = 1
@@ -1026,49 +1082,17 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        if b_str_re_band then
-        for ii = he[i][1], he[i][#he[i]] do
-            for iii = he[i][1] + 3, he[i][#he[i]] do
-                if iii > ii then
-                    local len = 1.26 + (1.26 * (iii - ii))
-                    if len > 20 then
-                        len = 20
-                    end
-                    if len > 0 then
-                        band_add_segment_segment(ii, iii)
-                    end
-                    band_set_length(get_band_count(), len)
-                    local pp = get_segment_distance(ii, iii)
-                    while pp > 1 do
-                        pp = pp /5
-                    end
-                    while pp < 1 do
-                        pp = pp * 2
-                    end
-                    band_set_strength(get_band_count(), pp)
-                end
+        for i = 1, 3 do
+            while get_score(true) == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + i
+            end
+            str_rs = get_score(true)
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
             end
         end
-        select_all()
-        do_global_wiggle_all(1)
-        band_delete()
-        end
-        deselect_all()
-        select_index_range(seg, r)
-        set_behavior_clash_importance(0)
-        best = RequestSaveSlot()
-        for i = 1, 3 do
-        while get_score(true) == str_rs do
-            do_local_rebuild(iter)
-            iter = iter + i
-        end
-        str_rs = get_score(true)
-        if not str_rs and str_sc < str_rs then
-            str_sc = str_rs
-            quicksave(best)
-        end
-        end
-        quickload(best)
         set_behavior_clash_importance(1)
         if b_str_re_dist then
             dists()
@@ -1083,112 +1107,106 @@ end
 
 --#Compressor
 function compress()
-p("Compressing Segment ",seg)
-sphere={}
-range=0
-repeat
-count=0
-range=range+2
-sphere=fsl.GetSphere(seg,range)
-for n=1,#sphere-1 do
-if sphere[n]>seg+range/4 and sphere[n]+1~=sphere[n+1] or sphere[n]<seg-range/4 and sphere[n]+1~=sphere[n+1] then
-count=count+1
-end
-end
-until count>4
-for n=1,#sphere-1 do
-if sphere[n]>seg+range/4 and sphere[n]+1~=sphere[n+1] or sphere[n]<seg-range/4 and sphere[n]+1~=sphere[n+1] then
-band_add_segment_segment(seg,sphere[n])
-local length=get_segment_distance(seg,sphere[n])
-repeat
-length=length*7/8
-until length<=5
-band_set_length(get_band_count(),length)
-band_set_strength(get_band_count(),length/5)
-end
-end
-do_global_wiggle_backbone(1)
-band_delete()
-p("Compressing Segment ",seg,"-",r)
-sphere1={}
-sphere2={}
-range=0
+    p("Compressing Segment ", seg)
+    sphere = {}
+    range = 0
+    repeat
+        count = 0
+        range = range + 2
+        sphere = GetSphere(seg, range)
+        for n = 1, #sphere - 1 do
+            if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
+                count = count + 1
+            end
+        end
+    until count > 4
+    for n = 1, #sphere - 1 do
+        if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
+            band_add_segment_segment(seg, sphere[n])
+            local length = get_segment_distance(seg, sphere[n])
+            repeat
+                length = length * 7 / 8
+            until length <= 5
+            band_set_length(get_band_count(), length)
+            band_set_strength(get_band_count(), length / 5)
+        end
+    end
+    do_global_wiggle_backbone(1)
+    band_delete()
+    p("Compressing Segment ", seg, "-", r)
+    sphere1 = {}
+    sphere2 = {}
+    range = 0
 end
 --Compressor#
 
 --#Bands
 function bands()
-_numsegs=get_segment_count()
-p(_numsegs)
-i=1
-select_all()
-replace_ss("L")
-deselect_all()
-function Round(x)--cut all afer 3-rd place
-    return x-x%1.
-end
-numsegs=Round(_numsegs/2)
-p(numsegs)
-while i<numsegs do
-band_add_segment_segment(numsegs-i,numsegs+i)
-band_set_strength(i,10)
-band_set_length(i,0)
-i=i+1
-end
-band_add_segment_segment(numsegs,_numsegs)
-band_add_segment_segment(numsegs,1)
-bands=get_band_count()
-for i=bands-1,bands do
-band_set_strength(i,10)
-band_set_length(i,0)
-end
-band_add_segment_segment(numsegs/2,_numsegs)
-band_add_segment_segment(numsegs+numsegs/2,_numsegs)
-band_add_segment_segment(numsegs/2,1)
-band_add_segment_segment(numsegs+numsegs/2,1)
-band_add_segment_segment(numsegs/4,numsegs+numsegs/4)
-band_add_segment_segment(numsegs/4,numsegs-numsegs/4)
-band_add_segment_segment(numsegs+numsegs*3/4,numsegs+numsegs/4)
-band_add_segment_segment(numsegs+numsegs*3/4,numsegs-numsegs/4)
-for i=bands+1,bands+8 do
-band_set_strength(i,0.01)
-band_set_length(i,20)
-end
-bands=get_band_count()
-select_all()
-do_global_wiggle_all(1)
-do_shake(1)
-for i=1,bands do
-band_set_strength(i,5)
-band_set_length(i,5)
-end
-do_global_wiggle_backbone(1)
-do_shake(1)
-do_global_wiggle_sidechains(1)
-for i=1,bands do
-band_set_strength(i,2)
-band_set_length(i,5)
-end
-do_global_wiggle_backbone(1)
-do_shake(1)
-do_global_wiggle_sidechains(1)
-for i=1,bands do
-band_set_strength(i,1)
-band_set_length(i,4)
-end
-do_global_wiggle_backbone(1)
-do_shake(1)
-do_global_wiggle_sidechains(1)
-for i=1,bands do
-band_set_strength(i,0.01)
-end
-do_global_wiggle_backbone(1)
-do_shake(1)
-do_global_wiggle_sidechains(1)
-band_delete()
-do_global_wiggle_backbone(1)
-do_shake(1)
-do_global_wiggle_sidechains(1)
+    _numsegs = get_segment_count()
+    p(_numsegs)
+    i = 1
+    numsegs = math.floor(_numsegs / 2)
+    p(numsegs)
+    while i < numsegs do
+        band_add_segment_segment(numsegs - i, numsegs + i)
+        band_set_strength(i, 10)
+        band_set_length(i, 0)
+        i = i + 1
+    end
+    band_add_segment_segment(numsegs, _numsegs)
+    band_add_segment_segment(numsegs, 1)
+    bands=get_band_count()
+    for i = bands - 1, bands do
+        band_set_strength(i, 10)
+        band_set_length(i, 0)
+    end
+    band_add_segment_segment(numsegs / 2, _numsegs)
+    band_add_segment_segment(numsegs + numsegs / 2, _numsegs)
+    band_add_segment_segment(numsegs / 2, 1)
+    band_add_segment_segment(numsegs + numsegs / 2, 1)
+    band_add_segment_segment(numsegs / 4,numsegs + numsegs / 4)
+    band_add_segment_segment(numsegs / 4,numsegs - numsegs / 4)
+    band_add_segment_segment(numsegs + numsegs * 3 / 4,numsegs + numsegs / 4)
+    band_add_segment_segment(numsegs + numsegs * 3 / 4,numsegs - numsegs / 4)
+    for i = bands + 1, bands + 8 do
+        band_set_strength(i, 0.01)
+        band_set_length(i, 20)
+    end
+    bands = get_band_count()
+    select_all()
+    do_global_wiggle_all(1)
+    do_shake(1)
+    for i = 1, bands do
+        band_set_strength(i, 5)
+        band_set_length(i, 5)
+    end
+    do_global_wiggle_backbone(1)
+    do_shake(1)
+    do_global_wiggle_sidechains(1)
+    for i = 1, bands do
+        band_set_strength(i, 2)
+        band_set_length(i, 5)
+    end
+    do_global_wiggle_backbone(1)
+    do_shake(1)
+    do_global_wiggle_sidechains(1)
+    for i = 1, bands do
+        band_set_strength(i, 1)
+        band_set_length(i, 4)
+    end
+    do_global_wiggle_backbone(1)
+    do_shake(1)
+    do_global_wiggle_sidechains(1)
+    for i = 1, bands do
+        band_set_strength(i, 0.01)
+    end
+    do_global_wiggle_backbone(1)
+    do_shake(1)
+    do_global_wiggle_sidechains(1)
+    band_delete()
+    do_global_wiggle_backbone(1)
+    do_shake(1)
+    do_global_wiggle_sidechains(1)
 end
 --Bands#
 
