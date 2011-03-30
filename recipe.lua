@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1034"
+Version     = "2.9.1.1035"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -20,8 +20,8 @@ b_lws           = true      -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_predict_ss    = false     -- false    predicting a new structure with some easy methods
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_predict_ss    = true     -- false    predicting a new structure with some easy methods
+b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
@@ -708,7 +708,6 @@ function rebuild()
             quicksave(sl_re)
         end
         end
-        end
         set_behavior_clash_importance(1)
         p(get_score(true) - cs_0)
         c_s = get_score(true)
@@ -727,7 +726,6 @@ function rebuild()
             local csr = get_score(true)
             quicksave(sl_best)
         end
-    end
     if csr then c_s = csr end
     quickload(sl_best)
     ReleaseSaveSlot(sl_best)
@@ -866,6 +864,7 @@ end
 --Push Pull#
 
 --#fast ss
+function fast_ss()
 ss = {}
 for i = 1, numsegs do
     ss[i] = get_ss(i)
@@ -914,6 +913,7 @@ for i = 1, numsegs do
             loop = false
         end
     end
+end
 end
 --fastss#
 
@@ -991,6 +991,8 @@ while i < numsegs - 2 do
     i = i + 1
 end
     p("Found ", #p_he, " Helixes ", #p_sh, " Sheets and ", #p_lo, " Loops")
+    select_all()
+    replace_ss("L")
     for i = 1, #p_he do
     deselect_all()
     for ii = p_he[i][1], p_he[i][#p_he[i]] do
@@ -1010,6 +1012,7 @@ end
 
 --#struct rebuild
 function struct_rebuild()
+    fast_ss()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
     for i = 1, #he do
