@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1030"
+Version     = "2.9.1.1031"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -862,6 +862,9 @@ ss = {}
 for i = 1, numsegs do
     ss[i] = get_ss(i)
 end
+local helix
+local sheet
+local loop
 he = {}
 sh = {}
 lo = {}
@@ -908,12 +911,92 @@ end
 
 --#predictss
 function predict_ss()
-he = {}
-sh = {}
-lo = {}
-for i = 1, numsegs do
-
+p_he = {}
+p_sh = {}
+p_lo = {}
+local helix
+local sheet
+local loop
+local do_break
+local do_break_2
+for i = 1, numsegs-2 do
+    loop = false
+    if do_break then
+        do_break = false
+        break
+    end
+    if do_break_2 then
+        do_break_2 = false
+        break
+    end
+    if hydro[i] then
+        if hydro[i + 1] and not hydro[i + 2] or not hydro[i + 1] and not hydro[i + 2] then
+            if not helix then
+                helix = true
+                p_he[#p_he + 1] = {}
+            end
+        elseif not hydro[i + 1] then
+            if not sheet then
+                sheet = true
+                p_sh[#p_sh + 1] = {}
+            end
+        else
+            p_lo[#p_lo + 1] = {}
+            loop = true
+        end
+    else
+        if hydro[i + 1] and hydro[i + 2] or not hydro[i + 1] and hydro[i + 2] then
+            if not helix then
+                helix = true
+                p_he[#p_he + 1] = {}
+            end
+        elseif hydro[i + 1] then
+            if not sheet then
+                sheet = true
+                p_sh[#p_sh + 1] = {}
+            end
+        else
+            p_lo[#p_lo + 1] = {}
+            loop = true
+        end
+    end
+    if helix then
+        p_he[#p_he][#p_he[#p_he] + 1] = i
+        if loop or sheet then
+            helix = false
+            do_break = true
+            do_break_2 = true
+            p_he[#p_he][#p_he[#p_he] + 1] = i + 1
+            p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+            break
+        end
+    elseif sheet then
+        p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
+        if loop then
+            sheet = false
+            do_break = true
+            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
+            break
+        end
+    else
+        p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
+    end
 end
+    p("Found ", #p_he, " Helixes ", #p_sh, " Sheets and ", #p_lo, " Loops")
+    for i = 1, #p_he do
+    for ii = p_he[i][1], p_he[i][#p_he[i]] do
+        deselect_all()
+        select_index(ii)
+        replace_ss("H")
+    end
+    end
+    for i = 1, #p_sh do
+    for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
+        deselect_all()
+        select_index(ii)
+        replace_ss("E")
+    end
+    end
 end
 --predictss#
 
