@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1031"
+Version     = "2.9.1.1032"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -478,7 +478,7 @@ function select_segs(sphered, start, _end, more)
             if start > _end then
                 local _start = _end
                 _end = start
-				start = _start
+                start = _start
             end
             select_index_range(start, _end)
         else
@@ -724,7 +724,7 @@ function rebuild()
     quickload(sl_best)
     ReleaseSaveSlot(sl_best)
     p("+", c_s - cs_0, "+")
-	ReleaseSaveSlot(sl_re)
+    ReleaseSaveSlot(sl_re)
     if c_s < cs_0 then
         quickload(overall)
     else
@@ -917,26 +917,19 @@ p_lo = {}
 local helix
 local sheet
 local loop
-local do_break
-local do_break_2
-for i = 1, numsegs-2 do
+local i = 1
+while i < numsegs - 2 do
     loop = false
-    if do_break then
-        do_break = false
-        break
-    end
-    if do_break_2 then
-        do_break_2 = false
-        break
-    end
     if hydro[i] then
         if hydro[i + 1] and not hydro[i + 2] or not hydro[i + 1] and not hydro[i + 2] then
             if not helix then
+                p("starting Helix")
                 helix = true
                 p_he[#p_he + 1] = {}
             end
-        elseif not hydro[i + 1] then
+        elseif not hydro[i + 1] and hydro[i + 2] then
             if not sheet then
+                p("starting Sheets")
                 sheet = true
                 p_sh[#p_sh + 1] = {}
             end
@@ -944,58 +937,64 @@ for i = 1, numsegs-2 do
             p_lo[#p_lo + 1] = {}
             loop = true
         end
-    else
+    elseif not hydro[i] then
         if hydro[i + 1] and hydro[i + 2] or not hydro[i + 1] and hydro[i + 2] then
             if not helix then
+                p("starting Helix")
                 helix = true
                 p_he[#p_he + 1] = {}
             end
-        elseif hydro[i + 1] then
+        elseif hydro[i + 1] and not hydro[i + 2] then
             if not sheet then
+                p("starting Sheets")
                 sheet = true
                 p_sh[#p_sh + 1] = {}
             end
         else
+            p("starting Loops")
             p_lo[#p_lo + 1] = {}
             loop = true
         end
     end
     if helix then
+        p("Helix ", i)
         p_he[#p_he][#p_he[#p_he] + 1] = i
         if loop or sheet then
+            p("Helix end", i + 1, " ", i + 2)
             helix = false
-            do_break = true
-            do_break_2 = true
             p_he[#p_he][#p_he[#p_he] + 1] = i + 1
             p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-            break
+            i = i + 2
         end
     elseif sheet then
+        p("Sheet ", i)
         p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
         if loop then
+            p("Sheet end", i + 1)
             sheet = false
-            do_break = true
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
-            break
+            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
+            i = i + 2
         end
     else
         p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
     end
+    i = i + 1
 end
     p("Found ", #p_he, " Helixes ", #p_sh, " Sheets and ", #p_lo, " Loops")
     for i = 1, #p_he do
+    deselect_all()
     for ii = p_he[i][1], p_he[i][#p_he[i]] do
-        deselect_all()
         select_index(ii)
-        replace_ss("H")
     end
+    replace_ss("H")
     end
     for i = 1, #p_sh do
+    deselect_all()
     for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
-        deselect_all()
         select_index(ii)
-        replace_ss("E")
     end
+    replace_ss("E")
     end
 end
 --predictss#
@@ -1108,7 +1107,7 @@ select_all()
 replace_ss("L")
 deselect_all()
 function Round(x)--cut all afer 3-rd place
-	return x-x%1.
+    return x-x%1.
 end
 numsegs=Round(_numsegs/2)
 p(numsegs)
