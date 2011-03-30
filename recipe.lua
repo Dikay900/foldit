@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1032"
+Version     = "2.9.1.1033"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -20,7 +20,7 @@ b_lws           = true      -- true     do local wiggle and rewiggle
 b_fast_lws      = false
 b_pp            = false     -- false    push / pull together and alone then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_str_re        = false     -- false    rebuild based on structure (Implemented Helix only for now)
+b_str_re        = true     -- false    rebuild based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
@@ -685,7 +685,6 @@ function rebuild()
     rebuilding = true
     sl_re = RequestSaveSlot()
     sl_best = RequestSaveSlot()
-    for i = 1, max_rebuilds do
         quickload(overall)
         quicksave(sl_re)
         select_segs(false, seg, r)
@@ -694,12 +693,20 @@ function rebuild()
         else
             p("Rebuilding Segment ", seg, "-", r)
         end
+        for i = 1, max_rebuilds do
         p("Try ", i, "/", max_rebuilds)
         cs_0 = get_score(true)
         set_behavior_clash_importance(0.01)
         do_local_rebuild(rebuild_str * i)
         while get_score(true) == cs_0 do
-        do_local_rebuild(rebuild_str * i * 2)
+        do_local_rebuild(rebuild_str * i * iter)
+        iter = iter + i
+        end
+        if re_sc or re_sc < str_rs then
+            re_sc = str_rs
+            quicksave(sl_re)
+        end
+        end
         end
         set_behavior_clash_importance(1)
         p(get_score(true) - cs_0)
@@ -927,7 +934,7 @@ while i < numsegs - 2 do
                 helix = true
                 p_he[#p_he + 1] = {}
             end
-        elseif not hydro[i + 1] and hydro[i + 2] then
+        elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
             if not sheet then
                 p("starting Sheets")
                 sheet = true
@@ -944,7 +951,7 @@ while i < numsegs - 2 do
                 helix = true
                 p_he[#p_he + 1] = {}
             end
-        elseif hydro[i + 1] and not hydro[i + 2] then
+        elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
             if not sheet then
                 p("starting Sheets")
                 sheet = true
@@ -974,7 +981,8 @@ while i < numsegs - 2 do
             sheet = false
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
-            i = i + 2
+            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
+            i = i + 3
         end
     else
         p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
@@ -1044,13 +1052,19 @@ function struct_rebuild()
         deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0)
-        for i = 1, 5 do
+        best = RequestSaveSlot()
+        for i = 1, 3 do
         while get_score(true) == str_rs do
             do_local_rebuild(iter)
             iter = iter + i
         end
         str_rs = get_score(true)
+        if not str_rs and str_sc < str_rs then
+            str_sc = str_rs
+            quicksave(best)
         end
+        end
+        quickload(best)
         set_behavior_clash_importance(1)
         if b_str_re_dist then
             dists()
@@ -1221,8 +1235,6 @@ function all()
         fuze(overall)
     end
 end
-
-predict_ss()
 
 s_0 = get_score(true)
 c_s = s_0
