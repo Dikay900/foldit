@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1039"
+Version     = "2.9.1.1040"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -16,7 +16,7 @@ start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false      -- true     do local wiggle and rewiggle
+b_lws           = false     -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
@@ -24,7 +24,7 @@ b_predict_ss    = true      -- false    predicting a new structure with some eas
 b_str_re        = true      -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_fuze          = false      -- true     should we fuze
+b_fuze          = false     -- true     should we fuze
 --Working#
 
 --#Push Pull
@@ -53,12 +53,11 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 max_rebuilds    = 2         -- 2
 rebuild_str     = 1         -- 1
 b_r_dist        = false     -- false
-b_r_fuze        = true      -- true
-b_r_deep        = false     -- false
-i_deep_sc       = 10        -- 10
 --Rebuilding#
 
 --#Structed rebuilding
+i_str_re_max_re = 2         -- 2
+i_str_re_re_str = 2         -- 2
 b_str_re_dist   = false     -- false
 --Structed rebuilding#
 --Settings#
@@ -305,27 +304,40 @@ end
 function floss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
-    if option == 1 then
+    if option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
         work("s", 1, cl1)
         work("wa", 1, cl2)
-    elseif option == 2 then
+    elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
         work("wa", 1, cl1)
         work("wa", 1, 1)
         work("wa", 1, cl2)
-    elseif option == 3 then
+    elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
         work("s", 1, cl1)
         fgain("wa", 1)
+        local bf1 = get_score()
+        reset_recent_best()
         work("s", 1, cl2)
         fgain("wa", 1)
+        local bf2 = get_score()
+        if bf2 < bf1 then
+            restore_recent_best()
+        end
+        reset_recent_best()
+        bf1 = get_score()
         work("s", 1, cl1 - 0.02)
-    elseif option == 4 then
+        fgain("wa", 1)
+        bf2 = get_score()
+        if bf2 < bf1 then
+            restore_recent_best()
+        end
+    elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
         work("wa", 1, cl1)
         work("wa", 1, cl2)
-    elseif option == 5 then
+    elseif option == 1 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work("s", 1, cl1)
         work("wa", 1, cl2)
@@ -336,7 +348,9 @@ end
 function s_fuze(option, cl1, cl2)
     local s1_f = get_score(true)
     floss(option, cl1, cl2)
-    fgain("wa", 1)
+    if option ~= 2 then
+        fgain("wa", 1)
+    end
     local s2_f = get_score(true)
     if s2_f > s1_f then
         quicksave(sl_f1)
@@ -350,13 +364,13 @@ function fuze(sl)
     select_all()
     sl_f1 = RequestSaveSlot()
     quicksave(sl_f1)
-    s_fuze(5, 0.1, 0.4)
-    s_fuze(1, 0.1, 0.7)
-    s_fuze(1, 0.3, 0.6)
-    s_fuze(3, 0.05, 0.07)
-    s_fuze(2, 0.5, 0.7)
-    s_fuze(2, 0.7, 0.5)
-    s_fuze(4, 0.3, 0.3)
+    s_fuze(1, 0.1, 0.4)
+    s_fuze(2, 0.05, 0.07)
+    s_fuze(3, 0.1, 0.7)
+    s_fuze(3, 0.3, 0.6)
+    s_fuze(4, 0.5, 0.7)
+    s_fuze(4, 0.7, 0.5)
+    s_fuze(5, 0.3, 0.6)
     quickload(sl_f1)
     s_f = get_score(true)
     ReleaseSaveSlot(sl_f1)
@@ -526,6 +540,12 @@ function select_segs(sphered, start, _end, more)
             end
             local list1 = GetSphere(start, 10)
             select_list(list1)
+            if start > _end then
+                local _start = _end
+                _end = start
+                start = _start
+            end
+            select_index_range(start, _end)
         elseif start ~= _end then
             if start > _end then
                 local _start = _end
@@ -1015,7 +1035,7 @@ function predict_ss()
                     helix = true
                     p_he[#p_he + 1] = {}
                 end
-            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] and hydro[i + 4] then
+            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
                 if not sheet then
                     sheet = true
                     p_sh[#p_sh + 1] = {}
@@ -1030,13 +1050,15 @@ function predict_ss()
                     helix = true
                     p_he[#p_he + 1] = {}
                 end
-            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] and not hydro[i + 4] then
+            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
                 if not sheet then
                     sheet = true
                     p_sh[#p_sh + 1] = {}
                 end
             else
-                p_lo[#p_lo + 1] = {}
+                if not sheet and not helix then
+                    p_lo[#p_lo + 1] = {}
+                end
                 loop = true
             end
         end
@@ -1046,8 +1068,7 @@ function predict_ss()
                 helix = false
                 p_he[#p_he][#p_he[#p_he] + 1] = i + 1
                 p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-                p_he[#p_he][#p_he[#p_he] + 1] = i + 3
-                i = i + 3
+                i = i + 2
             end
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
@@ -1055,9 +1076,7 @@ function predict_ss()
                 sheet = false
                 p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
                 p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
-                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
-                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 4
-                i = i + 4
+                i = i + 2
             end
         else
             p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
@@ -1081,6 +1100,7 @@ function predict_ss()
         end
     end
     replace_ss("E")
+    quicksave(overall)
 end
 --predictss#
 
@@ -1092,22 +1112,9 @@ function struct_rebuild()
     for i = 1, #he do
         deselect_all()
         str_rs = get_score(true)
-        seg = he[i][1]
-        if seg <= 0 then
-            seg = 1
-        end
-        r = he[i][#he[i]]
-        if r > numsegs then
-            r = numsegs
-        end
-        CenterPull(true)
-        for ii = 1, get_band_count() do
-            band_set_strength(ii, 0.75)
-        end
-        Pull(true)
         seg = he[i][1] - 3
-        if seg <= 0 then
-            seg = 1
+        if seg - 1 <= 0 then
+            seg = he[i][1]
         end
         r = he[i][#he[i]] + 3
         if r > numsegs then
@@ -1126,7 +1133,7 @@ function struct_rebuild()
         set_behavior_clash_importance(0.05)
         best = RequestSaveSlot()
         quicksave(best)
-        for i = 1, 2 do
+        for i = 1, i_str_re_max_re do
             while get_score(true) == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
@@ -1150,19 +1157,15 @@ function struct_rebuild()
         end
         deselect_all()
         select_index_range(seg, r)
-        local list1 = GetSphere(seg, 8)
-        select_list(list1)
-        list1 = GetSphere(r, 8)
-        select_list(list1)
         set_behavior_clash_importance(0.05)
-        for i = 1, 2 do
+        for i = 1, i_str_re_max_re do
             while get_score(true) == str_rs do
-                do_local_rebuild(iter)
+                do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
             str_rs = get_score(true)
             if not str_sc or str_sc < str_rs then
-                str_sc = str_rs
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
             end
         end
@@ -1173,6 +1176,9 @@ function struct_rebuild()
             rebuilding = true
             fuze(overall)
         end
+        str_sc = nil
+        str_rs = nil
+        ReleaseSaveSlot(best)
     end
     rebuilding = false
 end
