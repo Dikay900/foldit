@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1037"
+Version     = "2.9.1.1038"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -244,6 +244,29 @@ function FindMutable()
     deselect_all()
     return mutable
 end
+
+function FastCenter() --by Rav3n_pl based on Tlaloc`s
+    local minDistance = 100000.0
+    local distance
+    local indexCenter
+    GetDistances()
+    for i = 1, numsegs do
+        distance = 0
+        for j = 1, numsegs do
+            if i ~= j then
+                local x = i
+                local y = j
+                if x > y then x, y = y, x end
+                distance = distance + distances[x][y]
+            end
+        end
+        if(distance < minDistance) then
+             minDistance = distance
+             indexCenter =  i
+        end
+    end
+    return indexCenter
+end
 --External functions#
 
 --#Internal functions
@@ -358,24 +381,38 @@ end
 --Fuzing#
 
 --#CenterBands
-function CenterPull()
+function CenterPull(locally)
     local indexCenter = FastCenter()
-    for i = start_seg, end_seg do
+    local start
+    local _end
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = start_seg
+        _end = end_seg
+    end
+    for i = start, _end do
         if i ~= indexCenter then
-            math.randomseed(distances[x][y])
-            if hydro[i] and math.random() < 0.03 then
+            if hydro[i] then
                 band_add_segment_segment(i, indexCenter)
             end
         end
     end
 end
 
-function CenterPush()
+function CenterPush(locally)
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = start_seg
+        _end = end_seg
+    end
     local indexCenter = FastCenter()
-    for i = start_seg, end_seg do
+    for i = start, _end do
         if i ~= indexCenter then
-            math.randomseed(distances[x][y])
-            if not hydro[i] and math.random() < 0.03 then
+            if not hydro[i] then
                 band_add_segment_segment(i,indexCenter)
                 local band = get_band_count()
                 local distance = get_segment_distance(i, indexCenter)
@@ -391,11 +428,18 @@ end
 --CenterBands#
 
 --#PushPull
-function Pull()
+function Pull(locally)
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = start_seg
+        _end = end_seg
+    end
     GetDistances()
-    for x = start_seg, end_seg - 2 do
+    for x = start, _end - 2 do
         if hydro[x] then
-            for y = x + 2, end_seg do
+            for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
                 if hydro[y] and math.random() < 0.03 then
                     maxdistance = distances[x][y]
@@ -412,11 +456,18 @@ function Pull()
     end
 end
 
-function Push()
+function Push(locally)
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = start_seg
+        _end = end_seg
+    end
     GetDistances()
-    for x = start_seg, end_seg - 2 do
+    for x = start, _end - 2 do
         if not hydro[x] then
-            for y = x + 2, end_seg do
+            for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
                 if not hydro[y] and math.random() < 0.04 then
                     local distance = distances[x][y]
@@ -1041,6 +1092,19 @@ function struct_rebuild()
     for i = 1, #he do
         deselect_all()
         str_rs = get_score(true)
+        seg = he[i][1]
+        if seg <= 0 then
+            seg = 1
+        end
+        r = he[i][#he[i]]
+        if r > numsegs then
+            r = numsegs
+        end
+        CenterPull(true)
+        for i = 1, get_band_count() do
+            band_set_strength(i, 0.75)
+        end
+        Pull(true)
         seg = he[i][1] - 3
         if seg <= 0 then
             seg = 1
@@ -1059,8 +1123,6 @@ function struct_rebuild()
         band_delete(get_band_count())
         deselect_all()
         select_index_range(seg, r)
-        Pull()
-        CenterPull()
         set_behavior_clash_importance(0.05)
         best = RequestSaveSlot()
         quicksave(best)
@@ -1088,6 +1150,10 @@ function struct_rebuild()
         end
         deselect_all()
         select_index_range(seg, r)
+        local list1 = GetSphere(seg, 6)
+        select_list(list1)
+        list1 = GetSphere(r, 6)
+        select_list(list1)
         set_behavior_clash_importance(0.05)
         for i = 1, 2 do
             while get_score(true) == str_rs do
