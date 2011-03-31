@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1036"
+Version     = "2.9.1.1037"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -20,8 +20,8 @@ b_lws           = true      -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_predict_ss    = false     -- false    predicting a new structure with some easy methods
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_predict_ss    = true      -- false    predicting a new structure with some easy methods
+b_str_re        = true      -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
@@ -59,7 +59,7 @@ i_deep_sc       = 10        -- 10
 --Rebuilding#
 
 --#Structed rebuilding
-b_str_re_dist   = false     -- false
+b_str_re_dist   = true       -- false
 --Structed rebuilding#
 --Settings#
 
@@ -360,10 +360,11 @@ end
 --#CenterBands
 function CenterPull()
     local indexCenter = FastCenter()
-    for i=start_seg,end_seg do
-        if(i ~= indexCenter) then
-            if hydro[i] then
-                band_add_segment_segment(i,indexCenter)
+    for i = start_seg, end_seg do
+        if i ~= indexCenter then
+            math.randomseed(distances[x][y])
+            if hydro[i] and math.random() < 0.03 then
+                band_add_segment_segment(i, indexCenter)
             end
         end
     end
@@ -372,8 +373,9 @@ end
 function CenterPush()
     local indexCenter = FastCenter()
     for i = start_seg, end_seg do
-        if(i ~= indexCenter) then
-            if not hydro[i] then
+        if i ~= indexCenter then
+            math.randomseed(distances[x][y])
+            if not hydro[i] and math.random() < 0.03 then
                 band_add_segment_segment(i,indexCenter)
                 local band = get_band_count()
                 local distance = get_segment_distance(i, indexCenter)
@@ -1014,20 +1016,20 @@ function predict_ss()
     p("Found ", #p_he, " Helix ", #p_sh, " Sheet and ", #p_lo, " Loop parts... Combining...")
     select_all()
     replace_ss("L")
+    deselect_all()
     for i = 1, #p_he do
-        deselect_all()
         for ii = p_he[i][1], p_he[i][#p_he[i]] do
             select_index(ii)
         end
-        replace_ss("H")
     end
+    replace_ss("H")
+    deselect_all()
     for i = 1, #p_sh do
-        deselect_all()
         for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
             select_index(ii)
         end
-        replace_ss("E")
     end
+    replace_ss("E")
 end
 --predictss#
 
@@ -1057,10 +1059,12 @@ function struct_rebuild()
         band_delete(get_band_count())
         deselect_all()
         select_index_range(seg, r)
-        set_behavior_clash_importance(0.01)
+        Pull()
+        CenterPull()
+        set_behavior_clash_importance(0.05)
         best = RequestSaveSlot()
         quicksave(best)
-        for i = 1, 3 do
+        for i = 1, 2 do
             while get_score(true) == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
@@ -1082,7 +1086,10 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        for i = 1, 3 do
+        deselect_all()
+        select_index_range(seg, r)
+        set_behavior_clash_importance(0.05)
+        for i = 1, 2 do
             while get_score(true) == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
