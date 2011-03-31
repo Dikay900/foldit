@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1038"
+Version     = "2.9.1.1039"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -16,7 +16,7 @@ start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = true      -- true     do local wiggle and rewiggle
+b_lws           = false      -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
@@ -24,7 +24,7 @@ b_predict_ss    = true      -- false    predicting a new structure with some eas
 b_str_re        = true      -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_fuze          = true      -- true     should we fuze
+b_fuze          = false      -- true     should we fuze
 --Working#
 
 --#Push Pull
@@ -59,7 +59,7 @@ i_deep_sc       = 10        -- 10
 --Rebuilding#
 
 --#Structed rebuilding
-b_str_re_dist   = true       -- false
+b_str_re_dist   = false     -- false
 --Structed rebuilding#
 --Settings#
 
@@ -1101,8 +1101,8 @@ function struct_rebuild()
             r = numsegs
         end
         CenterPull(true)
-        for i = 1, get_band_count() do
-            band_set_strength(i, 0.75)
+        for ii = 1, get_band_count() do
+            band_set_strength(ii, 0.75)
         end
         Pull(true)
         seg = he[i][1] - 3
@@ -1150,9 +1150,9 @@ function struct_rebuild()
         end
         deselect_all()
         select_index_range(seg, r)
-        local list1 = GetSphere(seg, 6)
+        local list1 = GetSphere(seg, 8)
         select_list(list1)
-        list1 = GetSphere(r, 6)
+        list1 = GetSphere(r, 8)
         select_list(list1)
         set_behavior_clash_importance(0.05)
         for i = 1, 2 do
