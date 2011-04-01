@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1040"
+Version     = "2.9.1.1041"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -1021,7 +1021,7 @@ end
 --#predictss
 function predict_ss()
     local p_he = {}
-    local p_sh = {}
+    p_sh = {}
     local p_lo = {}
     local helix
     local sheet
@@ -1093,13 +1093,6 @@ function predict_ss()
         end
     end
     replace_ss("H")
-    deselect_all()
-    for i = 1, #p_sh do
-        for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
-            select_index(ii)
-        end
-    end
-    replace_ss("E")
     quicksave(overall)
 end
 --predictss#
@@ -1128,6 +1121,16 @@ function struct_rebuild()
             band_add_segment_segment(ii, ii + 4)
         end
         band_delete(get_band_count())
+        if get_band_count() < 3 then
+        for ii = he[i][1], he[i][#he[i]], 3 do
+            band_add_segment_segment(ii, ii + 2)
+        end
+        band_delete(get_band_count())
+        for ii = he[i][1] + 2, he[i][#he[i]], 3 do
+            band_add_segment_segment(ii, ii + 2)
+        end
+        band_delete(get_band_count())
+        end
         deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0.05)
@@ -1157,7 +1160,6 @@ function struct_rebuild()
         end
         deselect_all()
         select_index_range(seg, r)
-        set_behavior_clash_importance(0.05)
         for i = 1, i_str_re_max_re do
             while get_score(true) == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
@@ -1168,6 +1170,46 @@ function struct_rebuild()
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
             end
+        end
+        quickload(best)
+        seg = he[i][1] - 3
+        if seg <= 0 then
+            seg = 1
+        end
+        r = he[i][1]
+        if r > numsegs then
+            r = numsegs
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        seg = he[i][#he[i]]+1
+        if seg <= 0 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        select_index_range(seg, r)
+        for i = 1, i_str_re_max_re do
+            while get_score(true) == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + i
+            end
+            str_rs = get_score(true)
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        quickload(best)
+        seg = he[i][1] - 2
+        if seg <= 0 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 2
+        if r > numsegs then
+            r = numsegs
         end
         set_behavior_clash_importance(1)
         if b_str_re_dist then
@@ -1181,6 +1223,13 @@ function struct_rebuild()
         ReleaseSaveSlot(best)
     end
     rebuilding = false
+    deselect_all()
+    for i = 1, #p_sh do
+        for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
+            select_index(ii)
+        end
+    end
+    replace_ss("E")
 end
 --struct rebuild#
 
