@@ -1176,13 +1176,13 @@ function struct_rebuild()
         if seg <= 0 then
             seg = 1
         end
-        r = he[i][1]
+        r = he[i][1] - 1
         if r > numsegs then
             r = numsegs
         end
         deselect_all()
         select_index_range(seg, r)
-        seg = he[i][#he[i]]+1
+        seg = he[i][#he[i]] + 1
         if seg <= 0 then
             seg = 1
         end
@@ -1216,7 +1216,7 @@ function struct_rebuild()
             dists()
         else
             rebuilding = true
-            fuze(overall)
+            fuze(best)
         end
         str_sc = nil
         str_rs = nil
