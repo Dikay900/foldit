@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1041"
+Version     = "2.9.1.1042"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -18,10 +18,10 @@ start_walk      = 0         -- 0        with how many segs shall we work - Walke
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = false     -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
-b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
+b_pp            = true     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_predict_ss    = true      -- false    predicting a new structure with some easy methods
-b_str_re        = true      -- false    working based on structure (Implemented Helix only for now)
+b_predict_ss    = false      -- false    predicting a new structure with some easy methods
+b_str_re        = false      -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- true     should we fuze
@@ -336,7 +336,6 @@ function floss(option, cl1, cl2)
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
         work("wa", 1, cl1)
-        work("wa", 1, cl2)
     elseif option == 1 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work("s", 1, cl1)
@@ -370,7 +369,7 @@ function fuze(sl)
     s_fuze(3, 0.3, 0.6)
     s_fuze(4, 0.5, 0.7)
     s_fuze(4, 0.7, 0.5)
-    s_fuze(5, 0.3, 0.6)
+    s_fuze(5, 0.3)
     quickload(sl_f1)
     s_f = get_score(true)
     ReleaseSaveSlot(sl_f1)
