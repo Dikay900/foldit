@@ -5,26 +5,26 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1044"
+Version     = "2.9.1.1045"
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
-maxiter         = 5         -- 5        max. iterations an action will do
+maxiter         = 20         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false     -- true     do local wiggle and rewiggle
+end_walk        = 6         -- 3        starting at the current seg + start_walk to seg + end_walk
+b_lws           = true      -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_predict_ss    = false     -- false    predicting a new structure with some easy methods
-b_str_re        = true      -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_fuze          = false     -- true     should we fuze
+b_fuze          = true      -- true     should we fuze
 --Working#
 
 --#Pull
@@ -33,8 +33,8 @@ i_pp_trys       = 2         -- 2
 --Pull#
 
 --#Scoring
-step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain            = 0.01      -- 0.02     Score will get applied after the score changed this value
+step            = 0.0001      -- 0.01     an action tries to get this score, then it will repeat itself
+gain            = 0.0001      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -65,33 +65,34 @@ b_str_re_dist   = false     -- false
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 amino           = {
-                    {'a', 'Ala', 'Alanine'},
-                 -- {'b', 'Asx', 'Asparagine or Aspartic acid'},
-                    {'c', 'Cys', 'Cysteine'},
-                    {'d', 'Asp', 'Aspartic acid'},
-                    {'e', 'Glu', 'Glutamic acid'},
-                    {'f', 'Phe', 'Phenylalanine'},
-                    {'g', 'Gly', 'Glycine'},
-                    {'h', 'His', 'Histidine'},
-                    {'i', 'Ile', 'Isoleucine'},
-                 -- {'j', 'Xle', 'Leucine or Isoleucine'},
-                    {'k', 'Lys', 'Lysine'},
-                    {'l', 'Leu', 'Leucine'},
-                    {'m', 'Met', 'Methionine '},
-                    {'n', 'Asn', 'Asparagine'},
-                 -- {'o', 'Pyl', 'Pyrrolysine'},
-                    {'p', 'Pro', 'Proline'},
-                    {'q', 'Gln', 'Glutamine'},
-                    {'r', 'Arg', 'Arginine'},
-                    {'s', 'Ser', 'Serine'},
-                    {'t', 'Thr', 'Threonine'},
-                 -- {'u', 'Sec', 'Selenocysteine'},
-                    {'v', 'Val', 'Valine'},
-                    {'w', 'Trp', 'Tryptophan'},
-                 -- {'x', 'Xaa', 'Unspecified or unknown amino acid'},
-                    {'y', 'Tyr', 'Tyrosine'},
-                 -- {'z', 'Glx', 'Glutamine or glutamic acid'}
-                  }
+                 -- {seg, short, longname,          hydro,      -scale, pref,   mol,        pl      }
+                    {'a', 'Ala', 'Alanine',         "phobic",   -1.6,   "H",    89.09404,   6.01    },
+                    {'c', 'Cys', 'Cysteine',        "phobic",   -17,    "E",    121.15404,  5.05    },
+                    {'d', 'Asp', 'Aspartic acid',   "philic",   6.7,    "L",    133.10384,  2.85    },
+                    {'e', 'Glu', 'Glutamic acid',   "philic",   8.1,    "H",    147.13074,  3.15    },
+                    {'f', 'Phe', 'Phenylalanine',   "phobic",   -6.3,   "E",    165.19184,  5.49    },
+                    {'g', 'Gly', 'Glycine',         "phobic",   1.7,    "L",    75.06714,   6.06    },
+                    {'h', 'His', 'Histidine',       "philic",   -5.6,   "L",    155.15634,  7.60    },
+                    {'i', 'Ile', 'Isoleucine',      "phobic",   -2.4,   "E",    131.17464,  6.05    },
+                    {'k', 'Lys', 'Lysine',          "philic",   6.5,    "H",    146.18934,  9.60    },
+                    {'l', 'Leu', 'Leucine',         "phobic",   1,      "H",    131.17464,  6.01    },
+                    {'m', 'Met', 'Methionine',      "phobic",   3.4,    "H",    149.20784,  5.74    },
+                    {'n', 'Asn', 'Asparagine',      "philic",   8.9,    "L",    132.11904,  5.41    },
+                    {'p', 'Pro', 'Proline',         "phobic",   -0.2,   "L",    115.13194,  6.30    },
+                    {'q', 'Gln', 'Glutamine',       "philic",   9.7,    "H",    146.14594,  5.65    },
+                    {'r', 'Arg', 'Arginine',        "philic",   9.8,    "H",    174.20274,  10.76   },
+                    {'s', 'Ser', 'Serine',          "philic",   3.7,    "L",    105.09344,  5.68    },
+                    {'t', 'Thr', 'Threonine',       "philic",   2.7,    "E",    119.12034,  5.60    },
+                    {'v', 'Val', 'Valine',          "phobic",   -2.9,   "E",    117.14784,  6.00    },
+                    {'w', 'Trp', 'Tryptophan',      "phobic",   -9.1,   "E",    204.22844,  5.89    },
+                    {'y', 'Tyr', 'Tyrosine',        "phobic",   -5.1,   "E",    181.19124,  5.64    },
+              --[[  {'b', 'Asx', 'Asparagine or Aspartic acid'},
+                    {'j', 'Xle', 'Leucine or Isoleucine'},
+                    {'o', 'Pyl', 'Pyrrolysine'},
+                    {'u', 'Sec', 'Selenocysteine'},
+                    {'x', 'Xaa', 'Unspecified or unknown amino acid'},
+                    {'z', 'Glx', 'Glutamine or glutamic acid'}
+                ]]}
 snapping        = false
 mutating        = false
 rebuilding      = false
@@ -586,6 +587,7 @@ function work(_g, iter, cl)
     elseif _g == "ws" then
         do_global_wiggle_sidechains(iter)
     elseif _g == "wl" then
+        select_segs(false, seg, r)
         wl = RequestSaveSlot()
         quicksave(wl)
         if b_fast_lws then
@@ -1033,12 +1035,12 @@ function struct_rebuild()
         end
         --Save structures and replace with loop for better rebuilding
         local tempss = {}
-        for i = seg, he[i][1] - 1 do
-            tempss[#tempss + 1] = get_ss(i)
+        for ii = seg, he[i][1] - 1 do
+            tempss[#tempss + 1] = get_ss(ii)
         end
         select_index_range(seg, he[i][1] - 1)
-        for i = he[i][#he[i]] + 1, r do
-            tempss[#tempss + 1] = get_ss(i)
+        for ii = he[i][#he[i]] + 1, r do
+            tempss[#tempss + 1] = get_ss(ii)
         end
         select_index_range(he[i][#he[i]] + 1, r)
         replace_ss("L")
@@ -1160,13 +1162,13 @@ function struct_rebuild()
         end
         set_behavior_clash_importance(1)
         -- Restore structures saved before
-        for i = r, he[i][#he[i]] + 1, -1 do
-            select_index(i)
+        for ii = r, he[i][#he[i]] + 1, -1 do
+            select_index(ii)
             replace_ss(tempss[#tempss])
             tempss[#tempss] = nil
         end
-        for i = he[i][1] - 1, seg, -1 do
-            select_index(i)
+        for ii = he[i][1] - 1, seg, -1 do
+            select_index(ii)
             replace_ss(tempss[#tempss])
             tempss[#tempss] = nil
         end
