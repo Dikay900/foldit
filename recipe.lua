@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1042"
+Version     = "2.9.1.1043"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -28,7 +28,7 @@ b_fuze          = false     -- true     should we fuze
 --Working#
 
 --#Push Pull
-b_comp          = false     -- false
+b_comp          = true     -- false
 i_pp_trys       = 2         -- 2
 --Push Pull#
 
@@ -499,7 +499,7 @@ end
 
 --#BandMaxDist
 function BandMaxDist()
-    distances = GetDistances()
+    GetDistances()
     local maxdistance = 0
     for i = start_seg, end_seg do
         for j = start_seg, end_seg do
