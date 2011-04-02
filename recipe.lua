@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1043"
+Version     = "2.9.1.1044"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -18,19 +18,19 @@ start_walk      = 0         -- 0        with how many segs shall we work - Walke
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = false     -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
-b_pp            = true     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Push Pull
+b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_predict_ss    = false      -- false    predicting a new structure with some easy methods
-b_str_re        = false      -- false    working based on structure (Implemented Helix only for now)
+b_predict_ss    = false     -- false    predicting a new structure with some easy methods
+b_str_re        = true      -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- true     should we fuze
 --Working#
 
---#Push Pull
-b_comp          = true     -- false
+--#Pull
+b_comp          = false     -- false
 i_pp_trys       = 2         -- 2
---Push Pull#
+--Pull#
 
 --#Scoring
 step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
@@ -413,35 +413,10 @@ function CenterPull(locally)
         end
     end
 end
-
-function CenterPush(locally)
-    if locally then
-        start = seg
-        _end = r
-    else
-        start = start_seg
-        _end = end_seg
-    end
-    local indexCenter = FastCenter()
-    for i = start, _end do
-        if i ~= indexCenter then
-            if not hydro[i] then
-                band_add_segment_segment(i,indexCenter)
-                local band = get_band_count()
-                local distance = get_segment_distance(i, indexCenter)
-                if distance > 20 then
-                    band_delete(band)
-                else
-                    band_set_length(band, 20)
-                end
-            end
-        end
-    end
-end
 --CenterBands#
 
---#PushPull
-function Pull(locally)
+--#Pull
+function Pull(locally, bandsp)
     if locally then
         start = seg
         _end = r
@@ -454,7 +429,7 @@ function Pull(locally)
         if hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < 0.03 then
+                if hydro[y] and math.random() < bandsp then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
                 repeat
@@ -468,34 +443,7 @@ function Pull(locally)
         end
     end
 end
-
-function Push(locally)
-    if locally then
-        start = seg
-        _end = r
-    else
-        start = start_seg
-        _end = end_seg
-    end
-    GetDistances()
-    for x = start, _end - 2 do
-        if not hydro[x] then
-            for y = x + 2, numsegs do
-                math.randomseed(distances[x][y])
-                if not hydro[y] and math.random() < 0.04 then
-                    local distance = distances[x][y]
-                    if distance <= 15 then
-                        band_add_segment_segment(x, y)
-                        local band = get_band_count()
-                        band_set_strength(band, 2.0)
-                        band_set_length(band, distance + 5)
-                    end
-                end
-            end
-        end
-    end
-end
---PushPull#
+--Pull#
 
 --#BandMaxDist
 function BandMaxDist()
@@ -888,7 +836,7 @@ function mutate()          -- TODO: Test assert Saveslots
 end
 --Mutate#
 
---#Push Pull
+--#Pull
 function dists()
     pp = RequestSaveSlot()
     quicksave(pp)
@@ -904,8 +852,25 @@ function dists()
             quickload(overall)
         end
     end
-    Push()
-    Pull()
+    Pull(false, 0.03)
+    select_all()
+    set_behavior_clash_importance(0.9)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(pp)
+    if get_score() < s_dist then
+        quickload(overall)
+    end
+    Pull(false, 0.02)
+    select_all()
+    set_behavior_clash_importance(0.9)
+    do_global_wiggle_backbone(1)
+    band_delete()
+    fuze(pp)
+    if get_score() < s_dist then
+        quickload(overall)
+    end
+    CenterPull()
     select_all()
     set_behavior_clash_importance(0.8)
     do_global_wiggle_backbone(1)
@@ -914,54 +879,8 @@ function dists()
     if get_score() < s_dist then
         quickload(overall)
     end
-    Pull()
-    select_all()
-    set_behavior_clash_importance(0.7)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-    Push()
-    select_all()
-    set_behavior_clash_importance(0.7)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-    CenterPull()
-    CenterPush()
-    select_all()
-    set_behavior_clash_importance(0.7)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-    CenterPull()
-    select_all()
-    set_behavior_clash_importance(0.7)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-    CenterPush()
-    select_all()
-    set_behavior_clash_importance(0.7)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
 end
---Push Pull#
+--Pull#
 
 --#fast ss
 function fast_ss()
@@ -1112,7 +1031,24 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
+        --Save structures and replace with loop for better rebuilding
+        local tempss = {}
+        for i = seg, he[i][1] - 1 do
+            tempss[#tempss + 1] = get_ss(i)
+        end
+        select_index_range(seg, he[i][1] - 1)
+        for i = he[i][#he[i]] + 1, r do
+            tempss[#tempss + 1] = get_ss(i)
+        end
+        select_index_range(he[i][#he[i]] + 1, r)
+        replace_ss("L")
+        deselect_all()
+        --Saved structures
         for ii = he[i][1], he[i][#he[i]], 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        band_delete(get_band_count())
+        for ii = he[i][1] + 1, he[i][#he[i]], 4 do
             band_add_segment_segment(ii, ii + 4)
         end
         band_delete(get_band_count())
@@ -1120,13 +1056,25 @@ function struct_rebuild()
             band_add_segment_segment(ii, ii + 4)
         end
         band_delete(get_band_count())
+        for ii = he[i][1] + 3, he[i][#he[i]], 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        band_delete(get_band_count())
         if get_band_count() < 3 then
         for ii = he[i][1], he[i][#he[i]], 3 do
-            band_add_segment_segment(ii, ii + 2)
+            band_add_segment_segment(ii, ii + 3)
+        end
+        band_delete(get_band_count())
+        for ii = he[i][1] + 1, he[i][#he[i]], 3 do
+            band_add_segment_segment(ii, ii + 3)
         end
         band_delete(get_band_count())
         for ii = he[i][1] + 2, he[i][#he[i]], 3 do
-            band_add_segment_segment(ii, ii + 2)
+            band_add_segment_segment(ii, ii + 3)
+        end
+        band_delete(get_band_count())
+        for ii = he[i][1] + 3, he[i][#he[i]], 3 do
+            band_add_segment_segment(ii, ii + 3)
         end
         band_delete(get_band_count())
         end
@@ -1211,6 +1159,18 @@ function struct_rebuild()
             r = numsegs
         end
         set_behavior_clash_importance(1)
+        -- Restore structures saved before
+        for i = r, he[i][#he[i]] + 1, -1 do
+            select_index(i)
+            replace_ss(tempss[#tempss])
+            tempss[#tempss] = nil
+        end
+        for i = he[i][1] - 1, seg, -1 do
+            select_index(i)
+            replace_ss(tempss[#tempss])
+            tempss[#tempss] = nil
+        end
+        -- Restored structures
         if b_str_re_dist then
             dists()
         else
@@ -1222,13 +1182,15 @@ function struct_rebuild()
         ReleaseSaveSlot(best)
     end
     rebuilding = false
-    deselect_all()
-    for i = 1, #p_sh do
-        for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
-            select_index(ii)
+    if b_predict_ss then
+        deselect_all()
+        for i = 1, #p_sh do
+            for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
+                select_index(ii)
+            end
         end
+        replace_ss("E")
     end
-    replace_ss("E")
 end
 --struct rebuild#
 
