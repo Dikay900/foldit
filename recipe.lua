@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1046"
+Version     = "2.9.1.1047"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -16,12 +16,12 @@ start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 6         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = true      -- true     do local wiggle and rewiggle
+b_lws           = false      -- true     do local wiggle and rewiggle
 b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_predict_ss    = false     -- false    predicting a new structure with some easy methods
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
@@ -33,8 +33,8 @@ i_pp_trys       = 2         -- 2
 --Pull#
 
 --#Scoring
-step            = 0.0001      -- 0.01     an action tries to get this score, then it will repeat itself
-gain            = 0.0001      -- 0.02     Score will get applied after the score changed this value
+step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
+gain            = 0.01      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
 --#Fuzing
@@ -116,6 +116,16 @@ function assert(b, m)
         error()
     end
 end
+
+function PuzzleScore(exp)
+local s=0
+if exp==true then
+for i=1,numsegs do
+s=s+get_segment_score(i)
+end --for
+end --if
+return s
+end --function
 --Debug#
 
 --#External functions
@@ -290,15 +300,15 @@ function fgain(g, cl)
         iter = 0
         repeat
             iter = iter + 1
-            local s1_f = get_score(true)
+            local s1_f = PuzzleScore(true)
             if iter < maxiter then
                 work(g, iter, cl)
             end
-            local s2_f = get_score(true)
+            local s2_f = PuzzleScore(true)
         until s2_f - s1_f < step
-        local s3_f = get_score(true)
+        local s3_f = PuzzleScore(true)
         work("s")
-        local s4_f = get_score(true)
+        local s4_f = PuzzleScore(true)
     until s4_f - s3_f < step
 end
 
@@ -346,12 +356,12 @@ function floss(option, cl1, cl2)
 end
 
 function s_fuze(option, cl1, cl2)
-    local s1_f = get_score(true)
+    local s1_f = PuzzleScore(true)
     floss(option, cl1, cl2)
     if option ~= 2 then
         fgain("wa", 1)
     end
-    local s2_f = get_score(true)
+    local s2_f = PuzzleScore(true)
     if s2_f > s1_f then
         quicksave(sl_f1)
         p("+", s2_f - s1_f, "+")
@@ -372,7 +382,7 @@ function fuze(sl)
     s_fuze(4, 0.7, 0.5)
     s_fuze(5, 0.3)
     quickload(sl_f1)
-    s_f = get_score(true)
+    s_f = PuzzleScore(true)
     ReleaseSaveSlot(sl_f1)
     if s_f > c_s then
         quicksave(sl)
@@ -592,15 +602,15 @@ function work(_g, iter, cl)
         quicksave(wl)
         if b_fast_lws then
             repeat
-                local s_s1 = get_score(true)
+                local s_s1 = PuzzleScore(true)
                 do_local_wiggle(iter)
-                local s_s2 = get_score(true)
+                local s_s2 = PuzzleScore(true)
             until s_s1 > s_s2
         else
             for i = iter, iter + 5 do
-                local s_s1 = get_score(true)
+                local s_s1 = PuzzleScore(true)
                 do_local_wiggle(iter)
-                local s_s2 = get_score(true)
+                local s_s2 = PuzzleScore(true)
                 if s_s2 > s_s1 then
                     quicksave(wl)
                 else
@@ -630,11 +640,11 @@ function gd(g)
         if iter ~= 1 then
             quicksave(gsl)
         end
-        s1 = get_score(true)
+        s1 = PuzzleScore(true)
         if iter < maxiter then
             work(g, iter)
         end
-        s2 = get_score(true)
+        s2 = PuzzleScore(true)
     until s2 - s1 < (step * iter)
     if s2 < s1 then
         quickload(gsl)
@@ -651,8 +661,8 @@ end
 function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
-    c_snap = get_score(true)
-    cs = get_score(true)
+    c_snap = PuzzleScore(true)
+    cs = PuzzleScore(true)
     quicksave(snaps)
     iii = get_sidechain_snap_count(seg)
     p("Snapcount: ", iii, " - Segment ", seg)
@@ -661,19 +671,19 @@ function snap(mutated)         -- TODO: need complete rewrite
         for ii = 1, iii do
             quickload(snaps)
             p("Snap ", ii, "/ ", iii)
-            c_s = get_score(true)
+            c_s = PuzzleScore(true)
             select()
             do_sidechain_snap(seg, ii)
-            p(get_score(true) - c_s)
-            c_s = get_score(true)
+            p(PuzzleScore(true) - c_s)
+            c_s = PuzzleScore(true)
             quicksave(snapwork)
             gd("s")
             gd("wa")
             gd("ws")
             gd("wb")
             gd("wl")
-            if c_snap < get_score(true) then
-            c_snap = get_score(true)
+            if c_snap < PuzzleScore(true) then
+            c_snap = PuzzleScore(true)
             end
         end
         quickload(snaps)
@@ -690,7 +700,7 @@ function snap(mutated)         -- TODO: need complete rewrite
     snapping = false
     ReleaseSaveSlot(snaps)
     if mutated then
-        s_snap = get_score(true)
+        s_snap = PuzzleScore(true)
         if s_mut < s_snap then
             quicksave(overall)
         else
@@ -717,10 +727,10 @@ function rebuild()
     end
     for i = 1, max_rebuilds do
         p("Try ", i, "/", max_rebuilds)
-        cs_0 = get_score(true)
+        cs_0 = PuzzleScore(true)
         set_behavior_clash_importance(0.01)
         do_local_rebuild(rebuild_str * i)
-        while get_score(true) == cs_0 do
+        while PuzzleScore(true) == cs_0 do
             do_local_rebuild(rebuild_str * i * iter)
             iter = iter + i
         end
@@ -730,8 +740,8 @@ function rebuild()
         end
     end
     set_behavior_clash_importance(1)
-    p(get_score(true) - cs_0)
-    c_s = get_score(true)
+    p(PuzzleScore(true) - cs_0)
+    c_s = PuzzleScore(true)
     quicksave(sl_re)
     if b_mutate then
         mutate()
@@ -743,8 +753,8 @@ function rebuild()
         fuze(sl_re)
     end
     quickload(sl_re)
-    if csr and csr < get_score(true) then
-        local csr = get_score(true)
+    if csr and csr < PuzzleScore(true) then
+        local csr = PuzzleScore(true)
         quicksave(sl_best)
     end
     if csr then
@@ -777,14 +787,14 @@ function mutate()          -- TODO: Test assert Saveslots
                 fgain("wa")
                 repeat
                     repeat
-                        local mut_1 = get_score(true)
+                        local mut_1 = PuzzleScore(true)
                         do_mutate(1)
-                    until get_score(true) - mut_1 < 0.01
-                    mut_1 = get_score(true)
+                    until PuzzleScore(true) - mut_1 < 0.01
+                    mut_1 = PuzzleScore(true)
                     fgain("wa")
-                until get_score(true) - mut_1 < 0.01
-                if get_score(true) > c_s then
-                    c_s = get_score(true)
+                until PuzzleScore(true) - mut_1 < 0.01
+                if PuzzleScore(true) > c_s then
+                    c_s = PuzzleScore(true)
                     quicksave(overall)
                 end
                 quickload(sl_mut)
@@ -805,7 +815,7 @@ function mutate()          -- TODO: Test assert Saveslots
                 if get_aa(seg) ~= amino[j][1] then
                     select()
                     replace_aa(amino[j][1])
-                    s_mut = get_score(true)
+                    s_mut = PuzzleScore(true)
                     p("Mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
                     p(#amino - j, " mutations left...")
                     p(s_mut - c_s)
@@ -816,7 +826,7 @@ function mutate()          -- TODO: Test assert Saveslots
                         do_shake(1)
                         fgain("wa")
                     end
-                    s_mut2 = get_score(true)
+                    s_mut2 = PuzzleScore(true)
                     if s_mut2 > s_mut then
                         p("+", s_mut2 - s_mut, "+")
                     else
@@ -828,7 +838,7 @@ function mutate()          -- TODO: Test assert Saveslots
                         quicksave(overall)
                     end
                     quickload(sl_mut)
-                    s_mut2 = get_score(true)
+                    s_mut2 = PuzzleScore(true)
                 end
             end
             ReleaseSaveSlot(sl_mut)
@@ -855,16 +865,7 @@ function dists()
             quickload(overall)
         end
     end
-    Pull(false, 0.03)
-    select_all()
-    set_behavior_clash_importance(0.9)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-    Pull(false, 0.02)
+    Pull(false, 0.07)
     select_all()
     set_behavior_clash_importance(0.9)
     do_global_wiggle_backbone(1)
@@ -1025,7 +1026,7 @@ function struct_rebuild()
     local iter = 1
     for i = 1, #he do
         deselect_all()
-        str_rs = get_score(true)
+        str_rs = PuzzleScore(true)
         seg = he[i][1] - 3
         if seg - 1 <= 0 then
             seg = he[i][1]
@@ -1087,11 +1088,11 @@ function struct_rebuild()
         best = RequestSaveSlot()
         quicksave(best)
         for i = 1, i_str_re_max_re do
-            while get_score(true) == str_rs do
+            while PuzzleScore(true) == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
             end
-            str_rs = get_score(true)
+            str_rs = PuzzleScore(true)
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs
                 quicksave(best)
@@ -1111,11 +1112,11 @@ function struct_rebuild()
         deselect_all()
         select_index_range(seg, r)
         for i = 1, i_str_re_max_re do
-            while get_score(true) == str_rs do
+            while PuzzleScore(true) == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
-            str_rs = get_score(true)
+            str_rs = PuzzleScore(true)
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
@@ -1142,11 +1143,11 @@ function struct_rebuild()
         end
         select_index_range(seg, r)
         for i = 1, i_str_re_max_re do
-            while get_score(true) == str_rs do
+            while PuzzleScore(true) == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
-            str_rs = get_score(true)
+            str_rs = PuzzleScore(true)
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
@@ -1320,7 +1321,7 @@ function all()
     end
     for i = start_seg, end_seg do
         seg = i
-        c_s = get_score(true)
+        c_s = PuzzleScore(true)
         if b_mutate then
             mutate()
         end
@@ -1353,13 +1354,13 @@ function all()
     end
 end
 
-s_0 = get_score(true)
+s_0 = PuzzleScore(true)
 c_s = s_0
 p("Starting Score: ", c_s)
 overall = RequestSaveSlot()
 quicksave(overall)
 all()
 quickload(overall)
-s_1 = get_score(true)
+s_1 = PuzzleScore(true)
 p("+++ Overall Gain +++")
 p("+++", s_1 - s_0, "+++")
