@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1045"
+Version     = "2.9.1.1046"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -601,10 +601,11 @@ function work(_g, iter, cl)
                 local s_s1 = get_score(true)
                 do_local_wiggle(iter)
                 local s_s2 = get_score(true)
-                if s_s2 - s_s1 > step / 2 * i then
+                if s_s2 > s_s1 then
                     quicksave(wl)
+                else
+                    quickload(wl)
                 end
-                quickload(wl)
                 if s_s2 == s_s1 then
                     break
                 end
