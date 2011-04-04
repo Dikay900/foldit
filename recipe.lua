@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1047"
+Version     = "2.9.1.1048"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -21,10 +21,11 @@ b_fast_lws      = false     -- false    an faster alternative which just local w
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 b_predict_ss    = false     -- false    predicting a new structure with some easy methods
-b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
+b_explore       = false
 --Working#
 
 --#Pull
@@ -72,7 +73,7 @@ amino           = {
                     {'e', 'Glu', 'Glutamic acid',   "philic",   8.1,    "H",    147.13074,  3.15    },
                     {'f', 'Phe', 'Phenylalanine',   "phobic",   -6.3,   "E",    165.19184,  5.49    },
                     {'g', 'Gly', 'Glycine',         "phobic",   1.7,    "L",    75.06714,   6.06    },
-                    {'h', 'His', 'Histidine',       "philic",   -5.6,   "L",    155.15634,  7.60    },
+                    {'h', 'His', 'Histidine',       "philic",   -5.6,   nil,    155.15634,  7.60    },
                     {'i', 'Ile', 'Isoleucine',      "phobic",   -2.4,   "E",    131.17464,  6.05    },
                     {'k', 'Lys', 'Lysine',          "philic",   6.5,    "H",    146.18934,  9.60    },
                     {'l', 'Leu', 'Leucine',         "phobic",   1,      "H",    131.17464,  6.01    },
@@ -114,17 +115,19 @@ function assert(b, m)
     if not b then
         p(m)
         error()
-    end
-end
+    end -- if b
+end -- function
 
-function PuzzleScore(exp)
-local s=0
-if exp==true then
-for i=1,numsegs do
-s=s+get_segment_score(i)
-end --for
-end --if
-return s
+function PuzzleScore(bool)
+    local s
+    if bool then
+        for i = 1, numsegs do
+            s = s + get_segment_score(i)
+        end --for
+    else -- if bool
+        s = get_score(true)
+    end --if
+    return s
 end --function
 --Debug#
 
@@ -162,30 +165,30 @@ local function _MWC()
     lngX = lngX - (T3 * M)
     lngC = math.floor((F2 / H) + F1)
     return lngX
-end
+end -- function
 
 local function _floor(value)
     return value - (value % 1)
-end
+end -- function
 
 local function _randomseed(x)
     lngX = x
-end
+end -- function
 
 local function _random(m,n)
     if not n and m then
         n = m
         m = 1
-    end
+    end -- if n
     if not m and not n then
         return _MWC() / 4294967296
-    else
+    else -- if m
         if n < m then
             return nil
-        end
+        end -- n < m
         return math.floor((_MWC() / 4294967296) * (n - m + 1)) + m
-    end
-end
+    end -- if m
+end -- function
 
 math=
 {   floor       = _floor,
@@ -200,8 +203,8 @@ function GetDistances()
         distances[i] = {}
         for j = i + 1, numsegs do
             distances[i][j] = get_segment_distance(i, j)
-        end
-    end
+        end -- for j
+    end -- for i
 end
 
 function GetSphere(seg, radius)
@@ -209,22 +212,22 @@ function GetSphere(seg, radius)
     for i = 1, numsegs do
         if get_segment_distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
-        end
-    end
+        end -- if get_
+    end -- for i
     return sphere
-end
+end -- function
 
 --#Saveslot manager
 function ReleaseSaveSlot(slot)
     saveSlots[#saveSlots + 1] = slot
-end
+end -- function
 
 function RequestSaveSlot()
     assert(#saveSlots > 0, "Out of save slots")
     local saveSlot = saveSlots[#saveSlots]
     saveSlots[#saveSlots] = nil
     return saveSlot
-end
+end -- function
 --Saveslot manager#
 
 function FindMutable()
@@ -239,21 +242,21 @@ function FindMutable()
     for i = 1, numsegs do
         if get_aa(i) == "g" then    -- find the "g" segments
             isG[#isG + 1] = i
-        end
-    end
+        end -- if get_aa
+    end -- for i
     replace_aa("q")                 -- all mutable segments are set to "q"
     for j = 1, #isG do
         i = isG[j]
         if get_aa(i) == "q" then    -- this segment is mutable
             mutable[#mutable + 1] = i
-        end
-    end
+        end -- if get_aa
+    end -- for j
     p(#mutable, " mutables found")
     quickload(mut)
     ReleaseSaveSlot(mut)
     deselect_all()
     return mutable
-end
+end -- function
 
 function FastCenter() --by Rav3n_pl based on Tlaloc`s
     local minDistance = 100000.0
@@ -268,30 +271,95 @@ function FastCenter() --by Rav3n_pl based on Tlaloc`s
                 local y = j
                 if x > y then x, y = y, x end
                 distance = distance + distances[x][y]
-            end
-        end
-        if(distance < minDistance) then
-             minDistance = distance
-             indexCenter =  i
-        end
-    end
+            end -- if i ~= j
+        end -- for j
+        if distance < minDistance then
+            minDistance = distance
+            indexCenter =  i
+        end -- if distance
+    end -- for i
     return indexCenter
-end
+end -- function
 --External functions#
 
 --#Internal functions
+--#Checks
 --#Hydrocheck
-hydro = {}
-for i = 1, numsegs do
-hydro[i] = is_hydrophobic(i)
-end
+local function _hydrocheck()
+    hydro = {}
+    for i = 1, numsegs do
+        hydro[i] = is_hydrophobic(i)
+    end -- for i
+end -- function
 --Hydrocheck#
 
 --#Ligand Check
-if get_ss(numsegs) == 'M' then
-    numsegs = numsegs - 1
-end
+local function _ligandcheck()
+    if get_ss(numsegs) == 'M' then
+        numsegs = numsegs - 1
+    end -- if get_ss
+end -- function
 --Ligand Check#
+
+--#Structurecheck
+--#Getting SS
+local function _get_ss()
+    ss = {}
+    for i = 1, numsegs do
+        ss[i] = get_ss(i)
+    end -- for i
+end -- function
+--Getting SS#
+
+function fast_ss()
+    local helix
+    local sheet
+    local loop
+    he = {}
+    sh = {}
+    lo = {}
+    for i = 1, numsegs do
+        if ss[i] == "H" and not helix then
+            helix = true
+            sheet = false
+            loop = false
+            he[#he + 1] = {}
+        elseif ss[i] == "E" and not sheet then
+            sheet = true
+            loop = false
+            helix = false
+            sh[#sh + 1] = {}
+        elseif ss[i] == "L" and not loop then
+            loop = true
+            helix = false
+            sheet = false
+            lo[#lo + 1] = {}
+        end -- if ss
+        if helix then
+            if ss[i] == "H" then
+                he[#he][#he[#he]+1] = i
+            else -- if ss
+                helix = false
+            end -- if ss
+        end -- if helix
+        if sheet then
+            if ss[i] == "E" then
+                sh[#sh][#sh[#sh]+1] = i
+            else -- ss
+                sheet = false
+            end
+        end
+        if loop then
+            if ss[i] == "L" then
+                lo[#lo][#lo[#lo]+1] = i
+            else
+                loop = false
+            end
+        end
+    end
+end
+--Structurecheck#
+--Checks#
 
 --#Fuzing
 function fgain(g, cl)
@@ -300,15 +368,15 @@ function fgain(g, cl)
         iter = 0
         repeat
             iter = iter + 1
-            local s1_f = PuzzleScore(true)
+            local s1_f = PuzzleScore(b_explore)
             if iter < maxiter then
                 work(g, iter, cl)
             end
-            local s2_f = PuzzleScore(true)
+            local s2_f = PuzzleScore(b_explore)
         until s2_f - s1_f < step
-        local s3_f = PuzzleScore(true)
+        local s3_f = PuzzleScore(b_explore)
         work("s")
-        local s4_f = PuzzleScore(true)
+        local s4_f = PuzzleScore(b_explore)
     until s4_f - s3_f < step
 end
 
@@ -356,12 +424,12 @@ function floss(option, cl1, cl2)
 end
 
 function s_fuze(option, cl1, cl2)
-    local s1_f = PuzzleScore(true)
+    local s1_f = PuzzleScore(b_explore)
     floss(option, cl1, cl2)
     if option ~= 2 then
         fgain("wa", 1)
     end
-    local s2_f = PuzzleScore(true)
+    local s2_f = PuzzleScore(b_explore)
     if s2_f > s1_f then
         quicksave(sl_f1)
         p("+", s2_f - s1_f, "+")
@@ -382,7 +450,7 @@ function fuze(sl)
     s_fuze(4, 0.7, 0.5)
     s_fuze(5, 0.3)
     quickload(sl_f1)
-    s_f = PuzzleScore(true)
+    s_f = PuzzleScore(b_explore)
     ReleaseSaveSlot(sl_f1)
     if s_f > c_s then
         quicksave(sl)
@@ -602,15 +670,15 @@ function work(_g, iter, cl)
         quicksave(wl)
         if b_fast_lws then
             repeat
-                local s_s1 = PuzzleScore(true)
+                local s_s1 = PuzzleScore(b_explore)
                 do_local_wiggle(iter)
-                local s_s2 = PuzzleScore(true)
+                local s_s2 = PuzzleScore(b_explore)
             until s_s1 > s_s2
         else
             for i = iter, iter + 5 do
-                local s_s1 = PuzzleScore(true)
+                local s_s1 = PuzzleScore(b_explore)
                 do_local_wiggle(iter)
-                local s_s2 = PuzzleScore(true)
+                local s_s2 = PuzzleScore(b_explore)
                 if s_s2 > s_s1 then
                     quicksave(wl)
                 else
@@ -640,11 +708,11 @@ function gd(g)
         if iter ~= 1 then
             quicksave(gsl)
         end
-        s1 = PuzzleScore(true)
+        s1 = PuzzleScore(b_explore)
         if iter < maxiter then
             work(g, iter)
         end
-        s2 = PuzzleScore(true)
+        s2 = PuzzleScore(b_explore)
     until s2 - s1 < (step * iter)
     if s2 < s1 then
         quickload(gsl)
@@ -661,8 +729,8 @@ end
 function snap(mutated)         -- TODO: need complete rewrite
     snapping = true
     snaps = RequestSaveSlot()
-    c_snap = PuzzleScore(true)
-    cs = PuzzleScore(true)
+    c_snap = PuzzleScore(b_explore)
+    cs = PuzzleScore(b_explore)
     quicksave(snaps)
     iii = get_sidechain_snap_count(seg)
     p("Snapcount: ", iii, " - Segment ", seg)
@@ -671,19 +739,19 @@ function snap(mutated)         -- TODO: need complete rewrite
         for ii = 1, iii do
             quickload(snaps)
             p("Snap ", ii, "/ ", iii)
-            c_s = PuzzleScore(true)
+            c_s = PuzzleScore(b_explore)
             select()
             do_sidechain_snap(seg, ii)
-            p(PuzzleScore(true) - c_s)
-            c_s = PuzzleScore(true)
+            p(PuzzleScore(b_explore) - c_s)
+            c_s = PuzzleScore(b_explore)
             quicksave(snapwork)
             gd("s")
             gd("wa")
             gd("ws")
             gd("wb")
             gd("wl")
-            if c_snap < PuzzleScore(true) then
-            c_snap = PuzzleScore(true)
+            if c_snap < PuzzleScore(b_explore) then
+            c_snap = PuzzleScore(b_explore)
             end
         end
         quickload(snaps)
@@ -700,7 +768,7 @@ function snap(mutated)         -- TODO: need complete rewrite
     snapping = false
     ReleaseSaveSlot(snaps)
     if mutated then
-        s_snap = PuzzleScore(true)
+        s_snap = PuzzleScore(b_explore)
         if s_mut < s_snap then
             quicksave(overall)
         else
@@ -727,10 +795,10 @@ function rebuild()
     end
     for i = 1, max_rebuilds do
         p("Try ", i, "/", max_rebuilds)
-        cs_0 = PuzzleScore(true)
+        cs_0 = PuzzleScore(b_explore)
         set_behavior_clash_importance(0.01)
         do_local_rebuild(rebuild_str * i)
-        while PuzzleScore(true) == cs_0 do
+        while PuzzleScore(b_explore) == cs_0 do
             do_local_rebuild(rebuild_str * i * iter)
             iter = iter + i
         end
@@ -740,8 +808,8 @@ function rebuild()
         end
     end
     set_behavior_clash_importance(1)
-    p(PuzzleScore(true) - cs_0)
-    c_s = PuzzleScore(true)
+    p(PuzzleScore(b_explore) - cs_0)
+    c_s = PuzzleScore(b_explore)
     quicksave(sl_re)
     if b_mutate then
         mutate()
@@ -753,8 +821,8 @@ function rebuild()
         fuze(sl_re)
     end
     quickload(sl_re)
-    if csr and csr < PuzzleScore(true) then
-        local csr = PuzzleScore(true)
+    if csr and csr < PuzzleScore(b_explore) then
+        local csr = PuzzleScore(b_explore)
         quicksave(sl_best)
     end
     if csr then
@@ -787,14 +855,14 @@ function mutate()          -- TODO: Test assert Saveslots
                 fgain("wa")
                 repeat
                     repeat
-                        local mut_1 = PuzzleScore(true)
+                        local mut_1 = PuzzleScore(b_explore)
                         do_mutate(1)
-                    until PuzzleScore(true) - mut_1 < 0.01
-                    mut_1 = PuzzleScore(true)
+                    until PuzzleScore(b_explore) - mut_1 < 0.01
+                    mut_1 = PuzzleScore(b_explore)
                     fgain("wa")
-                until PuzzleScore(true) - mut_1 < 0.01
-                if PuzzleScore(true) > c_s then
-                    c_s = PuzzleScore(true)
+                until PuzzleScore(b_explore) - mut_1 < 0.01
+                if PuzzleScore(b_explore) > c_s then
+                    c_s = PuzzleScore(b_explore)
                     quicksave(overall)
                 end
                 quickload(sl_mut)
@@ -815,7 +883,7 @@ function mutate()          -- TODO: Test assert Saveslots
                 if get_aa(seg) ~= amino[j][1] then
                     select()
                     replace_aa(amino[j][1])
-                    s_mut = PuzzleScore(true)
+                    s_mut = PuzzleScore(b_explore)
                     p("Mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
                     p(#amino - j, " mutations left...")
                     p(s_mut - c_s)
@@ -826,7 +894,7 @@ function mutate()          -- TODO: Test assert Saveslots
                         do_shake(1)
                         fgain("wa")
                     end
-                    s_mut2 = PuzzleScore(true)
+                    s_mut2 = PuzzleScore(b_explore)
                     if s_mut2 > s_mut then
                         p("+", s_mut2 - s_mut, "+")
                     else
@@ -838,7 +906,7 @@ function mutate()          -- TODO: Test assert Saveslots
                         quicksave(overall)
                     end
                     quickload(sl_mut)
-                    s_mut2 = PuzzleScore(true)
+                    s_mut2 = PuzzleScore(b_explore)
                 end
             end
             ReleaseSaveSlot(sl_mut)
@@ -885,60 +953,6 @@ function dists()
     end
 end
 --Pull#
-
---#fast ss
-function fast_ss()
-    ss = {}
-    for i = 1, numsegs do
-        ss[i] = get_ss(i)
-    end
-    local helix
-    local sheet
-    local loop
-    he = {}
-    sh = {}
-    lo = {}
-    for i = 1, numsegs do
-        if ss[i] == "H" and not helix then
-            helix = true
-            sheet = false
-            loop = false
-            he[#he + 1] = {}
-        elseif ss[i] == "E" and not sheet then
-            sheet = true
-            loop = false
-            helix = false
-            sh[#sh + 1] = {}
-        elseif ss[i] == "L" and not loop then
-            loop = true
-            helix = false
-            sheet = false
-            lo[#lo + 1] = {}
-        end
-        if helix then
-            if ss[i] == "H" then
-                he[#he][#he[#he]+1] = i
-            else
-                helix = false
-            end
-        end
-        if sheet then
-            if ss[i] == "E" then
-                sh[#sh][#sh[#sh]+1] = i
-            else
-                sheet = false
-            end
-        end
-        if loop then
-            if ss[i] == "L" then
-                lo[#lo][#lo[#lo]+1] = i
-            else
-                loop = false
-            end
-        end
-    end
-end
---fastss#
 
 --#predictss
 function predict_ss()
@@ -1026,7 +1040,7 @@ function struct_rebuild()
     local iter = 1
     for i = 1, #he do
         deselect_all()
-        str_rs = PuzzleScore(true)
+        str_rs = PuzzleScore(b_explore)
         seg = he[i][1] - 3
         if seg - 1 <= 0 then
             seg = he[i][1]
@@ -1048,39 +1062,31 @@ function struct_rebuild()
         replace_ss("L")
         deselect_all()
         --Saved structures
-        for ii = he[i][1], he[i][#he[i]], 4 do
+        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
         end
-        band_delete(get_band_count())
-        for ii = he[i][1] + 1, he[i][#he[i]], 4 do
+        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
         end
-        band_delete(get_band_count())
-        for ii = he[i][1] + 2, he[i][#he[i]], 4 do
+        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
         end
-        band_delete(get_band_count())
-        for ii = he[i][1] + 3, he[i][#he[i]], 4 do
+        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
         end
-        band_delete(get_band_count())
         if get_band_count() < 3 then
-        for ii = he[i][1], he[i][#he[i]], 3 do
+        for ii = he[i][1], he[i][#he[i]] - 3, 3 do
             band_add_segment_segment(ii, ii + 3)
         end
-        band_delete(get_band_count())
-        for ii = he[i][1] + 1, he[i][#he[i]], 3 do
+        for ii = he[i][1] + 1, he[i][#he[i]] - 3, 3 do
             band_add_segment_segment(ii, ii + 3)
         end
-        band_delete(get_band_count())
-        for ii = he[i][1] + 2, he[i][#he[i]], 3 do
+        for ii = he[i][1] + 2, he[i][#he[i]] - 3, 3 do
             band_add_segment_segment(ii, ii + 3)
         end
-        band_delete(get_band_count())
-        for ii = he[i][1] + 3, he[i][#he[i]], 3 do
+        for ii = he[i][1] + 3, he[i][#he[i]] - 3, 3 do
             band_add_segment_segment(ii, ii + 3)
         end
-        band_delete(get_band_count())
         end
         deselect_all()
         select_index_range(seg, r)
@@ -1088,11 +1094,11 @@ function struct_rebuild()
         best = RequestSaveSlot()
         quicksave(best)
         for i = 1, i_str_re_max_re do
-            while PuzzleScore(true) == str_rs do
+            while PuzzleScore(b_explore) == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
             end
-            str_rs = PuzzleScore(true)
+            str_rs = PuzzleScore(b_explore)
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs
                 quicksave(best)
@@ -1112,11 +1118,11 @@ function struct_rebuild()
         deselect_all()
         select_index_range(seg, r)
         for i = 1, i_str_re_max_re do
-            while PuzzleScore(true) == str_rs do
+            while PuzzleScore(b_explore) == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
-            str_rs = PuzzleScore(true)
+            str_rs = PuzzleScore(b_explore)
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
@@ -1143,11 +1149,11 @@ function struct_rebuild()
         end
         select_index_range(seg, r)
         for i = 1, i_str_re_max_re do
-            while PuzzleScore(true) == str_rs do
+            while PuzzleScore(b_explore) == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
-            str_rs = PuzzleScore(true)
+            str_rs = PuzzleScore(b_explore)
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
@@ -1321,7 +1327,7 @@ function all()
     end
     for i = start_seg, end_seg do
         seg = i
-        c_s = PuzzleScore(true)
+        c_s = PuzzleScore(b_explore)
         if b_mutate then
             mutate()
         end
@@ -1354,13 +1360,13 @@ function all()
     end
 end
 
-s_0 = PuzzleScore(true)
+s_0 = PuzzleScore(b_explore)
 c_s = s_0
 p("Starting Score: ", c_s)
 overall = RequestSaveSlot()
 quicksave(overall)
 all()
 quickload(overall)
-s_1 = PuzzleScore(true)
+s_1 = PuzzleScore(b_explore)
 p("+++ Overall Gain +++")
 p("+++", s_1 - s_0, "+++")
