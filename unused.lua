@@ -233,3 +233,31 @@ function mutate()          -- TODO: Test assert Saveslots
     mutating = false
 end
 --Mutate#
+
+function FindMutable()
+    p("Finding mutable segments -- programm will get stuck a bit")
+    local mut = RequestSaveSlot()
+    quicksave(mut)
+    local mutable = {}
+    local isG = {}
+    local i
+    select_all()
+    replace_aa("g")                 -- all mutable segments are set to "g"
+    for i = 1, numsegs do
+        if get_aa(i) == "g" then    -- find the "g" segments
+            isG[#isG + 1] = i
+        end -- if get_aa
+    end -- for i
+    replace_aa("q")                 -- all mutable segments are set to "q"
+    for j = 1, #isG do
+        i = isG[j]
+        if get_aa(i) == "q" then    -- this segment is mutable
+            mutable[#mutable + 1] = i
+        end -- if get_aa
+    end -- for j
+    p(#mutable, " mutables found")
+    quickload(mut)
+    ReleaseSaveSlot(mut)
+    deselect_all()
+    return mutable
+end -- function

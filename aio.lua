@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "1049"
+Version     = "1050"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -57,14 +57,17 @@ b_snap          = false     -- false    should we snap every sidechain to differ
 --#Mutating
 b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
 b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
---Mutating#]]
+--Mutating#
+]]
 --Settings#
 
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+--[[
 snapping        = false
 mutating        = false
 rebuilding      = false
+]]
 fuzing          = false
 sc_changed      = true
 --Constants#
@@ -158,7 +161,7 @@ local function _random(m,n)
     end -- if m
 end -- function
 
-math=
+math =
 {   floor       = _floor,
     random      = _random,
     randomseed  = _randomseed
@@ -198,34 +201,6 @@ function RequestSaveSlot()
 end -- function
 --Saveslot manager#
 
-function FindMutable()
-    p("Finding mutable segments -- programm will get stuck a bit")
-    local mut = RequestSaveSlot()
-    quicksave(mut)
-    local mutable = {}
-    local isG = {}
-    local i
-    select_all()
-    replace_aa("g")                 -- all mutable segments are set to "g"
-    for i = 1, numsegs do
-        if get_aa(i) == "g" then    -- find the "g" segments
-            isG[#isG + 1] = i
-        end -- if get_aa
-    end -- for i
-    replace_aa("q")                 -- all mutable segments are set to "q"
-    for j = 1, #isG do
-        i = isG[j]
-        if get_aa(i) == "q" then    -- this segment is mutable
-            mutable[#mutable + 1] = i
-        end -- if get_aa
-    end -- for j
-    p(#mutable, " mutables found")
-    quickload(mut)
-    ReleaseSaveSlot(mut)
-    deselect_all()
-    return mutable
-end -- function
-
 function FastCenter() --by Rav3n_pl based on Tlaloc`s
     local minDistance = 100000.0
     local distance
@@ -253,7 +228,7 @@ end -- function
 --#Internal functions
 --#Checks
 --#Hydrocheck
-local function _hydrocheck()
+local function _hydro()
     hydro = {}
     for i = 1, numsegs do
         hydro[i] = is_hydrophobic(i)
@@ -262,7 +237,7 @@ end -- function
 --Hydrocheck#
 
 --#Ligand Check
-local function _ligandcheck()
+local function _ligand()
     if get_ss(numsegs) == 'M' then
         numsegs = numsegs - 1
     end -- if get_ss
@@ -271,13 +246,19 @@ end -- function
 
 --#Structurecheck
 --#Getting SS
-local function _get_ss()
+local function _ss()
     ss = {}
     for i = 1, numsegs do
         ss[i] = get_ss(i)
     end -- for i
 end -- function
 --Getting SS#
+
+check =
+{   ss      = _ss,
+    ligand  = _ligand,
+    hydro   = _hydro
+}
 
 function fast_ss()
     local helix
