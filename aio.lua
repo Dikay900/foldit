@@ -62,45 +62,12 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-amino           = {
-                 -- {seg, short, longname,          hydro,      -scale, pref,   mol,        pl      }
-                    {'a', 'Ala', 'Alanine',         "phobic",   -1.6,   "H",    89.09404,   6.01    },
-                    {'c', 'Cys', 'Cysteine',        "phobic",   -17,    "E",    121.15404,  5.05    },
-                    {'d', 'Asp', 'Aspartic acid',   "philic",   6.7,    "L",    133.10384,  2.85    },
-                    {'e', 'Glu', 'Glutamic acid',   "philic",   8.1,    "H",    147.13074,  3.15    },
-                    {'f', 'Phe', 'Phenylalanine',   "phobic",   -6.3,   "E",    165.19184,  5.49    },
-                    {'g', 'Gly', 'Glycine',         "phobic",   1.7,    "L",    75.06714,   6.06    },
-                    {'h', 'His', 'Histidine',       "philic",   -5.6,   nil,    155.15634,  7.60    },
-                    {'i', 'Ile', 'Isoleucine',      "phobic",   -2.4,   "E",    131.17464,  6.05    },
-                    {'k', 'Lys', 'Lysine',          "philic",   6.5,    "H",    146.18934,  9.60    },
-                    {'l', 'Leu', 'Leucine',         "phobic",   1,      "H",    131.17464,  6.01    },
-                    {'m', 'Met', 'Methionine',      "phobic",   3.4,    "H",    149.20784,  5.74    },
-                    {'n', 'Asn', 'Asparagine',      "philic",   8.9,    "L",    132.11904,  5.41    },
-                    {'p', 'Pro', 'Proline',         "phobic",   -0.2,   "L",    115.13194,  6.30    },
-                    {'q', 'Gln', 'Glutamine',       "philic",   9.7,    "H",    146.14594,  5.65    },
-                    {'r', 'Arg', 'Arginine',        "philic",   9.8,    "H",    174.20274,  10.76   },
-                    {'s', 'Ser', 'Serine',          "philic",   3.7,    "L",    105.09344,  5.68    },
-                    {'t', 'Thr', 'Threonine',       "philic",   2.7,    "E",    119.12034,  5.60    },
-                    {'v', 'Val', 'Valine',          "phobic",   -2.9,   "E",    117.14784,  6.00    },
-                    {'w', 'Trp', 'Tryptophan',      "phobic",   -9.1,   "E",    204.22844,  5.89    },
-                    {'y', 'Tyr', 'Tyrosine',        "phobic",   -5.1,   "E",    181.19124,  5.64    },
-              --[[  {'b', 'Asx', 'Asparagine or Aspartic acid'},
-                    {'j', 'Xle', 'Leucine or Isoleucine'},
-                    {'o', 'Pyl', 'Pyrrolysine'},
-                    {'u', 'Sec', 'Selenocysteine'},
-                    {'x', 'Xaa', 'Unspecified or unknown amino acid'},
-                    {'z', 'Glx', 'Glutamine or glutamic acid'}
-                ]]}
 snapping        = false
 mutating        = false
 rebuilding      = false
 fuzing          = false
 sc_changed      = true
 --Constants#
-
-local function _short(seg)
-return amino[seg][2]
-end
 
 --#Securing for changes that will be made at Fold.it
 assert          = nil
