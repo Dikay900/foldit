@@ -5,50 +5,39 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "2.9.1.1048"
+Version     = "1049"
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
-maxiter         = 20         -- 5        max. iterations an action will do
+maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 6         -- 3        starting at the current seg + start_walk to seg + end_walk
-b_lws           = false      -- true     do local wiggle and rewiggle
-b_fast_lws      = false     -- false    an faster alternative which just local wiggle without trying different wiggles
-b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
+b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild see #Rebuilding
-b_predict_ss    = false     -- false    predicting a new structure with some easy methods
+--[[v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
+b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
-b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = true      -- true     should we fuze
 b_explore       = false
 --Working#
-
---#Pull
-b_comp          = false     -- false
-i_pp_trys       = 2         -- 2
---Pull#
 
 --#Scoring
 step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
 gain            = 0.01      -- 0.02     Score will get applied after the score changed this value
 --Scoring#
 
+--#Pull
+b_comp          = false     -- false
+i_pp_trys       = 2         -- 2
+--Pull#
+
 --#Fuzing
 b_f_deep        = false     -- false
 --Fuzing#
-
---#Mutating
-b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
-b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
---Mutating#
-
---#Snapping
---Snapping#
 
 --#Rebuilding
 max_rebuilds    = 2         -- 2
@@ -61,6 +50,14 @@ i_str_re_max_re = 2         -- 2
 i_str_re_re_str = 2         -- 2
 b_str_re_dist   = false     -- false
 --Structed rebuilding#
+
+--[[
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_snap          = false     -- false    should we snap every sidechain to different positions
+--#Mutating
+b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
+b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
+--Mutating#]]
 --Settings#
 
 --#Constants
@@ -100,6 +97,10 @@ rebuilding      = false
 fuzing          = false
 sc_changed      = true
 --Constants#
+
+local function _short(seg)
+return amino[seg][2]
+end
 
 --#Securing for changes that will be made at Fold.it
 assert          = nil
@@ -725,61 +726,6 @@ function gd(g)
 end
 --Working#
 
---#Snapping
-function snap(mutated)         -- TODO: need complete rewrite
-    snapping = true
-    snaps = RequestSaveSlot()
-    c_snap = PuzzleScore(b_explore)
-    cs = PuzzleScore(b_explore)
-    quicksave(snaps)
-    iii = get_sidechain_snap_count(seg)
-    p("Snapcount: ", iii, " - Segment ", seg)
-    if iii ~= 1 then
-    snapwork = RequestSaveSlot()
-        for ii = 1, iii do
-            quickload(snaps)
-            p("Snap ", ii, "/ ", iii)
-            c_s = PuzzleScore(b_explore)
-            select()
-            do_sidechain_snap(seg, ii)
-            p(PuzzleScore(b_explore) - c_s)
-            c_s = PuzzleScore(b_explore)
-            quicksave(snapwork)
-            gd("s")
-            gd("wa")
-            gd("ws")
-            gd("wb")
-            gd("wl")
-            if c_snap < PuzzleScore(b_explore) then
-            c_snap = PuzzleScore(b_explore)
-            end
-        end
-        quickload(snaps)
-        quickload(snapwork)
-        ReleaseSaveSlot(snapwork)
-        if cs < c_snap then
-            quicksave(snaps)
-        else
-            quickload(snaps)
-        end
-    else
-        p("Skipping...")
-    end
-    snapping = false
-    ReleaseSaveSlot(snaps)
-    if mutated then
-        s_snap = PuzzleScore(b_explore)
-        if s_mut < s_snap then
-            quicksave(overall)
-        else
-            quickload(sl_mut)
-        end
-    else
-        quicksave(overall)
-    end
-end
---Snapping#
-
 --#Rebuilding
 function rebuild()
     rebuilding = true
@@ -841,82 +787,6 @@ function rebuild()
 end
 --Rebuilding#
 
---#Mutate function
-function mutate()          -- TODO: Test assert Saveslots
-    mutating = true
-    if b_mutate then
-        if b_m_new then
-            select(mutable)
-            for i = 1, #amino do
-                p("Mutating segment ", seg)
-                sl_mut = RequestSaveSlot()
-                quicksave(sl_mut)
-                replace_aa(amino[i][1])
-                fgain("wa")
-                repeat
-                    repeat
-                        local mut_1 = PuzzleScore(b_explore)
-                        do_mutate(1)
-                    until PuzzleScore(b_explore) - mut_1 < 0.01
-                    mut_1 = PuzzleScore(b_explore)
-                    fgain("wa")
-                until PuzzleScore(b_explore) - mut_1 < 0.01
-                if PuzzleScore(b_explore) > c_s then
-                    c_s = PuzzleScore(b_explore)
-                    quicksave(overall)
-                end
-                quickload(sl_mut)
-                ReleaseSaveSlot(sl_mut)
-            end
-        end
-        b_mutating = false
-        for l = 1, #mutable do
-            if seg == mutable[l] then
-                b_mutating = true
-            end
-        end
-        if b_mutating then
-            p("Mutating segment ", seg)
-            sl_mut = RequestSaveSlot()
-            quicksave(sl_mut)
-            for j = 1, #amino do
-                if get_aa(seg) ~= amino[j][1] then
-                    select()
-                    replace_aa(amino[j][1])
-                    s_mut = PuzzleScore(b_explore)
-                    p("Mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
-                    p(#amino - j, " mutations left...")
-                    p(s_mut - c_s)
-                    if b_m_fuze then
-                        fuze(sl_mut)
-                    else
-                        set_behavior_clash_importance(0.1)
-                        do_shake(1)
-                        fgain("wa")
-                    end
-                    s_mut2 = PuzzleScore(b_explore)
-                    if s_mut2 > s_mut then
-                        p("+", s_mut2 - s_mut, "+")
-                    else
-                        p(s_mut2 - s_mut)
-                    end
-                    p("~~~~~~~~~~~~~~~~")
-                    if s_mut2 > c_s then
-                        c_s = s_mut2
-                        quicksave(overall)
-                    end
-                    quickload(sl_mut)
-                    s_mut2 = PuzzleScore(b_explore)
-                end
-            end
-            ReleaseSaveSlot(sl_mut)
-            quickload(overall)
-        end
-    end
-    mutating = false
-end
---Mutate#
-
 --#Pull
 function dists()
     pp = RequestSaveSlot()
@@ -953,85 +823,6 @@ function dists()
     end
 end
 --Pull#
-
---#predictss
-function predict_ss()
-    local p_he = {}
-    p_sh = {}
-    local p_lo = {}
-    local helix
-    local sheet
-    local loop
-    local i = 1
-    while i < numsegs - 2 do
-        loop = false
-        if hydro[i] then
-            if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if not helix then
-                    helix = true
-                    p_he[#p_he + 1] = {}
-                end
-            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
-                if not sheet then
-                    sheet = true
-                    p_sh[#p_sh + 1] = {}
-                end
-            else
-                p_lo[#p_lo + 1] = {}
-                loop = true
-            end
-        elseif not hydro[i] then
-            if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
-                if not helix then
-                    helix = true
-                    p_he[#p_he + 1] = {}
-                end
-            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if not sheet then
-                    sheet = true
-                    p_sh[#p_sh + 1] = {}
-                end
-            else
-                if not sheet and not helix then
-                    p_lo[#p_lo + 1] = {}
-                end
-                loop = true
-            end
-        end
-        if helix then
-            p_he[#p_he][#p_he[#p_he] + 1] = i
-            if loop or sheet then
-                helix = false
-                p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-                p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-                i = i + 2
-            end
-        elseif sheet then
-            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
-            if loop then
-                sheet = false
-                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
-                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
-                i = i + 2
-            end
-        else
-            p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
-        end
-        i = i + 1
-    end
-    p("Found ", #p_he, " Helix ", #p_sh, " Sheet and ", #p_lo, " Loop parts... Combining...")
-    select_all()
-    replace_ss("L")
-    deselect_all()
-    for i = 1, #p_he do
-        for ii = p_he[i][1], p_he[i][#p_he[i]] do
-            select_index(ii)
-        end
-    end
-    replace_ss("H")
-    quicksave(overall)
-end
---predictss#
 
 --#struct rebuild
 function struct_rebuild()
@@ -1192,122 +983,8 @@ function struct_rebuild()
         ReleaseSaveSlot(best)
     end
     rebuilding = false
-    if b_predict_ss then
-        deselect_all()
-        for i = 1, #p_sh do
-            for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
-                select_index(ii)
-            end
-        end
-        replace_ss("E")
-    end
 end
 --struct rebuild#
-
---#Compressor
-function compress()
-    p("Compressing Segment ", seg)
-    sphere = {}
-    range = 0
-    repeat
-        count = 0
-        range = range + 2
-        sphere = GetSphere(seg, range)
-        for n = 1, #sphere - 1 do
-            if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
-                count = count + 1
-            end
-        end
-    until count > 4
-    for n = 1, #sphere - 1 do
-        if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
-            band_add_segment_segment(seg, sphere[n])
-            local length = get_segment_distance(seg, sphere[n])
-            repeat
-                length = length * 7 / 8
-            until length <= 5
-            band_set_length(get_band_count(), length)
-            band_set_strength(get_band_count(), length / 5)
-        end
-    end
-    do_global_wiggle_backbone(1)
-    band_delete()
-    p("Compressing Segment ", seg, "-", r)
-    sphere1 = {}
-    sphere2 = {}
-    range = 0
-end
---Compressor#
-
---#Bands
-function bands()
-    _numsegs = get_segment_count()
-    p(_numsegs)
-    i = 1
-    numsegs = math.floor(_numsegs / 2)
-    p(numsegs)
-    while i < numsegs do
-        band_add_segment_segment(numsegs - i, numsegs + i)
-        band_set_strength(i, 10)
-        band_set_length(i, 0)
-        i = i + 1
-    end
-    band_add_segment_segment(numsegs, _numsegs)
-    band_add_segment_segment(numsegs, 1)
-    bands=get_band_count()
-    for i = bands - 1, bands do
-        band_set_strength(i, 10)
-        band_set_length(i, 0)
-    end
-    band_add_segment_segment(numsegs / 2, _numsegs)
-    band_add_segment_segment(numsegs + numsegs / 2, _numsegs)
-    band_add_segment_segment(numsegs / 2, 1)
-    band_add_segment_segment(numsegs + numsegs / 2, 1)
-    band_add_segment_segment(numsegs / 4,numsegs + numsegs / 4)
-    band_add_segment_segment(numsegs / 4,numsegs - numsegs / 4)
-    band_add_segment_segment(numsegs + numsegs * 3 / 4,numsegs + numsegs / 4)
-    band_add_segment_segment(numsegs + numsegs * 3 / 4,numsegs - numsegs / 4)
-    for i = bands + 1, bands + 8 do
-        band_set_strength(i, 0.01)
-        band_set_length(i, 20)
-    end
-    bands = get_band_count()
-    select_all()
-    do_global_wiggle_all(1)
-    do_shake(1)
-    for i = 1, bands do
-        band_set_strength(i, 5)
-        band_set_length(i, 5)
-    end
-    do_global_wiggle_backbone(1)
-    do_shake(1)
-    do_global_wiggle_sidechains(1)
-    for i = 1, bands do
-        band_set_strength(i, 2)
-        band_set_length(i, 5)
-    end
-    do_global_wiggle_backbone(1)
-    do_shake(1)
-    do_global_wiggle_sidechains(1)
-    for i = 1, bands do
-        band_set_strength(i, 1)
-        band_set_length(i, 4)
-    end
-    do_global_wiggle_backbone(1)
-    do_shake(1)
-    do_global_wiggle_sidechains(1)
-    for i = 1, bands do
-        band_set_strength(i, 0.01)
-    end
-    do_global_wiggle_backbone(1)
-    do_shake(1)
-    do_global_wiggle_sidechains(1)
-    band_delete()
-    do_global_wiggle_backbone(1)
-    do_shake(1)
-    do_global_wiggle_sidechains(1)
-end
---Bands#
 
 function all()
     p(Version)
