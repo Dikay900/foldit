@@ -4,7 +4,7 @@ Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forb
 ]]
 
 --#Game vars
-Version     = "1054"
+Version     = "1055"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -837,8 +837,8 @@ function struct_rebuild()
         deselect_all()
         str_rs = debug.score()
         seg = he[i][1] - 3
-        if seg - 1 <= 0 then
-            seg = he[i][1]
+        if seg < 1 then
+            seg = 1
         end
         r = he[i][#he[i]] + 3
         if r > numsegs then
@@ -846,14 +846,22 @@ function struct_rebuild()
         end
         --Save structures and replace with loop for better rebuilding
         local tempss = {}
-        for ii = seg, he[i][1] - 1 do
+        local temp = he[i][1] - 1
+        if temp < 1 then
+            temp = 1
+        end
+        for ii = seg, temp do
             tempss[#tempss + 1] = get_ss(ii)
         end
-        select_index_range(seg, he[i][1] - 1)
-        for ii = he[i][#he[i]] + 1, r do
+        select_index_range(seg, temp)
+        temp = he[i][#he[i]] + 1
+        if temp > numsegs then
+            temp = he[i][#he[i]]
+        end
+        for ii = temp, r do
             tempss[#tempss + 1] = get_ss(ii)
         end
-        select_index_range(he[i][#he[i]] + 1, r)
+        select_index_range(temp, r)
         replace_ss("L")
         deselect_all()
         --Saved structures
@@ -903,7 +911,7 @@ function struct_rebuild()
         quickload(best)
         band_delete()
         seg = he[i][1] - 1
-        if seg <= 0 then
+        if seg < 1 then
             seg = 1
         end
         r = he[i][#he[i]] + 1
@@ -925,17 +933,17 @@ function struct_rebuild()
         end
         quickload(best)
         seg = he[i][1] - 3
-        if seg <= 0 then
+        if seg < 1 then
             seg = 1
         end
         r = he[i][1] - 1
-        if r > numsegs then
-            r = numsegs
+        if r < 1 then
+            r = 1
         end
         deselect_all()
         select_index_range(seg, r)
         seg = he[i][#he[i]] + 1
-        if seg <= 0 then
+        if seg < 1 then
             seg = 1
         end
         r = he[i][#he[i]] + 3
@@ -956,7 +964,7 @@ function struct_rebuild()
         end
         quickload(best)
         seg = he[i][1] - 2
-        if seg <= 0 then
+        if seg < 1 then
             seg = 1
         end
         r = he[i][#he[i]] + 2
@@ -965,12 +973,20 @@ function struct_rebuild()
         end
         set_behavior_clash_importance(1)
         -- Restore structures saved before
-        for ii = r, he[i][#he[i]] + 1, -1 do
+        temp = he[i][#he[i]] + 1
+        if temp > numsegs then
+            temp = numsegs
+        end
+        for ii = r, temp, -1 do
             select_index(ii)
             replace_ss(tempss[#tempss])
             tempss[#tempss] = nil
         end
-        for ii = he[i][1] - 1, seg, -1 do
+        temp = he[i][1] - 1
+        if temp < 1 then
+            temp = 1
+        end
+        for ii = temp, seg, -1 do
             select_index(ii)
             replace_ss(tempss[#tempss])
             tempss[#tempss] = nil
