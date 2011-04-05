@@ -1,14 +1,16 @@
 --[[
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
+see http://www.github.com/Darkknight900/foldit/ for latest version of this script
 ]]
 
 --#Game vars
-Version     = "1055"
+Version     = "1056"
+Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: structed rebuild
+--#Settings: default
 --#Working                  default     description
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
@@ -18,8 +20,8 @@ end_walk        = 3         -- 3        starting at the current seg + start_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
-b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
-b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
+b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_fuze          = false     -- false    should we fuze
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
@@ -31,8 +33,8 @@ gain            = 0.002     -- 0.002    Score will get applied after the score c
 --Scoring#
 
 --#Pull
-b_comp          = false     -- false
-i_pp_trys       = 2         -- 2
+b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
+i_pp_trys       = 2         -- 2        how often should the pull start over?
 --Pull#
 
 --#Fuzing
@@ -40,15 +42,15 @@ b_f_deep        = false     -- false
 --Fuzing#
 
 --#Rebuilding
-max_rebuilds    = 2         -- 2
-rebuild_str     = 1         -- 1
-b_r_dist        = false     -- false
+max_rebuilds    = 2         -- 2        max rebuilds till best rebuild will be chosen 
+rebuild_str     = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
+b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
 
 --#Structed rebuilding
-i_str_re_max_re = 2         -- 2
-i_str_re_re_str = 2         -- 2
-b_str_re_dist   = false     -- false
+i_str_re_max_re = 2         -- 2        same as max_rebuilds at #Rebuilding
+i_str_re_re_str = 2         -- 2        same as rebuild_str at #Rebuilding
+b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
 --Structed rebuilding#
 
 --[[
@@ -92,7 +94,7 @@ local function _assert(b, m)
 end -- function
 
 local function _score()
-    local s
+    local s = 0
     if b_explore then
         for i = 1, numsegs do
             s = s + get_segment_score(i)
@@ -539,10 +541,10 @@ local function _segs(sphered, start, _end, more)
     if start then
         if sphered then
             if start ~= _end then
-                local list1 = get.sphere(_end, 10)
+                local list1 = get.sphere(_end, 14)
                 select.list(list1)
             end
-            local list1 = get.sphere(start, 10)
+            local list1 = get.sphere(start, 14)
             select.list(list1)
             if start > _end then
                 local _start = _end
@@ -900,6 +902,9 @@ function struct_rebuild()
             while debug.score() == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
+                if iter > maxiter then
+                    iter = maxiter
+                end
             end
             str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
@@ -924,6 +929,9 @@ function struct_rebuild()
             while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
+                if iter > maxiter then
+                    iter = maxiter
+                end
             end
             str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
@@ -955,6 +963,9 @@ function struct_rebuild()
             while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
+                if iter > maxiter then
+                    iter = maxiter
+                end
             end
             str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
