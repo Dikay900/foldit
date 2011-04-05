@@ -1,11 +1,10 @@
 --[[
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
-Thanks goes to Rav3n_pl, Tlaloc
-Special Thanks goes to Gary Forbis for the great description of his Cookbookwork ;)
+Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
 ]]
 
 --#Game vars
-Version     = "1052"
+Version     = "1053"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -77,6 +76,7 @@ sc_changed      = true
 assert          = nil
 error           = nil
 debug           = nil
+math            = nil
 --Securing#
 
 --#Optimizing
@@ -200,7 +200,7 @@ local function _center() -- by Rav3n_pl based on Tlaloc`s
     local minDistance = 100000.0
     local distance
     local indexCenter
-    GetDistances()
+    get.dists()
     for i = 1, numsegs do
         distance = 0
         for j = 1, numsegs do
@@ -232,7 +232,7 @@ local function _release(slot)
 end -- function
 
 local function _request()
-    assert(#saveSlots > 0, "Out of save slots")
+    debug.assert(#saveSlots > 0, "Out of save slots")
     local saveSlot = saveSlots[#saveSlots]
     saveSlots[#saveSlots] = nil
     return saveSlot
@@ -344,7 +344,7 @@ check =
 --#Bonding
 --#Center
 local function _cp(locally)
-    local indexCenter = FastCenter()
+    local indexCenter = get.center()
     local start
     local _end
     if locally then
@@ -373,7 +373,7 @@ local function _p(locally, bandsp)
         start = start_seg
         _end = end_seg
     end
-    GetDistances()
+    get.dists()
     for x = start, _end - 2 do
         if hydro[x] then
             for y = x + 2, numsegs do
@@ -396,7 +396,7 @@ end
 
 --#BandMaxDist
 local function _maxdist()
-    GetDistances()
+    get.dists()
     local maxdistance = 0
     for i = start_seg, end_seg do
         for j = start_seg, end_seg do
@@ -436,51 +436,51 @@ local function _loss(option, cl1, cl2)
     p("cl1 ", cl1, ", cl2 ", cl2)
     if option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
-        work("s", 1, cl1)
-        work("wa", 1, cl2)
+        work.step("s", 1, cl1)
+        work.step("wa", 1, cl2)
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work("wa", 1, cl1)
-        work("wa", 1, 1)
-        work("wa", 1, cl2)
+        work.step("wa", 1, cl1)
+        work.step("wa", 1, 1)
+        work.step("wa", 1, cl2)
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work("s", 1, cl1)
-        fgain("wa", 1)
+        work.step("s", 1, cl1)
+        work.gain("wa", 1)
         local bf1 = get_score()
         reset_recent_best()
-        work("s", 1, cl2)
-        fgain("wa", 1)
+        work.step("s", 1, cl2)
+        work.gain("wa", 1)
         local bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end
         reset_recent_best()
         bf1 = get_score()
-        work("s", 1, cl1 - 0.02)
-        fgain("wa", 1)
+        work.step("s", 1, cl1 - 0.02)
+        work.gain("wa", 1)
         bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
-        work("wa", 1, cl1)
+        work.step("wa", 1, cl1)
     elseif option == 1 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work("s", 1, cl1)
-        work("wa", 1, cl2)
-        work("s", 1, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 1, cl2)
+        work.step("s", 1, 1)
     end
 end
 
 local function _part(option, cl1, cl2)
-    local s1_f = PuzzleScore(b_explore)
-    floss(option, cl1, cl2)
+    local s1_f = debug.score()
+    fuze.loss(option, cl1, cl2)
     if option ~= 2 then
-        fgain("wa", 1)
+        work.gain("wa", 1)
     end
-    local s2_f = PuzzleScore(b_explore)
+    local s2_f = debug.score()
     if s2_f > s1_f then
         quicksave(sl_f1)
         p("+", s2_f - s1_f, "+")
@@ -488,38 +488,38 @@ local function _part(option, cl1, cl2)
     quickload(sl_f1)
 end
 
-local function _start(sl)
+local function _start(slot)
     fuzing = true
     select_all()
-    sl_f1 = RequestSaveSlot()
+    sl_f1 = sl.request()
     quicksave(sl_f1)
-    s_fuze(1, 0.1, 0.4)
-    s_fuze(2, 0.05, 0.07)
-    s_fuze(3, 0.1, 0.7)
-    s_fuze(3, 0.3, 0.6)
-    s_fuze(4, 0.5, 0.7)
-    s_fuze(4, 0.7, 0.5)
-    s_fuze(5, 0.3)
+    fuze.part(1, 0.1, 0.4)
+    fuze.part(2, 0.05, 0.07)
+    fuze.part(3, 0.1, 0.7)
+    fuze.part(3, 0.3, 0.6)
+    fuze.part(4, 0.5, 0.7)
+    fuze.part(4, 0.7, 0.5)
+    fuze.part(5, 0.3)
     quickload(sl_f1)
-    s_f = PuzzleScore(b_explore)
-    ReleaseSaveSlot(sl_f1)
+    s_f = debug.score()
+    sl.release(sl_f1)
+    fuzing = false
     if s_f > c_s then
-        quicksave(sl)
+        quicksave(slot)
         s_fg = s_f - c_s
         p("+", s_fg, "+")
         c_s = s_f
         p("++", c_s, "++")
         if b_f_deep and s_fg > gain then
-            r_fuze(sl)
+            fuze.again(slot)
         end
     else
-        quickload(sl)
+        quickload(slot)
     end
-    fuzing = false
 end
 
-local function _again(sl)
-    fuze(sl)
+local function _again(slot)
+    fuze.start(slot)
 end
 
 fuze =
@@ -538,11 +538,11 @@ local function _segs(sphered, start, _end, more)
     if start then
         if sphered then
             if start ~= _end then
-                local list1 = GetSphere(_end, 10)
-                select_list(list1)
+                local list1 = get.sphere(_end, 10)
+                select.list(list1)
             end
-            local list1 = GetSphere(start, 10)
-            select_list(list1)
+            local list1 = get.sphere(start, 10)
+            select.list(list1)
             if start > _end then
                 local _start = _end
                 _end = start
@@ -591,37 +591,37 @@ end
 --Freezing functions#
 
 --#Scoring
-function score(g, sl)
+function score(g, slot)
     local more = s1 - c_s
     if more > gain then
         sc_changed = true
         p("+", more, "+")
         p("++", s1, "++")
         c_s = s1
-        quicksave(sl)
+        quicksave(slot)
         if g == "wb" then
             p("Rework after backbone wiggle gain.")
-            gd("s")
-            gd("ws")
-            gd("wa")
+            work.flow("s")
+            work.flow("ws")
+            work.flow("wa")
             p("Rework after backbone wiggle gain ended.")
         elseif g == "ws" then
             p("Rework after sidechain wiggle gain.")
-            gd("s")
-            gd("wb")
-            gd("wa")
+            work.flow("s")
+            work.flow("wb")
+            work.flow("wa")
             p("Rework after sidechain wiggle gain ended.")
         elseif g == "wl" then
             p("Rework after local wiggle gain.")
-            gd("s")
-            gd("wb")
-            gd("ws")
-            gd("wa")
-            gd("wl")
+            work.flow("s")
+            work.flow("wb")
+            work.flow("ws")
+            work.flow("wa")
+            work.flow("wl")
             p("Rework after local wiggle gain ended.")
         end
     else
-        quickload(sl)
+        quickload(slot)
     end
 end
 --Scoring#
@@ -633,15 +633,15 @@ local function _gain(g, cl)
         iter = 0
         repeat
             iter = iter + 1
-            local s1_f = PuzzleScore(b_explore)
+            local s1_f = debug.score()
             if iter < maxiter then
-                work(g, iter, cl)
+                work.step(g, iter, cl)
             end
-            local s2_f = PuzzleScore(b_explore)
+            local s2_f = debug.score()
         until s2_f - s1_f < step
-        local s3_f = PuzzleScore(b_explore)
-        work("s")
-        local s4_f = PuzzleScore(b_explore)
+        local s3_f = debug.score()
+        work.step("s")
+        local s4_f = debug.score()
     until s4_f - s3_f < step
 end
 
@@ -650,9 +650,9 @@ local function _step(_g, iter, cl)
         set_behavior_clash_importance(cl)
     end
     if rebuilding and _g == "s" then
-        select_segs(true, seg, r)
+        select.segs(true, seg, r)
     else
-        select_segs()
+        select.segs()
     end
     if _g == "wa" then
         do_global_wiggle_all(iter)
@@ -663,20 +663,20 @@ local function _step(_g, iter, cl)
     elseif _g == "ws" then
         do_global_wiggle_sidechains(iter)
     elseif _g == "wl" then
-        select_segs(false, seg, r)
-        wl = RequestSaveSlot()
+        select.segs(false, seg, r)
+        wl = sl.request()
         quicksave(wl)
         if b_fast_lws then
             repeat
-                local s_s1 = PuzzleScore(b_explore)
+                local s_s1 = debug.score()
                 do_local_wiggle(iter)
-                local s_s2 = PuzzleScore(b_explore)
+                local s_s2 = debug.score()
             until s_s1 > s_s2
         else
             for i = iter, iter + 5 do
-                local s_s1 = PuzzleScore(b_explore)
+                local s_s1 = debug.score()
                 do_local_wiggle(iter)
-                local s_s2 = PuzzleScore(b_explore)
+                local s_s2 = debug.score()
                 if s_s2 > s_s1 then
                     quicksave(wl)
                 else
@@ -687,39 +687,39 @@ local function _step(_g, iter, cl)
                 end
             end
         end
-        ReleaseSaveSlot(wl)
+        sl.release(wl)
     end
 end
 
 local function _flow(g)
     local iter = 0
     if rebuilding then
-        sl = sl_re
+        slot = sl_re
     elseif snapping then
-        sl = snapwork
+        slot = snapwork
     else
-        sl = overall
+        slot = overall
     end
-    gsl = RequestSaveSlot()
+    gsl = sl.request()
     repeat
         iter = iter + 1
         if iter ~= 1 then
             quicksave(gsl)
         end
-        s1 = PuzzleScore(b_explore)
+        s1 = debug.score()
         if iter < maxiter then
-            work(g, iter)
+            work.step(g, iter)
         end
-        s2 = PuzzleScore(b_explore)
+        s2 = debug.score()
     until s2 - s1 < (step * iter)
     if s2 < s1 then
         quickload(gsl)
     else
         s1 = s2
     end
-    ReleaseSaveSlot(gsl)
+    sl.release(gsl)
     deselect_all()
-    score(g, sl)
+    score(g, slot)
 end
 
 work =
@@ -732,11 +732,11 @@ work =
 --#Rebuilding
 function rebuild()
     rebuilding = true
-    sl_re = RequestSaveSlot()
-    sl_best = RequestSaveSlot()
+    sl_re = sl.request()
+    sl_best = sl.request()
     quickload(overall)
     quicksave(sl_re)
-    select_segs(false, seg, r)
+    select.segs(false, seg, r)
     if r == seg then
         p("Rebuilding Segment ", seg)
     else
@@ -744,10 +744,10 @@ function rebuild()
     end
     for i = 1, max_rebuilds do
         p("Try ", i, "/", max_rebuilds)
-        cs_0 = PuzzleScore(b_explore)
+        cs_0 = debug.score()
         set_behavior_clash_importance(0.01)
         do_local_rebuild(rebuild_str * i)
-        while PuzzleScore(b_explore) == cs_0 do
+        while debug.score() == cs_0 do
             do_local_rebuild(rebuild_str * i * iter)
             iter = iter + i
         end
@@ -757,8 +757,8 @@ function rebuild()
         end
     end
     set_behavior_clash_importance(1)
-    p(PuzzleScore(b_explore) - cs_0)
-    c_s = PuzzleScore(b_explore)
+    p(debug.score() - cs_0)
+    c_s = debug.score()
     quicksave(sl_re)
     if b_mutate then
         mutate()
@@ -767,20 +767,20 @@ function rebuild()
         dists()
     end
     if b_r_fuze then
-        fuze(sl_re)
+        fuze.start(sl_re)
     end
     quickload(sl_re)
-    if csr and csr < PuzzleScore(b_explore) then
-        local csr = PuzzleScore(b_explore)
+    if csr and csr < debug.score() then
+        local csr = debug.score()
         quicksave(sl_best)
     end
     if csr then
         c_s = csr
     end
     quickload(sl_best)
-    ReleaseSaveSlot(sl_best)
+    sl.release(sl_best)
     p("+", c_s - cs_0, "+")
-    ReleaseSaveSlot(sl_re)
+    sl.release(sl_re)
     if c_s < cs_0 then
         quickload(overall)
     else
@@ -792,35 +792,35 @@ end
 
 --#Pull
 function dists()
-    pp = RequestSaveSlot()
+    pp = sl.request()
     quicksave(pp)
     s_dist = get_score()
     if b_comp then
-        BandMaxDist()
+        bonding.maxdist()
         select_all()
         set_behavior_clash_importance(0.7)
         do_global_wiggle_backbone(1)
         band_delete()
-        fuze(pp)
+        fuze.start(pp)
         if get_score() < s_dist then
             quickload(overall)
         end
     end
-    Pull(false, 0.07)
+    bonding.p(false, 0.05)
     select_all()
     set_behavior_clash_importance(0.9)
     do_global_wiggle_backbone(1)
     band_delete()
-    fuze(pp)
+    fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
     end
-    CenterPull()
+    bonding.cp()
     select_all()
     set_behavior_clash_importance(0.8)
     do_global_wiggle_backbone(1)
     band_delete()
-    fuze(pp)
+    fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
     end
@@ -834,7 +834,7 @@ function struct_rebuild()
     local iter = 1
     for i = 1, #he do
         deselect_all()
-        str_rs = PuzzleScore(b_explore)
+        str_rs = debug.score()
         seg = he[i][1] - 3
         if seg - 1 <= 0 then
             seg = he[i][1]
@@ -885,14 +885,14 @@ function struct_rebuild()
         deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0.05)
-        best = RequestSaveSlot()
+        best = sl.request()
         quicksave(best)
         for i = 1, i_str_re_max_re do
-            while PuzzleScore(b_explore) == str_rs do
+            while debug.score() == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + i
             end
-            str_rs = PuzzleScore(b_explore)
+            str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs
                 quicksave(best)
@@ -912,11 +912,11 @@ function struct_rebuild()
         deselect_all()
         select_index_range(seg, r)
         for i = 1, i_str_re_max_re do
-            while PuzzleScore(b_explore) == str_rs do
+            while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
-            str_rs = PuzzleScore(b_explore)
+            str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
@@ -943,11 +943,11 @@ function struct_rebuild()
         end
         select_index_range(seg, r)
         for i = 1, i_str_re_max_re do
-            while PuzzleScore(b_explore) == str_rs do
+            while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + i
             end
-            str_rs = PuzzleScore(b_explore)
+            str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
                 quicksave(best)
@@ -979,18 +979,18 @@ function struct_rebuild()
             dists()
         else
             rebuilding = true
-            fuze(best)
+            fuze.start(best)
         end
         str_sc = nil
         str_rs = nil
-        ReleaseSaveSlot(best)
+        sl.release(best)
     end
     rebuilding = false
 end
 --struct rebuild#
 
 function all()
-    p(Version)
+    p("V", Version)
     if b_pp then
         for i = 1, i_pp_trys do
             dists()
@@ -1007,7 +1007,7 @@ function all()
     end
     for i = start_seg, end_seg do
         seg = i
-        c_s = PuzzleScore(b_explore)
+        c_s = debug.score()
         if b_mutate then
             mutate()
         end
@@ -1025,31 +1025,31 @@ function all()
             end
             if b_lws then
                 p(seg, "-", r)
-                gd("wl")
+                work.flow("wl")
                 if sc_changed then
-                    gd("wb")
-                    gd("ws")
-                    gd("wa")
+                    work.flow("wb")
+                    work.flow("ws")
+                    work.flow("wa")
                     sc_changed = false
                 end
             end
         end
     end
     if b_fuze then
-        fuze(overall)
+        fuze.start(overall)
     end
 end
 
-s_0 = PuzzleScore(b_explore)
+s_0 = debug.score()
 c_s = s_0
 check.aa()
 check.ligand()
 check.hydro()
 p("Starting Score: ", c_s)
-overall = RequestSaveSlot()
+overall = sl.request()
 quicksave(overall)
 all()
 quickload(overall)
-s_1 = PuzzleScore(b_explore)
+s_1 = debug.score()
 p("+++ Overall Gain +++")
 p("+++", s_1 - s_0, "+++")

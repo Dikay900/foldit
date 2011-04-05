@@ -1,5 +1,5 @@
 --#Game vars
-Version     = "1"
+Version     = "2"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -36,6 +36,8 @@ amino           = {
 --#Securing for changes that will be made at Fold.it
 assert          = nil
 error           = nil
+debug           = nil
+math            = nil
 --Securing#
 
 --#Optimizing
@@ -43,29 +45,34 @@ p               = print
 --Optimizing#
 
 --#Debug
-function assert(b, m)
+local function _assert(b, m)
     if not b then
         p(m)
         error()
     end -- if b
 end -- function
 
-function PuzzleScore(bool)
+local function _score()
     local s
-    if bool then
+    if b_explore then
         for i = 1, numsegs do
             s = s + get_segment_score(i)
         end --for
-    else -- if bool
+    else -- if b_explore
         s = get_score(true)
     end --if
     return s
 end --function
+
+debug =
+{   assert  = _assert,
+    score   = _score
+}
 --Debug#
 
 --#Checks
 --#Hydrocheck
-local function _hydrocheck()
+local function _hydro()
     hydro = {}
     for i = 1, numsegs do
         hydro[i] = is_hydrophobic(i)
@@ -74,7 +81,7 @@ end -- function
 --Hydrocheck#
 
 --#Ligand Check
-local function _ligandcheck()
+local function _ligand()
     if get_ss(numsegs) == 'M' then
         numsegs = numsegs - 1
     end -- if get_ss
@@ -83,7 +90,7 @@ end -- function
 
 --#Structurecheck
 --#Getting SS
-local function _get_ss()
+local function _ss()
     ss = {}
     for i = 1, numsegs do
         ss[i] = get_ss(i)
@@ -91,7 +98,16 @@ local function _get_ss()
 end -- function
 --Getting SS#
 
-function fast_ss()
+--#Getting AA
+local function _aa()
+    aa = {}
+    for i = 1, numsegs do
+        aa[i] = get_aa(i)
+    end -- for i
+end -- function
+--Getting AA#
+
+local function _struct()
     local helix
     local sheet
     local loop
@@ -139,6 +155,14 @@ function fast_ss()
     end
 end
 --Structurecheck#
+
+check =
+{   ss      = _ss,
+    aa      = _aa,
+    ligand  = _ligand,
+    hydro   = _hydro,
+    struct  = _struct
+}
 --Checks#
 
 --#predictss
