@@ -1,5 +1,5 @@
 --#Game vars
-Version     = "2"
+Version     = "3"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -165,6 +165,10 @@ check =
 }
 --Checks#
 
+check.hydro()
+check.aa()
+check.ligand()
+
 --#predictss
 function predict_ss()
     local p_he = {}
@@ -247,6 +251,9 @@ function predict_ss()
         end
     end
     replace_ss("E")
-    quicksave(overall)
+    quicksave(10)
+    quicksave(1)
 end
 --predictss#
+
+predict_ss()

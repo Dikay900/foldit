@@ -4,11 +4,11 @@ Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forb
 ]]
 
 --#Game vars
-Version     = "1053"
+Version     = "1054"
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: default
+--#Settings: structed rebuild
 --#Working                  default     description
 maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
@@ -19,7 +19,7 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
 b_fuze          = false     -- false    should we fuze
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
@@ -284,6 +284,7 @@ end -- function
 --Getting AA#
 
 local function _struct()
+    check.ss()
     local helix
     local sheet
     local loop
@@ -806,18 +807,18 @@ function dists()
             quickload(overall)
         end
     end
-    bonding.p(false, 0.05)
+    bonding.pull(false, 0.05)
     select_all()
-    set_behavior_clash_importance(0.9)
+    set_behavior_clash_importance(0.4)
     do_global_wiggle_backbone(1)
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
     end
-    bonding.cp()
+    bonding.centerpull()
     select_all()
-    set_behavior_clash_importance(0.8)
+    set_behavior_clash_importance(0.4)
     do_global_wiggle_backbone(1)
     band_delete()
     fuze.start(pp)
@@ -829,7 +830,7 @@ end
 
 --#struct rebuild
 function struct_rebuild()
-    fast_ss()
+    check.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
     for i = 1, #he do
@@ -990,7 +991,7 @@ end
 --struct rebuild#
 
 function all()
-    p("V", Version)
+    p("v", Version)
     if b_pp then
         for i = 1, i_pp_trys do
             dists()
