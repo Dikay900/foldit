@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "1051"
+Version     = "1052"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -15,19 +15,20 @@ maxiter         = 5         -- 5        max. iterations an action will do
 start_seg       = 1         -- 1        the first segment to work with
 end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 6         -- 3        starting at the current seg + start_walk to seg + end_walk
+end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
-b_fuze          = true      -- true     should we fuze
-b_explore       = false
+b_fuze          = false     -- false    should we fuze
+-- TEMP
+b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring
-step            = 0.01      -- 0.01     an action tries to get this score, then it will repeat itself
-gain            = 0.01      -- 0.02     Score will get applied after the score changed this value
+step            = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
+gain            = 0.002     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
