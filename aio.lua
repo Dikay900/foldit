@@ -5,7 +5,7 @@ Special Thanks goes to Gary Forbis for the great description of his Cookbookwork
 ]]
 
 --#Game vars
-Version     = "1050"
+Version     = "1051"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -18,7 +18,7 @@ start_walk      = 0         -- 0        with how many segs shall we work - Walke
 end_walk        = 6         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild see #Rebuilding
---[[v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
+--[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    push and pull of hydrophilic / -phobic in different modes then fuze see #Pull
 b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_fuze          = true      -- true     should we fuze
@@ -75,6 +75,7 @@ sc_changed      = true
 --#Securing for changes that will be made at Fold.it
 assert          = nil
 error           = nil
+debug           = nil
 --Securing#
 
 --#Optimizing
@@ -82,24 +83,29 @@ p               = print
 --Optimizing#
 
 --#Debug
-function assert(b, m)
+local function _assert(b, m)
     if not b then
         p(m)
         error()
     end -- if b
 end -- function
 
-function PuzzleScore(bool)
+local function _score()
     local s
-    if bool then
+    if b_explore then
         for i = 1, numsegs do
             s = s + get_segment_score(i)
         end --for
-    else -- if bool
+    else -- if b_explore
         s = get_score(true)
     end --if
     return s
 end --function
+
+debug =
+{   assert  = _assert,
+    score   = _score
+}
 --Debug#
 
 --#External functions
@@ -168,7 +174,8 @@ math =
 }
 --Math library#
 
-function GetDistances()
+--#Getters
+local function _dists()
     distances = {}
     for i = 1, numsegs - 1 do
         distances[i] = {}
@@ -178,7 +185,7 @@ function GetDistances()
     end -- for i
 end
 
-function GetSphere(seg, radius)
+local function _sphere(seg, radius)
     sphere = {}
     for i = 1, numsegs do
         if get_segment_distance(seg, i) <= radius then
@@ -188,20 +195,7 @@ function GetSphere(seg, radius)
     return sphere
 end -- function
 
---#Saveslot manager
-function ReleaseSaveSlot(slot)
-    saveSlots[#saveSlots + 1] = slot
-end -- function
-
-function RequestSaveSlot()
-    assert(#saveSlots > 0, "Out of save slots")
-    local saveSlot = saveSlots[#saveSlots]
-    saveSlots[#saveSlots] = nil
-    return saveSlot
-end -- function
---Saveslot manager#
-
-function FastCenter() --by Rav3n_pl based on Tlaloc`s
+local function _center() -- by Rav3n_pl based on Tlaloc`s
     local minDistance = 100000.0
     local distance
     local indexCenter
@@ -223,6 +217,31 @@ function FastCenter() --by Rav3n_pl based on Tlaloc`s
     end -- for i
     return indexCenter
 end -- function
+
+get =
+{   dists   = _dists,
+    sphere  = _sphere,
+    center  = _center
+}
+--Getters#
+
+--#Saveslot manager
+local function _release(slot)
+    saveSlots[#saveSlots + 1] = slot
+end -- function
+
+local function _request()
+    assert(#saveSlots > 0, "Out of save slots")
+    local saveSlot = saveSlots[#saveSlots]
+    saveSlots[#saveSlots] = nil
+    return saveSlot
+end -- function
+
+sl =
+{   release = _release,
+    request = _request
+}
+--Saveslot manager#
 --External functions#
 
 --#Internal functions
@@ -254,13 +273,16 @@ local function _ss()
 end -- function
 --Getting SS#
 
-check =
-{   ss      = _ss,
-    ligand  = _ligand,
-    hydro   = _hydro
-}
+--#Getting AA
+local function _aa()
+    aa = {}
+    for i = 1, numsegs do
+        aa[i] = get_aa(i)
+    end -- for i
+end -- function
+--Getting AA#
 
-function fast_ss()
+local function _struct()
     local helix
     local sheet
     local loop
@@ -308,28 +330,107 @@ function fast_ss()
     end
 end
 --Structurecheck#
+
+check =
+{   ss      = _ss,
+    aa      = _aa,
+    ligand  = _ligand,
+    hydro   = _hydro,
+    struct  = _struct
+}
 --Checks#
 
---#Fuzing
-function fgain(g, cl)
-    local iter
-    repeat
-        iter = 0
-        repeat
-            iter = iter + 1
-            local s1_f = PuzzleScore(b_explore)
-            if iter < maxiter then
-                work(g, iter, cl)
+--#Bonding
+--#Center
+local function _cp(locally)
+    local indexCenter = FastCenter()
+    local start
+    local _end
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = start_seg
+        _end = end_seg
+    end
+    for i = start, _end do
+        if i ~= indexCenter then
+            if hydro[i] then
+                band_add_segment_segment(i, indexCenter)
             end
-            local s2_f = PuzzleScore(b_explore)
-        until s2_f - s1_f < step
-        local s3_f = PuzzleScore(b_explore)
-        work("s")
-        local s4_f = PuzzleScore(b_explore)
-    until s4_f - s3_f < step
+        end
+    end
 end
+--Center#
 
-function floss(option, cl1, cl2)
+--#Pull
+local function _p(locally, bandsp)
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = start_seg
+        _end = end_seg
+    end
+    GetDistances()
+    for x = start, _end - 2 do
+        if hydro[x] then
+            for y = x + 2, numsegs do
+                math.randomseed(distances[x][y])
+                if hydro[y] and math.random() < bandsp then
+                    maxdistance = distances[x][y]
+                    band_add_segment_segment(x, y)
+                repeat
+                    maxdistance = maxdistance * 3 / 4
+                until maxdistance <= 20
+                local band = get_band_count()
+                band_set_strength(band, maxdistance / 15)
+                band_set_length(band, maxdistance)
+                end
+            end
+        end
+    end
+end
+--Pull#
+
+--#BandMaxDist
+local function _maxdist()
+    GetDistances()
+    local maxdistance = 0
+    for i = start_seg, end_seg do
+        for j = start_seg, end_seg do
+            if i ~= j then
+                local x = i
+                local y = j
+                if x > y then
+                    x, y = y, x
+                end
+                if distances[x][y] > maxdistance then
+                    maxdistance = distances[x][y]
+                    maxx = i
+                    maxy = j
+                end
+            end
+        end
+    end
+    band_add_segment_segment(maxx, maxy)
+    repeat
+        maxdistance = maxdistance * 3 / 4
+    until maxdistance <= 20
+    band_set_strength(get_band_count(), maxdistance / 15)
+    band_set_length(get_band_count(), maxdistance)
+end
+--BandMaxDist#
+
+bonding =
+{   centerpull  = _cp,
+    pull        = _p,
+    maxdist     = _maxdist
+}
+--Bonding#
+
+--#Fuzing
+local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
     if option == 3 then
@@ -372,7 +473,7 @@ function floss(option, cl1, cl2)
     end
 end
 
-function s_fuze(option, cl1, cl2)
+local function _part(option, cl1, cl2)
     local s1_f = PuzzleScore(b_explore)
     floss(option, cl1, cl2)
     if option ~= 2 then
@@ -386,7 +487,7 @@ function s_fuze(option, cl1, cl2)
     quickload(sl_f1)
 end
 
-function fuze(sl)
+local function _start(sl)
     fuzing = true
     select_all()
     sl_f1 = RequestSaveSlot()
@@ -416,94 +517,20 @@ function fuze(sl)
     fuzing = false
 end
 
-function r_fuze(sl)
+local function _again(sl)
     fuze(sl)
 end
+
+fuze =
+{   loss    =   _loss,
+    part    =   _part,
+    start   =   _start,
+    again   =   _again
+}
 --Fuzing#
 
---#CenterBands
-function CenterPull(locally)
-    local indexCenter = FastCenter()
-    local start
-    local _end
-    if locally then
-        start = seg
-        _end = r
-    else
-        start = start_seg
-        _end = end_seg
-    end
-    for i = start, _end do
-        if i ~= indexCenter then
-            if hydro[i] then
-                band_add_segment_segment(i, indexCenter)
-            end
-        end
-    end
-end
---CenterBands#
-
---#Pull
-function Pull(locally, bandsp)
-    if locally then
-        start = seg
-        _end = r
-    else
-        start = start_seg
-        _end = end_seg
-    end
-    GetDistances()
-    for x = start, _end - 2 do
-        if hydro[x] then
-            for y = x + 2, numsegs do
-                math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < bandsp then
-                    maxdistance = distances[x][y]
-                    band_add_segment_segment(x, y)
-                repeat
-                    maxdistance = maxdistance * 3 / 4
-                until maxdistance <= 20
-                local band = get_band_count()
-                band_set_strength(band, maxdistance / 15)
-                band_set_length(band, maxdistance)
-                end
-            end
-        end
-    end
-end
---Pull#
-
---#BandMaxDist
-function BandMaxDist()
-    GetDistances()
-    local maxdistance = 0
-    for i = start_seg, end_seg do
-        for j = start_seg, end_seg do
-            if i ~= j then
-                local x = i
-                local y = j
-                if x > y then
-                    x, y = y, x
-                end
-                if distances[x][y] > maxdistance then
-                    maxdistance = distances[x][y]
-                    maxx = i
-                    maxy = j
-                end
-            end
-        end
-    end
-    band_add_segment_segment(maxx, maxy)
-    repeat
-        maxdistance = maxdistance * 3 / 4
-    until maxdistance <= 20
-    band_set_strength(get_band_count(), maxdistance / 15)
-    band_set_length(get_band_count(), maxdistance)
-end
---BandMaxDist#
-
 --#Universal select
-function select_segs(sphered, start, _end, more)
+local function _segs(sphered, start, _end, more)
     if not more then
         deselect_all()
     end
@@ -536,17 +563,22 @@ function select_segs(sphered, start, _end, more)
     end
 end
 
-function select_list(list)
+local function _list(list)
     if list then
         for i = 1, #list do
             select_index(list[i])
         end
     end
 end
+
+select =
+{   segs    = _segs,
+    list    = _list
+}
 --Universal select#
 
 --#Freezing functions
-function freeze(f) -- f not used yet
+function freeze(f)
     if not f then
         do_freeze(true, true)
     elseif f == "b" then
@@ -558,7 +590,6 @@ end
 --Freezing functions#
 
 --#Scoring
---#Universal scoring
 function score(g, sl)
     local more = s1 - c_s
     if more > gain then
@@ -592,11 +623,28 @@ function score(g, sl)
         quickload(sl)
     end
 end
---Universal scoring#
 --Scoring#
 
---#Universal working
-function work(_g, iter, cl)
+--#working
+local function _gain(g, cl)
+    local iter
+    repeat
+        iter = 0
+        repeat
+            iter = iter + 1
+            local s1_f = PuzzleScore(b_explore)
+            if iter < maxiter then
+                work(g, iter, cl)
+            end
+            local s2_f = PuzzleScore(b_explore)
+        until s2_f - s1_f < step
+        local s3_f = PuzzleScore(b_explore)
+        work("s")
+        local s4_f = PuzzleScore(b_explore)
+    until s4_f - s3_f < step
+end
+
+local function _step(_g, iter, cl)
     if cl then
         set_behavior_clash_importance(cl)
     end
@@ -642,7 +690,7 @@ function work(_g, iter, cl)
     end
 end
 
-function gd(g)
+local function _flow(g)
     local iter = 0
     if rebuilding then
         sl = sl_re
@@ -672,6 +720,12 @@ function gd(g)
     deselect_all()
     score(g, sl)
 end
+
+work =
+{   gain    = _gain,
+    step    = _step,
+    flow    = _flow
+}
 --Working#
 
 --#Rebuilding
@@ -987,6 +1041,9 @@ end
 
 s_0 = PuzzleScore(b_explore)
 c_s = s_0
+check.aa()
+check.ligand()
+check.hydro()
 p("Starting Score: ", c_s)
 overall = RequestSaveSlot()
 quicksave(overall)
