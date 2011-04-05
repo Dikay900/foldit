@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1056"
+Version     = "1057"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,7 +21,7 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
 b_fuze          = false     -- false    should we fuze
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
@@ -51,6 +51,7 @@ b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 i_str_re_max_re = 2         -- 2        same as max_rebuilds at #Rebuilding
 i_str_re_re_str = 2         -- 2        same as rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
+b_str_re_fuze   = false     -- true
 --Structed rebuilding#
 
 --[[
@@ -901,11 +902,12 @@ function struct_rebuild()
         for i = 1, i_str_re_max_re do
             while debug.score() == str_rs do
                 do_local_rebuild(iter)
-                iter = iter + i
+                iter = iter + 1
                 if iter > maxiter then
                     iter = maxiter
                 end
             end
+            iter = 1
             str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs
@@ -928,11 +930,12 @@ function struct_rebuild()
         for i = 1, i_str_re_max_re do
             while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
-                iter = iter + i
+                iter = iter + 1
                 if iter > maxiter then
                     iter = maxiter
                 end
             end
+            iter = 1
             str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
@@ -962,11 +965,12 @@ function struct_rebuild()
         for i = 1, i_str_re_max_re do
             while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
-                iter = iter + i
+                iter = iter + 1
                 if iter > maxiter then
                     iter = maxiter
                 end
             end
+            iter = 1
             str_rs = debug.score()
             if not str_sc or str_sc < str_rs then
                 str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
@@ -1002,18 +1006,19 @@ function struct_rebuild()
             replace_ss(tempss[#tempss])
             tempss[#tempss] = nil
         end
+        quicksave(best)
         -- Restored structures
         if b_str_re_dist then
             dists()
-        else
+        elseif b_str_re_fuze then
             rebuilding = true
             fuze.start(best)
+            rebuilding = false
         end
         str_sc = nil
         str_rs = nil
         sl.release(best)
     end
-    rebuilding = false
 end
 --struct rebuild#
 

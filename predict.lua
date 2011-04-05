@@ -1,10 +1,10 @@
 --#Game vars
-Version     = "4"
+Version     = "5"
 numsegs     = get_segment_count()
 --Game vars#
 
 amino_table     = {
-                 -- seg,{       short, longname,          hydro,      -scale, pref,   mol,        pl      }
+                  -- seg,   {   short, longname,          hydro,      -scale, pref,   mol,        pl      }
                     ['a'] = {   'Ala', 'Alanine',         'phobic',   -1.6,   'H',    89.09404,   6.01    },
                     ['c'] = {   'Cys', 'Cysteine',        'phobic',   -17,    'E',    121.15404,  5.05    },
                     ['d'] = {   'Asp', 'Aspartic acid',   'philic',   6.7,    'L',    133.10384,  2.85    },
@@ -71,6 +71,43 @@ amino =
     charge      = _pl
 }
 
+--#Calculations
+local function _HCI(seg_a, seg_b) -- hydropathy
+    return 20 - math.abs((amino.hydroscale(seg_a) - amino.hydroscale(seg_b)) * 19/10.6)
+end
+
+local function _SCI(seg_a, seg_b) -- size
+    return 20 - math.abs((amino.size(seg_a) + amino.size(seg_b) - 123) * 19/135)
+end
+
+local function _CCI(seg_a, seg_b) -- charge
+    return 11 - (amino.charge(seg_a) - 7) * (amino.charge(seg_b) - 7) * 19/33.8
+end
+
+calc =
+{   hci = _HCI,
+    sci = _SCI,
+    cci = _CCI
+}
+
+function calculate()
+hci_table = {}
+cci_table = {}
+sci_table = {}
+for i = 1, #amino do
+    hci_table[i] = {}
+    cci_table[i] = {}
+    sci_table[i] = {}
+    for ii = 1, #amino do
+        hci_table[i][ii] = calc.hci(i, ii)
+        cci_table[i][ii] = calc.cci(i, ii)
+        sci_table[i][ii] = calc.sci(i, ii)
+    end
+end
+end
+
+--Calculations#
+
 --#Securing for changes that will be made at Fold.it
 assert          = nil
 error           = nil
@@ -106,6 +143,16 @@ debug =
     score   = _score
 }
 --Debug#
+
+math = {}
+-- Return the absolute value of x
+function math.abs(x)
+    if x < 0 then
+        return -x
+    else
+        return x
+    end
+end
 
 --#Checks
 --#Hydrocheck
@@ -294,4 +341,5 @@ function predict_ss()
 end
 --predictss#
 
+calculate()
 predict_ss()
