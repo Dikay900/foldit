@@ -5,20 +5,20 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1058"
+Version     = "1059"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
-maxiter         = 5         -- 5        max. iterations an action will do
-start_seg       = 1         -- 1        the first segment to work with
-end_seg         = numsegs   -- numsegs  the last segment to work with
-start_walk      = 0         -- 0        with how many segs shall we work - Walker
-end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
+i_maxiter       = 5         -- 5        max. iterations an action will do
+i_start_seg     = 1         -- 1        the first segment to work with
+i_end_seg       = numsegs   -- numsegs  the last segment to work with
+i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
+i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = true      -- false    rebuild see #Rebuilding
+b_rebuild       = false      -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
 b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
@@ -43,14 +43,14 @@ b_f_deep        = false     -- false
 
 --#Rebuilding
 b_worst_rebuild = true      -- false    rebuild worst scored parts of the protein
-max_rebuilds    = 2         -- 2        max rebuilds till best rebuild will be chosen 
-rebuild_str     = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
+i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
+i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
 
 --#Structed rebuilding
-i_str_re_max_re = 2         -- 2        same as max_rebuilds at #Rebuilding
-i_str_re_re_str = 2         -- 2        same as rebuild_str at #Rebuilding
+i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
+i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
 b_str_re_fuze   = false     -- true
 --Structed rebuilding#
@@ -356,8 +356,8 @@ local function _cp(locally)
         start = seg
         _end = r
     else
-        start = start_seg
-        _end = end_seg
+        start = i_start_seg
+        _end = i_end_seg
     end
     for i = start, _end do
         if i ~= indexCenter then
@@ -375,8 +375,8 @@ local function _p(locally, bandsp)
         start = seg
         _end = r
     else
-        start = start_seg
-        _end = end_seg
+        start = i_start_seg
+        _end = i_end_seg
     end
     get.dists()
     for x = start, _end - 2 do
@@ -403,8 +403,8 @@ end
 local function _maxdist()
     get.dists()
     local maxdistance = 0
-    for i = start_seg, end_seg do
-        for j = start_seg, end_seg do
+    for i = i_start_seg, i_end_seg do
+        for j = i_start_seg, i_end_seg do
             if i ~= j then
                 local x = i
                 local y = j
@@ -472,17 +472,26 @@ local function _loss(option, cl1, cl2)
         p("cl1-wa[-cl2-wa]")
         work.step("wa", 1, cl1)
     elseif option == 1 then
+        local qs1 = get_score()
+        reset_recent_best()
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work.step("s", 1, cl1)
         work.step("wa", 1, cl2)
         work.step("s", 1, 1)
+        work.gain("wa", 1)
+        local qs2 = get_score()
+        if qs2 < qs1 then
+            restore_recent_best()
+        else
+            fuze.loss(1, cl1, cl2)
+        end
     end
 end
 
 local function _part(option, cl1, cl2)
     local s1_f = debug.score()
     fuze.loss(option, cl1, cl2)
-    if option ~= 2 then
+    if option ~= 2 or option ~= 1 then
         work.gain("wa", 1)
     end
     local s2_f = debug.score()
@@ -619,7 +628,7 @@ local function _gain(g, cl)
         repeat
             iter = iter + 1
             local s1_f = debug.score()
-            if iter < maxiter then
+            if iter < i_maxiter then
                 work.step(g, iter, cl)
             end
             local s2_f = debug.score()
@@ -692,7 +701,7 @@ local function _flow(g)
             quicksave(gsl)
         end
         s1 = debug.score()
-        if iter < maxiter then
+        if iter < i_maxiter then
             work.step(g, iter)
         end
         s2 = debug.score()
@@ -727,13 +736,13 @@ function rebuild()
     else
         p("Rebuilding Segment ", seg, "-", r)
     end
-    for i = 1, max_rebuilds do
-        p("Try ", i, "/", max_rebuilds)
+    for i = 1, i_max_rebuilds do
+        p("Try ", i, "/", i_max_rebuilds)
         cs_0 = debug.score()
         set_behavior_clash_importance(0.01)
-        do_local_rebuild(rebuild_str * i)
+        do_local_rebuild(i_rebuild_str * i)
         while debug.score() == cs_0 do
-            do_local_rebuild(rebuild_str * i * iter)
+            do_local_rebuild(i_rebuild_str * i * iter)
             iter = iter + i
         end
         if re_sc or re_sc < str_rs then
@@ -818,6 +827,7 @@ function struct_rebuild()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
     for i = 1, #he do
+        p("Working on Helix ", i)
         deselect_all()
         str_rs = debug.score()
         seg = he[i][1] - 3
@@ -884,8 +894,8 @@ function struct_rebuild()
             while debug.score() == str_rs do
                 do_local_rebuild(iter)
                 iter = iter + 1
-                if iter > maxiter then
-                    iter = maxiter
+                if iter > i_maxiter then
+                    iter = i_maxiter
                 end
             end
             iter = 1
@@ -897,7 +907,10 @@ function struct_rebuild()
         end
         str_sc = nil
         quickload(best)
-        band_delete()
+        local bands = get_band_count()
+        if bands > 0 then
+            band_delete()
+        end
         seg = he[i][1] - 1
         if seg < 1 then
             seg = 1
@@ -912,8 +925,8 @@ function struct_rebuild()
             while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + 1
-                if iter > maxiter then
-                    iter = maxiter
+                if iter > i_maxiter then
+                    iter = i_maxiter
                 end
             end
             iter = 1
@@ -924,6 +937,27 @@ function struct_rebuild()
             end
         end
         quickload(best)
+        -- Restore structures saved before
+        temp = he[i][#he[i]] + 1
+        if temp > numsegs then
+            temp = numsegs
+        end
+        for ii = r, temp, -1 do
+            select_index(ii)
+            replace_ss(tempss[#tempss])
+            tempss[#tempss] = nil
+        end
+        temp = he[i][1] - 1
+        if temp < 1 then
+            temp = 1
+        end
+        for ii = temp, seg, -1 do
+            select_index(ii)
+            replace_ss(tempss[#tempss])
+            tempss[#tempss] = nil
+        end
+        quicksave(best)
+        -- Restored structures
         seg = he[i][1] - 3
         if seg < 1 then
             seg = 1
@@ -947,8 +981,8 @@ function struct_rebuild()
             while debug.score() == str_rs do
                 do_local_rebuild(iter * i_str_re_re_str)
                 iter = iter + 1
-                if iter > maxiter then
-                    iter = maxiter
+                if iter > i_maxiter then
+                    iter = i_maxiter
                 end
             end
             iter = 1
@@ -968,8 +1002,105 @@ function struct_rebuild()
             r = numsegs
         end
         set_behavior_clash_importance(1)
+        if b_str_re_dist then
+            dists()
+        elseif b_str_re_fuze then
+            rebuilding = true
+            fuze.start(best)
+            rebuilding = false
+        end
+        str_sc = nil
+        str_rs = nil
+        sl.release(best)
+    end
+
+    for i = 1, #sh do
+        p("Working on Helix ", i)
+        deselect_all()
+        str_rs = debug.score()
+        seg = sh[i][1] - 3
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        --Save structures and replace with loop for better rebuilding
+        local tempss = {}
+        local temp = sh[i][1] - 1
+        if temp < 1 then
+            temp = 1
+        end
+        for ii = seg, temp do
+            tempss[#tempss + 1] = get_ss(ii)
+        end
+        select_index_range(seg, temp)
+        temp = sh[i][#sh[i]] + 1
+        if temp > numsegs then
+            temp = sh[i][#sh[i]]
+        end
+        for ii = temp, r do
+            tempss[#tempss + 1] = get_ss(ii)
+        end
+        select_index_range(temp, r)
+        replace_ss("L")
+        deselect_all()
+        --Saved structures
+        deselect_all()
+        select_index_range(seg, r)
+        set_behavior_clash_importance(0.05)
+        best = sl.request()
+        quicksave(best)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
+            end
+        end
+        str_sc = nil
+        quickload(best)
+        local bands = get_band_count()
+        if bands > 0 then
+            band_delete()
+        end
+        seg = sh[i][1] - 1
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 1
+        if r > numsegs then
+            r = numsegs
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        quickload(best)
         -- Restore structures saved before
-        temp = he[i][#he[i]] + 1
+        temp = sh[i][#sh[i]] + 1
         if temp > numsegs then
             temp = numsegs
         end
@@ -978,7 +1109,7 @@ function struct_rebuild()
             replace_ss(tempss[#tempss])
             tempss[#tempss] = nil
         end
-        temp = he[i][1] - 1
+        temp = sh[i][1] - 1
         if temp < 1 then
             temp = 1
         end
@@ -989,6 +1120,50 @@ function struct_rebuild()
         end
         quicksave(best)
         -- Restored structures
+        seg = sh[i][1] - 3
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][1] - 1
+        if r < 1 then
+            r = 1
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        seg = sh[i][#sh[i]] + 1
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        select_index_range(seg, r)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        quickload(best)
+        seg = sh[i][1] - 2
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 2
+        if r > numsegs then
+            r = numsegs
+        end
+        set_behavior_clash_importance(1)
         if b_str_re_dist then
             dists()
         elseif b_str_re_fuze then
@@ -1019,7 +1194,7 @@ function all()
     if b_mutate then
         mutable = FindMutable()
     end
-    for i = start_seg, end_seg do
+    for i = i_start_seg, i_end_seg do
         seg = i
         c_s = debug.score()
         if b_mutate then
@@ -1028,7 +1203,7 @@ function all()
         if b_snap then
             snap()
         end
-        for ii = start_walk, end_walk do
+        for ii = i_start_walk, i_end_walk do
             r = i + ii
             if r > numsegs then
                 r = numsegs

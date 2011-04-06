@@ -1,5 +1,11 @@
+--[[
+This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
+Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
+see http://www.github.com/Darkknight900/foldit/ for latest version of this script
+]]
+
 --#Game vars
-Version     = "6"
+Version     = "7"
 numsegs     = get_segment_count()
 --Game vars#
 
