@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1057"
+Version     = "1058"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -18,10 +18,10 @@ end_seg         = numsegs   -- numsegs  the last segment to work with
 start_walk      = 0         -- 0        with how many segs shall we work - Walker
 end_walk        = 3         -- 3        starting at the current seg + start_walk to seg + end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = false     -- false    rebuild see #Rebuilding
+b_rebuild       = true      -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
-b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
 b_fuze          = false     -- false    should we fuze
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
@@ -42,6 +42,7 @@ b_f_deep        = false     -- false
 --Fuzing#
 
 --#Rebuilding
+b_worst_rebuild = true      -- false    rebuild worst scored parts of the protein
 max_rebuilds    = 2         -- 2        max rebuilds till best rebuild will be chosen 
 rebuild_str     = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
@@ -603,27 +604,7 @@ function score(g, slot)
         p("++", s1, "++")
         c_s = s1
         quicksave(slot)
-        if g == "wb" then
-            p("Rework after backbone wiggle gain.")
-            work.flow("s")
-            work.flow("ws")
-            work.flow("wa")
-            p("Rework after backbone wiggle gain ended.")
-        elseif g == "ws" then
-            p("Rework after sidechain wiggle gain.")
-            work.flow("s")
-            work.flow("wb")
-            work.flow("wa")
-            p("Rework after sidechain wiggle gain ended.")
-        elseif g == "wl" then
-            p("Rework after local wiggle gain.")
-            work.flow("s")
-            work.flow("wb")
-            work.flow("ws")
-            work.flow("wa")
-            work.flow("wl")
-            p("Rework after local wiggle gain ended.")
-        end
+        work.flow("s")
     else
         quickload(slot)
     end
@@ -1054,6 +1035,16 @@ function all()
                 break
             end
             if b_rebuild then
+                if b_worst_rebuild then
+                    local worst = 1000
+                    for iii = 1, numsegs do
+                        local s = get_segment_score(iii)
+                        if s < worst then
+                            seg = iii
+                        end
+                    end
+                    r = seg + ii
+                end
                 rebuild()
             end
             if b_lws then

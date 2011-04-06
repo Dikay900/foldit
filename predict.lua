@@ -1,38 +1,40 @@
 --#Game vars
-Version     = "5"
+Version     = "6"
 numsegs     = get_segment_count()
 --Game vars#
 
+amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
 amino_table     = {
-                  -- seg,   {   short, longname,          hydro,      -scale, pref,   mol,        pl      }
-                    ['a'] = {   'Ala', 'Alanine',         'phobic',   -1.6,   'H',    89.09404,   6.01    },
-                    ['c'] = {   'Cys', 'Cysteine',        'phobic',   -17,    'E',    121.15404,  5.05    },
-                    ['d'] = {   'Asp', 'Aspartic acid',   'philic',   6.7,    'L',    133.10384,  2.85    },
-                    ['e'] = {   'Glu', 'Glutamic acid',   'philic',   8.1,    'H',    147.13074,  3.15    },
-                    ['f'] = {   'Phe', 'Phenylalanine',   'phobic',   -6.3,   'E',    165.19184,  5.49    },
-                    ['g'] = {   'Gly', 'Glycine',         'phobic',   1.7,    'L',    75.06714,   6.06    },
-                    ['h'] = {   'His', 'Histidine',       'philic',   -5.6,   nil,    155.15634,  7.60    },
-                    ['i'] = {   'Ile', 'Isoleucine',      'phobic',   -2.4,   'E',    131.17464,  6.05    },
-                    ['k'] = {   'Lys', 'Lysine',          'philic',   6.5,    'H',    146.18934,  9.60    },
-                    ['l'] = {   'Leu', 'Leucine',         'phobic',   1,      'H',    131.17464,  6.01    },
-                    ['m'] = {   'Met', 'Methionine',      'phobic',   3.4,    'H',    149.20784,  5.74    },
-                    ['n'] = {   'Asn', 'Asparagine',      'philic',   8.9,    'L',    132.11904,  5.41    },
-                    ['p'] = {   'Pro', 'Proline',         'phobic',   -0.2,   'L',    115.13194,  6.30    },
-                    ['q'] = {   'Gln', 'Glutamine',       'philic',   9.7,    'H',    146.14594,  5.65    },
-                    ['r'] = {   'Arg', 'Arginine',        'philic',   9.8,    'H',    174.20274,  10.76   },
-                    ['s'] = {   'Ser', 'Serine',          'philic',   3.7,    'L',    105.09344,  5.68    },
-                    ['t'] = {   'Thr', 'Threonine',       'philic',   2.7,    'E',    119.12034,  5.60    },
-                    ['v'] = {   'Val', 'Valine',          'phobic',   -2.9,   'E',    117.14784,  6.00    },
-                    ['w'] = {   'Trp', 'Tryptophan',      'phobic',   -9.1,   'E',    204.22844,  5.89    },
-                    ['y'] = {   'Tyr', 'Tyrosine',        'phobic',   -5.1,   'E',    181.19124,  5.64    },
-              --[[  ['b'] = {   'Asx', 'Asparagine or Aspartic acid'},
-                    ['j'] = {   'Xle', 'Leucine or Isoleucine'},
-                    ['o'] = {   'Pyl', 'Pyrrolysine'},
-                    ['u'] = {   'Sec', 'Selenocysteine'},
-                    ['x'] = {   'Xaa', 'Unspecified or unknown amino acid'},
-                    ['z'] = {   'Glx', 'Glutamine or glutamic acid'}
+                  -- seg,   {short, longname,          hydro,      scale,   pref,   mol,        pl      }
+                    ['a'] = {'Ala', 'Alanine',         'phobic',   -1.6,    'H',    89.09404,   6.01    },
+                    ['c'] = {'Cys', 'Cysteine',        'phobic',   -17,     'E',    121.15404,  5.05    },
+                    ['d'] = {'Asp', 'Aspartic acid',   'philic',   6.7,     'L',    133.10384,  2.85    },
+                    ['e'] = {'Glu', 'Glutamic acid',   'philic',   8.1,     'H',    147.13074,  3.15    },
+                    ['f'] = {'Phe', 'Phenylalanine',   'phobic',   -6.3,    'E',    165.19184,  5.49    },
+                    ['g'] = {'Gly', 'Glycine',         'phobic',   1.7,     'L',    75.06714,   6.06    },
+                    ['h'] = {'His', 'Histidine',       'philic',   -5.6,    nil,    155.15634,  7.60    },
+                    ['i'] = {'Ile', 'Isoleucine',      'phobic',   -2.4,    'E',    131.17464,  6.05    },
+                    ['k'] = {'Lys', 'Lysine',          'philic',   6.5,     'H',    146.18934,  9.60    },
+                    ['l'] = {'Leu', 'Leucine',         'phobic',   1,       'H',    131.17464,  6.01    },
+                    ['m'] = {'Met', 'Methionine',      'phobic',   3.4,     'H',    149.20784,  5.74    },
+                    ['n'] = {'Asn', 'Asparagine',      'philic',   8.9,     'L',    132.11904,  5.41    },
+                    ['p'] = {'Pro', 'Proline',         'phobic',   -0.2,    'L',    115.13194,  6.30    },
+                    ['q'] = {'Gln', 'Glutamine',       'philic',   9.7,     'H',    146.14594,  5.65    },
+                    ['r'] = {'Arg', 'Arginine',        'philic',   9.8,     'H',    174.20274,  10.76   },
+                    ['s'] = {'Ser', 'Serine',          'philic',   3.7,     'L',    105.09344,  5.68    },
+                    ['t'] = {'Thr', 'Threonine',       'philic',   2.7,     'E',    119.12034,  5.60    },
+                    ['v'] = {'Val', 'Valine',          'phobic',   -2.9,    'E',    117.14784,  6.00    },
+                    ['w'] = {'Trp', 'Tryptophan',      'phobic',   -9.1,    'E',    204.22844,  5.89    },
+                    ['y'] = {'Tyr', 'Tyrosine',        'phobic',   -5.1,    'E',    181.19124,  5.64    },
+              --[[  ['b'] = {'Asx', 'Asparagine or Aspartic acid'},
+                    ['j'] = {'Xle', 'Leucine or Isoleucine'},
+                    ['o'] = {'Pyl', 'Pyrrolysine'},
+                    ['u'] = {'Sec', 'Selenocysteine'},
+                    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
+                    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
                 ]]}
 --
+
 local function _short(seg)
     return amino_table[aa[seg]][1]
 end
@@ -94,18 +96,17 @@ function calculate()
 hci_table = {}
 cci_table = {}
 sci_table = {}
-for i = 1, #amino do
-    hci_table[i] = {}
-    cci_table[i] = {}
-    sci_table[i] = {}
-    for ii = 1, #amino do
-        hci_table[i][ii] = calc.hci(i, ii)
-        cci_table[i][ii] = calc.cci(i, ii)
-        sci_table[i][ii] = calc.sci(i, ii)
+for i = 1, #amino_segs do
+    hci_table[amino_segs[i]] = {}
+    cci_table[amino_segs[i]] = {}
+    sci_table[amino_segs[i]] = {}
+    for ii = 1, #amino_segs do
+        hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
+        cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
+        sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
     end
 end
 end
-
 --Calculations#
 
 --#Securing for changes that will be made at Fold.it
@@ -242,8 +243,8 @@ end
 --Structurecheck#
 
 check =
-{   ss      = _ss,
-    aa      = _aa,
+{   sstruct = _ss,
+    aacid   = _aa,
     ligand  = _ligand,
     hydro   = _hydro,
     struct  = _struct
@@ -251,13 +252,27 @@ check =
 --Checks#
 
 check.hydro()
-check.aa()
+check.aacid()
 check.ligand()
+
+local function _dists()
+    distances = {}
+    for i = 1, numsegs - 1 do
+        distances[i] = {}
+        for j = i + 1, numsegs do
+            distances[i][j] = get_segment_distance(i, j)
+        end -- for j
+    end -- for i
+end
+
+get =
+{   dists   = _dists 
+}
 
 --#predictss
 function predict_ss()
     local p_he = {}
-    p_sh = {}
+    local p_sh = {}
     local p_lo = {}
     local helix
     local sheet
@@ -342,4 +357,30 @@ end
 --predictss#
 
 calculate()
-predict_ss()
+
+get.dists()
+for i = 1, numsegs do
+    local max_str = 0
+    local min_dist = 999
+    for ii = i + 2, numsegs - 2 do
+        local strength = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2 / 20)
+        if max_str <= strength then
+            if max_str ~= strength then
+                min_dist = 999
+            end
+            max_str = strength
+            if min_dist > distances[i][ii] then
+                min_dist = distances[i][ii]
+            end
+        end
+    end
+    for ii = i + 2, numsegs - 2 do
+        local strength = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2 / 20)
+        if strength == max_str and min_dist == distances[i][ii] then
+            band_add_segment_segment(i , ii)
+        end
+    end
+end
+
+
+--predict_ss()
