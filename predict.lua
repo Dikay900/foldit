@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "7"
+Version     = "8"
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -99,10 +99,13 @@ calc =
 }
 
 function calculate()
+p("Calculating Scoring Matrix")
 hci_table = {}
 cci_table = {}
 sci_table = {}
+_end = #amino_segs
 for i = 1, #amino_segs do
+    percentage(i)
     hci_table[amino_segs[i]] = {}
     cci_table[amino_segs[i]] = {}
     sci_table[amino_segs[i]] = {}
@@ -111,6 +114,16 @@ for i = 1, #amino_segs do
         cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
         sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
     end
+end
+p("Getting Segment Score out of the Matrix")
+strength = {}
+_end = numsegs
+for i = 1, numsegs do
+    percentage(i)
+    strength[i] = {}
+    for ii = i + 2, numsegs - 2 do
+        strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+    end 
 end
 end
 --Calculations#
@@ -275,6 +288,10 @@ get =
 {   dists   = _dists 
 }
 
+function percentage(i)
+    p(i / _end * 100, "%")
+end
+
 --#predictss
 function predict_ss()
     local p_he = {}
@@ -284,7 +301,9 @@ function predict_ss()
     local sheet
     local loop
     local i = 1
+    _end = numsegs - 3
     while i < numsegs - 2 do
+        percentage(i)
         loop = false
         if hydro[i] then
             if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
@@ -364,29 +383,47 @@ end
 
 calculate()
 
+--predict_ss()
+
 get.dists()
 for i = 1, numsegs do
     local max_str = 0
     local min_dist = 999
     for ii = i + 2, numsegs - 2 do
-        local strength = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2 / 20)
-        if max_str <= strength then
-            if max_str ~= strength then
+        if max_str <= strength[i][ii] then
+            if max_str ~= strength[i][ii] then
                 min_dist = 999
             end
-            max_str = strength
+            max_str = strength[i][ii]
             if min_dist > distances[i][ii] then
                 min_dist = distances[i][ii]
             end
         end
     end
     for ii = i + 2, numsegs - 2 do
-        local strength = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2 / 20)
-        if strength == max_str and min_dist == distances[i][ii] then
+        if strength[i][ii] == max_str and min_dist == distances[i][ii] then
             band_add_segment_segment(i , ii)
         end
     end
 end
 
-
---predict_ss()
+s1 = get_score()
+s2 = s1
+s3 = s2 / 100
+strength = 0.08
+reset_recent_best()
+select_all()
+local bands = get_band_count()
+repeat
+strength = strength * 2 - strength * 9 / 10
+p("Band strength: ", strength)
+restore_recent_best()
+for i = 1, bands do
+    band_set_strength(i, strength)
+end
+do_global_wiggle_backbone(1)
+s2 = get_score()
+if s2 > s1 then
+    reset_recent_best()
+end
+until s1 - s2 > s3

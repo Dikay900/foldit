@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1059"
+Version     = "1060"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,15 +21,15 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false      -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
 b_fuze          = false     -- false    should we fuze
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring
-step            = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
-gain            = 0.002     -- 0.002    Score will get applied after the score changed this value
+step            = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+gain            = 0.01     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -52,6 +52,8 @@ b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
+b_re_he         = false
+b_re_sh         = false
 b_str_re_fuze   = false     -- true
 --Structed rebuilding#
 
@@ -826,6 +828,7 @@ function struct_rebuild()
     check.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
+    if b_re_he then
     for i = 1, #he do
         p("Working on Helix ", i)
         deselect_all()
@@ -838,27 +841,7 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        --Save structures and replace with loop for better rebuilding
-        local tempss = {}
-        local temp = he[i][1] - 1
-        if temp < 1 then
-            temp = 1
-        end
-        for ii = seg, temp do
-            tempss[#tempss + 1] = get_ss(ii)
-        end
-        select_index_range(seg, temp)
-        temp = he[i][#he[i]] + 1
-        if temp > numsegs then
-            temp = he[i][#he[i]]
-        end
-        for ii = temp, r do
-            tempss[#tempss + 1] = get_ss(ii)
-        end
-        select_index_range(temp, r)
-        replace_ss("L")
-        deselect_all()
-        --Saved structures
+        save_structures()
         for ii = he[i][1], he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
         end
@@ -937,27 +920,7 @@ function struct_rebuild()
             end
         end
         quickload(best)
-        -- Restore structures saved before
-        temp = he[i][#he[i]] + 1
-        if temp > numsegs then
-            temp = numsegs
-        end
-        for ii = r, temp, -1 do
-            select_index(ii)
-            replace_ss(tempss[#tempss])
-            tempss[#tempss] = nil
-        end
-        temp = he[i][1] - 1
-        if temp < 1 then
-            temp = 1
-        end
-        for ii = temp, seg, -1 do
-            select_index(ii)
-            replace_ss(tempss[#tempss])
-            tempss[#tempss] = nil
-        end
-        quicksave(best)
-        -- Restored structures
+        load_structures()
         seg = he[i][1] - 3
         if seg < 1 then
             seg = 1
@@ -1013,9 +976,11 @@ function struct_rebuild()
         str_rs = nil
         sl.release(best)
     end
-
+    end
+    
+    if b_re_sh then
     for i = 1, #sh do
-        p("Working on Helix ", i)
+        p("Working on Sheet ", i)
         deselect_all()
         str_rs = debug.score()
         seg = sh[i][1] - 3
@@ -1026,27 +991,7 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        --Save structures and replace with loop for better rebuilding
-        local tempss = {}
-        local temp = sh[i][1] - 1
-        if temp < 1 then
-            temp = 1
-        end
-        for ii = seg, temp do
-            tempss[#tempss + 1] = get_ss(ii)
-        end
-        select_index_range(seg, temp)
-        temp = sh[i][#sh[i]] + 1
-        if temp > numsegs then
-            temp = sh[i][#sh[i]]
-        end
-        for ii = temp, r do
-            tempss[#tempss + 1] = get_ss(ii)
-        end
-        select_index_range(temp, r)
-        replace_ss("L")
-        deselect_all()
-        --Saved structures
+        save_structures()
         deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0.05)
@@ -1099,27 +1044,7 @@ function struct_rebuild()
             end
         end
         quickload(best)
-        -- Restore structures saved before
-        temp = sh[i][#sh[i]] + 1
-        if temp > numsegs then
-            temp = numsegs
-        end
-        for ii = r, temp, -1 do
-            select_index(ii)
-            replace_ss(tempss[#tempss])
-            tempss[#tempss] = nil
-        end
-        temp = sh[i][1] - 1
-        if temp < 1 then
-            temp = 1
-        end
-        for ii = temp, seg, -1 do
-            select_index(ii)
-            replace_ss(tempss[#tempss])
-            tempss[#tempss] = nil
-        end
-        quicksave(best)
-        -- Restored structures
+        load_structures()
         seg = sh[i][1] - 3
         if seg < 1 then
             seg = 1
@@ -1175,6 +1100,30 @@ function struct_rebuild()
         str_rs = nil
         sl.release(best)
     end
+    end
+    
+    for i = 1, #he do
+        p("Helixx!!!")
+        seg = he[i][1]
+        for ii = 1, #he do
+            if i ~= ii then
+                r = he[ii][#he[ii]]
+                band_add_segment_segment(seg, r)
+            end
+        end
+    end
+    
+   for i = 1, #sh do
+   p("Sheets!!!")
+   seg = sh[i][1]
+        for ii = 1, #sh do
+            if i ~= ii then
+                r = sh[ii][#sh[ii]]
+                band_add_segment_segment(seg, r)
+            end
+        end
+    end
+    quicksave(overall)
 end
 --struct rebuild#
 
