@@ -1,11 +1,12 @@
 --[[
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
+Special thanks goes also to Seagat2011
 see http://www.github.com/Darkknight900/foldit/ for latest version of this script
 ]]
 
 --#Game vars
-Version     = "1"
+Version     = "3"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -55,6 +56,133 @@ debug =
     score   = _score
 }
 --Debug#
+
+--#Amino
+amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
+amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
+amino_table     = {
+                  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl      }
+                    ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
+                    ['c'] = {'Cys', 'Cysteine',         'phobic',   -17,    'E',    121.15404,  5.05    },
+                    ['d'] = {'Asp', 'Aspartic acid',    'philic',   6.7,    'L',    133.10384,  2.85    },
+                    ['e'] = {'Glu', 'Glutamic acid',    'philic',   8.1,    'H',    147.13074,  3.15    },
+                    ['f'] = {'Phe', 'Phenylalanine',    'phobic',   -6.3,   'E',    165.19184,  5.49    },
+                    ['g'] = {'Gly', 'Glycine',          'phobic',   1.7,    'L',    75.06714,   6.06    },
+                    ['h'] = {'His', 'Histidine',        'philic',   -5.6,   nil,    155.15634,  7.60    },
+                    ['i'] = {'Ile', 'Isoleucine',       'phobic',   -2.4,   'E',    131.17464,  6.05    },
+                    ['k'] = {'Lys', 'Lysine',           'philic',   6.5,    'H',    146.18934,  9.60    },
+                    ['l'] = {'Leu', 'Leucine',          'phobic',   1,      'H',    131.17464,  6.01    },
+                    ['m'] = {'Met', 'Methionine',       'phobic',   3.4,    'H',    149.20784,  5.74    },
+                    ['n'] = {'Asn', 'Asparagine',       'philic',   8.9,    'L',    132.11904,  5.41    },
+                    ['p'] = {'Pro', 'Proline',          'phobic',   -0.2,   'L',    115.13194,  6.30    },
+                    ['q'] = {'Gln', 'Glutamine',        'philic',   9.7,    'H',    146.14594,  5.65    },
+                    ['r'] = {'Arg', 'Arginine',         'philic',   9.8,    'H',    174.20274,  10.76   },
+                    ['s'] = {'Ser', 'Serine',           'philic',   3.7,    'L',    105.09344,  5.68    },
+                    ['t'] = {'Thr', 'Threonine',        'philic',   2.7,    'E',    119.12034,  5.60    },
+                    ['v'] = {'Val', 'Valine',           'phobic',   -2.9,   'E',    117.14784,  6.00    },
+                    ['w'] = {'Trp', 'Tryptophan',       'phobic',   -9.1,   'E',    204.22844,  5.89    },
+                    ['y'] = {'Tyr', 'Tyrosine',         'phobic',   -5.1,   'E',    181.19124,  5.64    },
+              --[[  ['b'] = {'Asx', 'Asparagine or Aspartic acid'},
+                    ['j'] = {'Xle', 'Leucine or Isoleucine'},
+                    ['o'] = {'Pyl', 'Pyrrolysine'},
+                    ['u'] = {'Sec', 'Selenocysteine'},
+                    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
+                    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
+                ]]}
+--
+
+local function _short(seg)
+    return amino_table[aa[seg]][amino_part.short]
+end
+
+local function _abbrev(seg)
+    return amino_table[aa[seg]][amino_part.abbrev]
+end
+
+local function _long(seg)
+    return amino_table[aa[seg]][amino_part.longname]
+end
+
+local function _h(seg)
+    return amino_table[aa[seg]][amino_part.hydro]
+end
+
+local function _hscale(seg)
+    return amino_table[aa[seg]][amino_part.scale]
+end
+
+local function _pref(seg)
+    return amino_table[aa[seg]][amino_part.pref]
+end
+
+local function _mol(seg)
+    return amino_table[aa[seg]][amino_part.mol]
+end
+
+local function _pl(seg)
+    return amino_table[aa[seg]][amino_part.pl]
+end
+
+amino =
+{   short       = _short,
+    abbrev      = _abbrev,
+    longname    = _long,
+    hydro       = _h,
+    hydroscale  = _hscale,
+    preffered   = _pref,
+    size        = _mol,
+    charge      = _pl
+}
+
+--#Calculations
+local function _HCI(seg_a, seg_b) -- hydropathy
+    return 20 - math.abs((amino.hydroscale(seg_a) - amino.hydroscale(seg_b)) * 19/10.6)
+end
+
+local function _SCI(seg_a, seg_b) -- size
+    return 20 - math.abs((amino.size(seg_a) + amino.size(seg_b) - 123) * 19/135)
+end
+
+local function _CCI(seg_a, seg_b) -- charge
+    return 11 - (amino.charge(seg_a) - 7) * (amino.charge(seg_b) - 7) * 19/33.8
+end
+
+calc =
+{   hci = _HCI,
+    sci = _SCI,
+    cci = _CCI
+}
+
+function calculate()
+p("Calculating Scoring Matrix")
+hci_table = {}
+cci_table = {}
+sci_table = {}
+_end = #amino_segs
+for i = 1, #amino_segs do
+    percentage(i)
+    hci_table[amino_segs[i]] = {}
+    cci_table[amino_segs[i]] = {}
+    sci_table[amino_segs[i]] = {}
+    for ii = 1, #amino_segs do
+        hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
+        cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
+        sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
+    end
+end
+p("Getting Segment Score out of the Matrix")
+strength = {}
+_end = numsegs
+for i = 1, numsegs do
+    percentage(i)
+    strength[i] = {}
+    for ii = i + 2, numsegs - 2 do
+        strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+    end 
+end
+end
+--Calculations#
+--Amino#
 
 --#External functions
 --#Math library
@@ -296,6 +424,14 @@ local function _struct()
 end -- function
 --Structurecheck#
 
+check =
+{   sstruct = _ss,
+    aacid   = _aa,
+    ligand  = _ligand,
+    hydro   = _hydro,
+    struct  = _struct
+}
+--Checks#
 --#Fuzing
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
@@ -395,7 +531,7 @@ end -- function
 
 local function _again(slot)
     fuze.start(slot)
-end - function
+end -- function
 
 fuze =
 {   loss    =   _loss,
@@ -492,11 +628,11 @@ local function _gain(g, cl)
                 work.step(g, iter, cl)
             end -- if
             local s2_f = debug.score()
-        until s2_f - s1_f < step
+        until s2_f - s1_f < i_score_step
         local s3_f = debug.score()
         work.step("s")
         local s4_f = debug.score()
-    until s4_f - s3_f < step
+    until s4_f - s3_f < i_score_step
 end
 
 local function _step(_g, iter, cl)
@@ -557,7 +693,7 @@ local function _flow(g)
             work.step(g, iter)
         end -- <
         s2 = debug.score()
-    until s2 - s1 < (step * iter)
+    until s2 - s1 < (i_score_step * iter)
     if s2 < s1 then
         quickload(work_sl)
     else -- if <
@@ -574,3 +710,7 @@ work =
     flow    = _flow
 }
 --Working#
+
+function percentage(i)
+    p(i / _end * 100, "%")
+end
