@@ -5,77 +5,18 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1061"
-Release     = true          -- if true this script is relatively safe ;)
+Version     = "1"
+Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
---#Working                  default     description
-i_maxiter       = 5         -- 5        max. iterations an action will do
-i_start_seg     = 1         -- 1        the first segment to work with
-i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
-i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = false      -- false    rebuild see #Rebuilding
---[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
-b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
-b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
-b_fuze          = false     -- false    should we fuze
--- TEMP
-b_explore       = false     -- false    Exploration Puzzle
---Working#
-
---#Scoring
-step            = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-gain            = 0.01     -- 0.002    Score will get applied after the score changed this value
---Scoring#
-
---#Pull
-b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 2         -- 2        how often should the pull start over?
---Pull#
-
---#Fuzing
-b_f_deep        = false     -- false
---Fuzing#
-
---#Rebuilding
-b_worst_rebuild = true      -- false    rebuild worst scored parts of the protein
-i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
-i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
-b_r_dist        = false     -- false    start pull see #Pull after a rebuild
---Rebuilding#
-
---#Structed rebuilding
-i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
-i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
-b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
-b_re_he         = false
-b_re_sh         = false
-b_str_re_fuze   = false     -- true
---Structed rebuilding#
-
---[[
-b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_snap          = false     -- false    should we snap every sidechain to different positions
---#Mutating
-b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
-b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
---Mutating#
-]]
+--#                  default     description
 --Settings#
 
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
---[[
-snapping        = false
-mutating        = false
-rebuilding      = false
-]]
 fuzing          = false
-sc_changed      = true
 --Constants#
 
 --#Securing for changes that will be made at Fold.it
@@ -94,7 +35,7 @@ local function _assert(b, m)
     if not b then
         p(m)
         error()
-    end -- if b
+    end -- if
 end -- function
 
 local function _score()
@@ -102,12 +43,12 @@ local function _score()
     if b_explore then
         for i = 1, numsegs do
             s = s + get_segment_score(i)
-        end --for
-    else -- if b_explore
+        end -- for
+    else -- if
         s = get_score(true)
-    end --if
+    end -- if
     return s
-end --function
+end -- function
 
 debug =
 {   assert  = _assert,
@@ -174,17 +115,32 @@ local function _random(m,n)
     end -- if m
 end -- function
 
+local function _abs(x)
+    if x < 0 then
+        return -x
+    else -- if
+        return x
+    end -- if
+end -- function
+
 math =
 {   floor       = _floor,
     random      = _random,
-    randomseed  = _randomseed
+    randomseed  = _randomseed,
+    abs         = _abs
 }
 --Math library#
 
 --#Getters
-local function _dists()
+local function _dists(seg)
     distances = {}
-    for i = 1, numsegs - 1 do
+    local _start
+    if seg then
+        _start = seg
+    else
+        _start = 1
+    end
+    for i = _start, numsegs - 1 do
         distances[i] = {}
         for j = i + 1, numsegs do
             distances[i][j] = get_segment_distance(i, j)
@@ -194,8 +150,9 @@ end
 
 local function _sphere(seg, radius)
     sphere = {}
+    get.dists(seg)
     for i = 1, numsegs do
-        if get_segment_distance(seg, i) <= radius then
+        if distances[seg][i] <= radius then
             sphere[#sphere + 1] = i
         end -- if get_
     end -- for i
@@ -324,118 +281,20 @@ local function _struct()
         if sheet then
             if ss[i] == "E" then
                 sh[#sh][#sh[#sh]+1] = i
-            else -- ss
+            else -- if ss
                 sheet = false
-            end
-        end
+            end -- if ss
+        end -- if sheet
         if loop then
             if ss[i] == "L" then
                 lo[#lo][#lo[#lo]+1] = i
-            else
+            else -- if ss
                 loop = false
-            end
-        end
-    end
-end
+            end -- if ss
+        end -- if loop
+    end -- for
+end -- function
 --Structurecheck#
-
-check =
-{   ss      = _ss,
-    aa      = _aa,
-    ligand  = _ligand,
-    hydro   = _hydro,
-    struct  = _struct
-}
---Checks#
-
---#Bonding
---#Center
-local function _cp(locally)
-    local indexCenter = get.center()
-    local start
-    local _end
-    if locally then
-        start = seg
-        _end = r
-    else
-        start = i_start_seg
-        _end = i_end_seg
-    end
-    for i = start, _end do
-        if i ~= indexCenter then
-            if hydro[i] then
-                band_add_segment_segment(i, indexCenter)
-            end
-        end
-    end
-end
---Center#
-
---#Pull
-local function _p(locally, bandsp)
-    if locally then
-        start = seg
-        _end = r
-    else
-        start = i_start_seg
-        _end = i_end_seg
-    end
-    get.dists()
-    for x = start, _end - 2 do
-        if hydro[x] then
-            for y = x + 2, numsegs do
-                math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < bandsp then
-                    maxdistance = distances[x][y]
-                    band_add_segment_segment(x, y)
-                repeat
-                    maxdistance = maxdistance * 3 / 4
-                until maxdistance <= 20
-                local band = get_band_count()
-                band_set_strength(band, maxdistance / 15)
-                band_set_length(band, maxdistance)
-                end
-            end
-        end
-    end
-end
---Pull#
-
---#BandMaxDist
-local function _maxdist()
-    get.dists()
-    local maxdistance = 0
-    for i = i_start_seg, i_end_seg do
-        for j = i_start_seg, i_end_seg do
-            if i ~= j then
-                local x = i
-                local y = j
-                if x > y then
-                    x, y = y, x
-                end
-                if distances[x][y] > maxdistance then
-                    maxdistance = distances[x][y]
-                    maxx = i
-                    maxy = j
-                end
-            end
-        end
-    end
-    band_add_segment_segment(maxx, maxy)
-    repeat
-        maxdistance = maxdistance * 3 / 4
-    until maxdistance <= 20
-    band_set_strength(get_band_count(), maxdistance / 15)
-    band_set_length(get_band_count(), maxdistance)
-end
---BandMaxDist#
-
-bonding =
-{   centerpull  = _cp,
-    pull        = _p,
-    maxdist     = _maxdist
-}
---Bonding#
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
@@ -461,7 +320,7 @@ local function _loss(option, cl1, cl2)
         local bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
-        end
+        end -- if
         reset_recent_best()
         bf1 = get_score()
         work.step("s", 1, cl1 - 0.02)
@@ -469,7 +328,7 @@ local function _loss(option, cl1, cl2)
         bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
-        end
+        end -- if
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
         work.step("wa", 1, cl1)
@@ -484,25 +343,25 @@ local function _loss(option, cl1, cl2)
         local qs2 = get_score()
         if qs2 < qs1 then
             restore_recent_best()
-        else
+        else -- if
             fuze.loss(1, cl1, cl2)
-        end
-    end
-end
+        end -- if
+    end -- if option
+end -- function
 
 local function _part(option, cl1, cl2)
     local s1_f = debug.score()
     fuze.loss(option, cl1, cl2)
     if option ~= 2 or option ~= 1 then
         work.gain("wa", 1)
-    end
+    end -- if
     local s2_f = debug.score()
     if s2_f > s1_f then
         quicksave(sl_f1)
         p("+", s2_f - s1_f, "+")
-    end
+    end -- if
     quickload(sl_f1)
-end
+end -- function
 
 local function _start(slot)
     fuzing = true
@@ -528,15 +387,15 @@ local function _start(slot)
         p("++", c_s, "++")
         if b_f_deep and s_fg > gain then
             fuze.again(slot)
-        end
-    else
+        end -- if deep
+    else -- if s_f
         quickload(slot)
-    end
-end
+    end -- if s_f
+end -- function
 
 local function _again(slot)
     fuze.start(slot)
-end
+end - function
 
 fuze =
 {   loss    =   _loss,
@@ -550,43 +409,43 @@ fuze =
 local function _segs(sphered, start, _end, more)
     if not more then
         deselect_all()
-    end
+    end -- if more
     if start then
         if sphered then
             if start ~= _end then
                 local list1 = get.sphere(_end, 14)
                 select.list(list1)
-            end
+            end -- if ~= end
             local list1 = get.sphere(start, 14)
             select.list(list1)
             if start > _end then
                 local _start = _end
                 _end = start
                 start = _start
-            end
+            end -- if > end
             select_index_range(start, _end)
         elseif start ~= _end then
             if start > _end then
                 local _start = _end
                 _end = start
                 start = _start
-            end
+            end -- if > end
             select_index_range(start, _end)
-        else
+        else -- if sphered
             select_index(start)
-        end
-    else
+        end -- if sphered
+    else -- if start
         select_all()
-    end
-end
+    end -- if start
+end -- function
 
 local function _list(list)
     if list then
         for i = 1, #list do
             select_index(list[i])
-        end
-    end
-end
+        end -- for
+    end -- if list
+end -- function
 
 select =
 {   segs    = _segs,
@@ -594,7 +453,7 @@ select =
 }
 --Universal select#
 
---#Freezing functions
+--#Freeze functions
 function freeze(f)
     if not f then
         do_freeze(true, true)
@@ -602,24 +461,23 @@ function freeze(f)
         do_freeze(true, false)
     elseif f == "s" then
         do_freeze(false, true)
-    end
-end
---Freezing functions#
+    end -- if
+end -- function
+--Freeze functions#
 
 --#Scoring
 function score(g, slot)
     local more = s1 - c_s
-    if more > gain then
-        sc_changed = true
+    if more > i_score_gain then
         p("+", more, "+")
         p("++", s1, "++")
         c_s = s1
         quicksave(slot)
         work.flow("s")
-    else
+    else -- if
         quickload(slot)
-    end
-end
+    end -- if
+end -- function
 --Scoring#
 
 --#working
@@ -632,7 +490,7 @@ local function _gain(g, cl)
             local s1_f = debug.score()
             if iter < i_maxiter then
                 work.step(g, iter, cl)
-            end
+            end -- if
             local s2_f = debug.score()
         until s2_f - s1_f < step
         local s3_f = debug.score()
@@ -644,12 +502,12 @@ end
 local function _step(_g, iter, cl)
     if cl then
         set_behavior_clash_importance(cl)
-    end
+    end -- if
     if rebuilding and _g == "s" then
         select.segs(true, seg, r)
-    else
+    else -- if rebuilding
         select.segs()
-    end
+    end -- if rebuilding
     if _g == "wa" then
         do_global_wiggle_all(iter)
     elseif _g == "s" then
@@ -662,30 +520,22 @@ local function _step(_g, iter, cl)
         select.segs(false, seg, r)
         wl = sl.request()
         quicksave(wl)
-        if b_fast_lws then
-            repeat
-                local s_s1 = debug.score()
-                do_local_wiggle(iter)
-                local s_s2 = debug.score()
-            until s_s1 > s_s2
-        else
-            for i = iter, iter + 5 do
-                local s_s1 = debug.score()
-                do_local_wiggle(iter)
-                local s_s2 = debug.score()
-                if s_s2 > s_s1 then
-                    quicksave(wl)
-                else
-                    quickload(wl)
-                end
-                if s_s2 == s_s1 then
-                    break
-                end
-            end
-        end
+        for i = iter, iter + 5 do
+            local s_s1 = debug.score()
+            do_local_wiggle(iter)
+            local s_s2 = debug.score()
+            if s_s2 > s_s1 then
+                quicksave(wl)
+            else -- if >
+                quickload(wl)
+            end -- if >
+            if s_s2 == s_s1 then
+                break
+            end -- if ==
+        end -- for
         sl.release(wl)
-    end
-end
+    end -- if _g
+end -- function
 
 local function _flow(g)
     local iter = 0
@@ -693,30 +543,30 @@ local function _flow(g)
         slot = sl_re
     elseif snapping then
         slot = snapwork
-    else
+    else -- if
         slot = overall
-    end
-    gsl = sl.request()
+    end -- if
+    work_sl = sl.request()
     repeat
         iter = iter + 1
         if iter ~= 1 then
-            quicksave(gsl)
-        end
+            quicksave(work_sl)
+        end -- if iter
         s1 = debug.score()
         if iter < i_maxiter then
             work.step(g, iter)
-        end
+        end -- <
         s2 = debug.score()
     until s2 - s1 < (step * iter)
     if s2 < s1 then
-        quickload(gsl)
-    else
+        quickload(work_sl)
+    else -- if <
         s1 = s2
-    end
-    sl.release(gsl)
+    end -- if <
+    sl.release(work_sl)
     deselect_all()
     score(g, slot)
-end
+end -- function
 
 work =
 {   gain    = _gain,
@@ -724,161 +574,3 @@ work =
     flow    = _flow
 }
 --Working#
-
---#Rebuilding
-function rebuild()
-    rebuilding = true
-    sl_re = sl.request()
-    sl_best = sl.request()
-    quickload(overall)
-    quicksave(sl_re)
-    select.segs(false, seg, r)
-    if r == seg then
-        p("Rebuilding Segment ", seg)
-    else
-        p("Rebuilding Segment ", seg, "-", r)
-    end
-    for i = 1, i_max_rebuilds do
-        p("Try ", i, "/", i_max_rebuilds)
-        cs_0 = debug.score()
-        set_behavior_clash_importance(0.01)
-        do_local_rebuild(i_rebuild_str * i)
-        while debug.score() == cs_0 do
-            do_local_rebuild(i_rebuild_str * i * iter)
-            iter = iter + i
-        end
-        if re_sc or re_sc < str_rs then
-            re_sc = str_rs
-            quicksave(sl_re)
-        end
-    end
-    set_behavior_clash_importance(1)
-    p(debug.score() - cs_0)
-    c_s = debug.score()
-    quicksave(sl_re)
-    if b_mutate then
-        mutate()
-    end
-    if b_r_dist then
-        dists()
-    end
-    if b_r_fuze then
-        fuze.start(sl_re)
-    end
-    quickload(sl_re)
-    if csr and csr < debug.score() then
-        local csr = debug.score()
-        quicksave(sl_best)
-    end
-    if csr then
-        c_s = csr
-    end
-    quickload(sl_best)
-    sl.release(sl_best)
-    p("+", c_s - cs_0, "+")
-    sl.release(sl_re)
-    if c_s < cs_0 then
-        quickload(overall)
-    else
-        quicksave(overall)
-    end
-    rebuilding = false
-end
---Rebuilding#
-
---#Pull
-function dists()
-    pp = sl.request()
-    quicksave(pp)
-    s_dist = get_score()
-    if b_comp then
-        bonding.maxdist()
-        select_all()
-        set_behavior_clash_importance(0.7)
-        do_global_wiggle_backbone(1)
-        band_delete()
-        fuze.start(pp)
-        if get_score() < s_dist then
-            quickload(overall)
-        end
-    end
-    bonding.pull(false, 0.05)
-    select_all()
-    set_behavior_clash_importance(0.4)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze.start(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-    bonding.centerpull()
-    select_all()
-    set_behavior_clash_importance(0.4)
-    do_global_wiggle_backbone(1)
-    band_delete()
-    fuze.start(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-    end
-end
---Pull#
-
-function all()
-    p("v", Version)
-    if b_pp then
-        for i = 1, i_pp_trys do
-            dists()
-        end
-    end
-    for i = i_start_seg, i_end_seg do
-        seg = i
-        c_s = debug.score()
-        for ii = i_start_walk, i_end_walk do
-            r = i + ii
-            if r > numsegs then
-                r = numsegs
-                break
-            end
-            if b_rebuild then
-                if b_worst_rebuild then
-                    local worst = 1000
-                    for iii = 1, numsegs do
-                        local s = get_segment_score(iii)
-                        if s < worst then
-                            seg = iii
-                        end
-                    end
-                    r = seg + ii
-                end
-                rebuild()
-            end
-            if b_lws then
-                p(seg, "-", r)
-                work.flow("wl")
-                if sc_changed then
-                    work.flow("wb")
-                    work.flow("ws")
-                    work.flow("wa")
-                    sc_changed = false
-                end
-            end
-        end
-    end
-    if b_fuze then
-        fuze.start(overall)
-    end
-end
-
-s_0 = debug.score()
-c_s = s_0
-check.aa()
-check.ligand()
-check.hydro()
-p("Starting Score: ", c_s)
-overall = sl.request()
-quicksave(overall)
-all()
-quickload(overall)
-s_1 = debug.score()
-p("+++ Overall Gain +++")
-p("+++", s_1 - s_0, "+++")
