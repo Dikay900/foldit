@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "12"
+Version     = "13"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -1083,7 +1083,7 @@ function struct_rebuild()
     end
     end
     
-    for i = 1, #he do
+    for i = 100, #he do
         seg = he[i][1]
         for ii = 1, #he do
             if i ~= ii then
@@ -1111,12 +1111,7 @@ function struct_rebuild()
     quicksave(overall)
 end
 
-overall = sl.request()
---predict_ss()
---struct_rebuild()
-
-check.aacid()
-check.hydro()
+function matrixcalc()
 calculate()
 get.dists()
 for i = 1, numsegs do
@@ -1161,3 +1156,12 @@ if s2 > s1 then
     s1 = get_score(true)
 end
 until s1 - s2 > s3
+end
+
+check.aacid()
+check.hydro()
+
+overall = sl.request()
+--predict_ss()
+struct_rebuild()
+--matrixcalc()
