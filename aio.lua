@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1062"
+Version     = "1063"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,15 +21,15 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false      -- false    rebuild see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
-b_str_re        = true     -- false    working based on structure (Implemented Helix only for now)
-b_fuze          = false     -- false    should we fuze
+b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
+b_fuze          = true     -- false    should we fuze
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring
-step            = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-gain            = 0.01     -- 0.002    Score will get applied after the score changed this value
+i_score_step            = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain            = 0.01     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -47,15 +47,6 @@ i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be c
 i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
-
---#Structed rebuilding
-i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
-i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
-b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
-b_re_he         = false
-b_re_sh         = false
-b_str_re_fuze   = false     -- true
---Structed rebuilding#
 
 --[[
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -496,44 +487,44 @@ local function _loss(option, cl1, cl2)
     p("cl1 ", cl1, ", cl2 ", cl2)
     if option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
-        work.step("s", 1, cl1)
-        work.step("wa", 1, cl2)
+        work.i_score_step("s", 1, cl1)
+        work.i_score_step("wa", 1, cl2)
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.step("wa", 1, cl1)
-        work.step("wa", 1, 1)
-        work.step("wa", 1, cl2)
+        work.i_score_step("wa", 1, cl1)
+        work.i_score_step("wa", 1, 1)
+        work.i_score_step("wa", 1, cl2)
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work.step("s", 1, cl1)
-        work.gain("wa", 1)
+        work.i_score_step("s", 1, cl1)
+        work.i_score_gain("wa", 1)
         local bf1 = get_score()
         reset_recent_best()
-        work.step("s", 1, cl2)
-        work.gain("wa", 1)
+        work.i_score_step("s", 1, cl2)
+        work.i_score_gain("wa", 1)
         local bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end -- if
         reset_recent_best()
         bf1 = get_score()
-        work.step("s", 1, cl1 - 0.02)
-        work.gain("wa", 1)
+        work.i_score_step("s", 1, cl1 - 0.02)
+        work.i_score_gain("wa", 1)
         bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end -- if
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
-        work.step("wa", 1, cl1)
+        work.i_score_step("wa", 1, cl1)
     elseif option == 1 then
         local qs1 = get_score()
         reset_recent_best()
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step("s", 1, cl1)
-        work.step("wa", 1, cl2)
-        work.step("s", 1, 1)
-        work.gain("wa", 1)
+        work.i_score_step("s", 1, cl1)
+        work.i_score_step("wa", 1, cl2)
+        work.i_score_step("s", 1, 1)
+        work.i_score_gain("wa", 1)
         local qs2 = get_score()
         if qs2 < qs1 then
             restore_recent_best()
@@ -547,7 +538,7 @@ local function _part(option, cl1, cl2)
     local s1_f = debug.score()
     fuze.loss(option, cl1, cl2)
     if option ~= 2 or option ~= 1 then
-        work.gain("wa", 1)
+        work.i_score_gain("wa", 1)
     end -- if
     local s2_f = debug.score()
     if s2_f > s1_f then
@@ -579,7 +570,7 @@ local function _start(slot)
         p("+", s_fg, "+")
         c_s = s_f
         p("++", c_s, "++")
-        if b_f_deep and s_fg > gain then
+        if b_f_deep and s_fg > i_score_gain then
             fuze.again(slot)
         end -- if deep
     else -- if s_f
@@ -683,12 +674,12 @@ local function _gain(g, cl)
             iter = iter + 1
             local s1_f = debug.score()
             if iter < i_maxiter then
-                work.step(g, iter, cl)
+                work.i_score_step(g, iter, cl)
             end -- if
             local s2_f = debug.score()
         until s2_f - s1_f < i_score_step
         local s3_f = debug.score()
-        work.step("s")
+        work.i_score_step("s")
         local s4_f = debug.score()
     until s4_f - s3_f < i_score_step
 end
@@ -748,7 +739,7 @@ local function _flow(g)
         end -- if iter
         s1 = debug.score()
         if iter < i_maxiter then
-            work.step(g, iter)
+            work.i_score_step(g, iter)
         end -- <
         s2 = debug.score()
     until s2 - s1 < (i_score_step * iter)
@@ -763,8 +754,8 @@ local function _flow(g)
 end -- function
 
 work =
-{   gain    = _gain,
-    step    = _step,
+{   i_score_gain    = _gain,
+    i_score_step    = _step,
     flow    = _flow
 }
 --Working#
@@ -1007,7 +998,7 @@ end
 
 s_0 = debug.score()
 c_s = s_0
-check.aa()
+check.aacid()
 check.ligand()
 check.hydro()
 p("Starting Score: ", c_s)
@@ -1016,5 +1007,5 @@ quicksave(overall)
 all()
 quickload(overall)
 s_1 = debug.score()
-p("+++ Overall Gain +++")
+p("+++ Overall i_score_gain +++")
 p("+++", s_1 - s_0, "+++")

@@ -5,13 +5,23 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "11"
+Version     = "12"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
---#                  default     description
+i_maxiter       = 5
+i_score_gain    = 0.01
+i_score_step    = 0.01
+--#Structed rebuilding      default     description
+i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
+i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
+b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
+b_re_he         = true
+b_re_sh         = true
+b_str_re_fuze   = false     -- true
+--Structed rebuilding#
 --Settings#
 
 --#Constants
@@ -374,7 +384,7 @@ end -- function
 --Getting AA#
 
 local function _struct()
-    check.ss()
+    check.sstruct()
     local helix
     local sheet
     local loop
@@ -804,36 +814,6 @@ function predict_ss()
 end
 --predictss#
 
-calculate()
-
---predict_ss()
-
-get.dists()
-for i = 1, numsegs do
-    local max_str = 0
-    local min_dist = 999
-    for ii = i + 2, numsegs - 2 do
-        if max_str <= strength[i][ii] then
-            if max_str ~= strength[i][ii] then
-                min_dist = 999
-            end
-            max_str = strength[i][ii]
-            if min_dist > distances[i][ii] then
-                min_dist = distances[i][ii]
-            end
-        end
-    end
-    for ii = i + 2, numsegs - 2 do
-        if strength[i][ii] == max_str and min_dist == distances[i][ii] then
-            band_add_segment_segment(i , ii)
-        end
-    end
-end
-
-if b_str_re then
-    struct_rebuild()
-end
-
 function struct_rebuild()
     check.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
@@ -851,7 +831,6 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        save_structures()
         for ii = he[i][1], he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
         end
@@ -898,6 +877,21 @@ function struct_rebuild()
                 quicksave(best)
             end
         end
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
+            end
+        end
         str_sc = nil
         quickload(best)
         local bands = get_band_count()
@@ -929,8 +923,22 @@ function struct_rebuild()
                 quicksave(best)
             end
         end
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
         quickload(best)
-        load_structures()
         seg = he[i][1] - 3
         if seg < 1 then
             seg = 1
@@ -1001,7 +1009,6 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        save_structures()
         deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0.05)
@@ -1054,42 +1061,6 @@ function struct_rebuild()
             end
         end
         quickload(best)
-        load_structures()
-        seg = sh[i][1] - 3
-        if seg < 1 then
-            seg = 1
-        end
-        r = sh[i][1] - 1
-        if r < 1 then
-            r = 1
-        end
-        deselect_all()
-        select_index_range(seg, r)
-        seg = sh[i][#sh[i]] + 1
-        if seg < 1 then
-            seg = 1
-        end
-        r = sh[i][#sh[i]] + 3
-        if r > numsegs then
-            r = numsegs
-        end
-        select_index_range(seg, r)
-        for i = 1, i_str_re_max_re do
-            while debug.score() == str_rs do
-                do_local_rebuild(iter * i_str_re_re_str)
-                iter = iter + 1
-                if iter > i_maxiter then
-                    iter = i_maxiter
-                end
-            end
-            iter = 1
-            str_rs = debug.score()
-            if not str_sc or str_sc < str_rs then
-                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
-                quicksave(best)
-            end
-        end
-        quickload(best)
         seg = sh[i][1] - 2
         if seg < 1 then
             seg = 1
@@ -1113,8 +1084,14 @@ function struct_rebuild()
     end
     
     for i = 1, #he do
-        p("Helixx!!!")
         seg = he[i][1]
+        for ii = 1, #he do
+            if i ~= ii then
+                r = he[ii][1]
+                band_add_segment_segment(seg, r)
+            end
+        end
+        seg = he[i][#he[i]]
         for ii = 1, #he do
             if i ~= ii then
                 r = he[ii][#he[ii]]
@@ -1122,18 +1099,45 @@ function struct_rebuild()
             end
         end
     end
-    
-   for i = 1, #sh do
-   p("Sheets!!!")
-   seg = sh[i][1]
-        for ii = 1, #sh do
-            if i ~= ii then
-                r = sh[ii][#sh[ii]]
-                band_add_segment_segment(seg, r)
+
+    for i = 1, #sh - 1 do
+        seg = sh[i][1]
+        r = sh[i + 1][1]
+        band_add_segment_segment(seg, r)
+        seg = sh[i][#sh[i]]
+        r = sh[i + 1][#sh[i + 1]]
+        band_add_segment_segment(seg, r)
+    end
+    quicksave(overall)
+end
+
+overall = sl.request()
+--predict_ss()
+--struct_rebuild()
+
+check.aacid()
+check.hydro()
+calculate()
+get.dists()
+for i = 1, numsegs do
+    local max_str = 0
+    local min_dist = 999
+    for ii = i + 2, numsegs - 2 do
+        if max_str <= strength[i][ii] then
+            if max_str ~= strength[i][ii] then
+                min_dist = 999
+            end
+            max_str = strength[i][ii]
+            if min_dist > distances[i][ii] then
+                min_dist = distances[i][ii]
             end
         end
     end
-    quicksave(overall)
+    for ii = i + 2, numsegs - 2 do
+        if strength[i][ii] == max_str and min_dist == distances[i][ii] then
+            band_add_segment_segment(i , ii)
+        end
+    end
 end
 
 s1 = get_score(true)
