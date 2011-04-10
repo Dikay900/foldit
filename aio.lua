@@ -6,14 +6,14 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1064"
+Version     = "1065"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
-i_maxiter       = 5         -- 5        max. iterations an action will do
+i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
@@ -27,7 +27,7 @@ b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
---#Scoring
+--#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
 i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
 i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
