@@ -1,3 +1,17 @@
+--[[
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_snap          = false     -- false    should we snap every sidechain to different positions
+--#Mutating
+b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
+b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
+--Mutating#
+]]
+
+--[[
+snapping        = false
+mutating        = false
+]]
+
 --#Compressor
 function compress()
     p("Compressing Segment ", seg)

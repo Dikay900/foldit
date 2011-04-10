@@ -1,4 +1,4 @@
---[[
+--[[#Header
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
 Special thanks goes also to Seagat2011
@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "3"
+Version     = "4"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -260,15 +260,9 @@ math =
 --Math library#
 
 --#Getters
-local function _dists(seg)
+local function _dists()
     distances = {}
-    local _start
-    if seg then
-        _start = seg
-    else
-        _start = 1
-    end
-    for i = _start, numsegs - 1 do
+    for i = 1, numsegs - 1 do
         distances[i] = {}
         for j = i + 1, numsegs do
             distances[i][j] = get_segment_distance(i, j)
@@ -278,9 +272,8 @@ end
 
 local function _sphere(seg, radius)
     sphere = {}
-    get.dists(seg)
     for i = 1, numsegs do
-        if distances[seg][i] <= radius then
+        if get_segment_distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
         end -- if get_
     end -- for i
@@ -521,7 +514,7 @@ local function _start(slot)
         p("+", s_fg, "+")
         c_s = s_f
         p("++", c_s, "++")
-        if b_f_deep and s_fg > gain then
+        if b_f_deep and s_fg > i_score_gain then
             fuze.again(slot)
         end -- if deep
     else -- if s_f
@@ -609,7 +602,6 @@ function score(g, slot)
         p("++", s1, "++")
         c_s = s1
         quicksave(slot)
-        work.flow("s")
     else -- if
         quickload(slot)
     end -- if
@@ -677,8 +669,6 @@ local function _flow(g)
     local iter = 0
     if rebuilding then
         slot = sl_re
-    elseif snapping then
-        slot = snapwork
     else -- if
         slot = overall
     end -- if
@@ -714,3 +704,4 @@ work =
 function percentage(i)
     p(i / _end * 100, "%")
 end
+--Header#

@@ -1,11 +1,12 @@
---[[
+--[[#Header
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
+Special thanks goes also to Seagat2011
 see http://www.github.com/Darkknight900/foldit/ for latest version of this script
 ]]
 
 --#Game vars
-Version     = "1063"
+Version     = "1064"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -18,18 +19,17 @@ i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = false      -- false    rebuild see #Rebuilding
+b_rebuild       = true      -- false    rebuild | see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
-b_pp            = false     -- false    pull of hydrophobic in different modes then fuze see #Pull
-b_str_re        = false     -- false    working based on structure (Implemented Helix only for now)
-b_fuze          = true     -- false    should we fuze
+b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_fuze          = false     -- false    should we fuze | see #Fuzing
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring
-i_score_step            = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain            = 0.01     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.02     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -38,34 +38,21 @@ i_pp_trys       = 2         -- 2        how often should the pull start over?
 --Pull#
 
 --#Fuzing
-b_f_deep        = false     -- false
+b_f_deep        = false     -- false    fuze till no gain is possible
 --Fuzing#
 
 --#Rebuilding
-b_worst_rebuild = true      -- false    rebuild worst scored parts of the protein
+b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein
 i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
-
---[[
-b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_snap          = false     -- false    should we snap every sidechain to different positions
---#Mutating
-b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
-b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
---Mutating#
-]]
 --Settings#
 
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
---[[
-snapping        = false
-mutating        = false
-rebuilding      = false
-]]
 fuzing          = false
+rebuilding      = false
 sc_changed      = true
 --Constants#
 
@@ -108,7 +95,7 @@ debug =
 
 --#Amino
 amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
-amino_part      = {short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
+amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
 amino_table     = {
                   -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl      }
                     ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
@@ -309,15 +296,9 @@ math =
 --Math library#
 
 --#Getters
-local function _dists(seg)
+local function _dists()
     distances = {}
-    local _start
-    if seg then
-        _start = seg
-    else
-        _start = 1
-    end
-    for i = _start, numsegs - 1 do
+    for i = 1, numsegs - 1 do
         distances[i] = {}
         for j = i + 1, numsegs do
             distances[i][j] = get_segment_distance(i, j)
@@ -327,9 +308,8 @@ end
 
 local function _sphere(seg, radius)
     sphere = {}
-    get.dists(seg)
     for i = 1, numsegs do
-        if distances[seg][i] <= radius then
+        if get_segment_distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
         end -- if get_
     end -- for i
@@ -487,44 +467,44 @@ local function _loss(option, cl1, cl2)
     p("cl1 ", cl1, ", cl2 ", cl2)
     if option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
-        work.i_score_step("s", 1, cl1)
-        work.i_score_step("wa", 1, cl2)
+        work.step("s", 1, cl1)
+        work.step("wa", 1, cl2)
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.i_score_step("wa", 1, cl1)
-        work.i_score_step("wa", 1, 1)
-        work.i_score_step("wa", 1, cl2)
+        work.step("wa", 1, cl1)
+        work.step("wa", 1, 1)
+        work.step("wa", 1, cl2)
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work.i_score_step("s", 1, cl1)
-        work.i_score_gain("wa", 1)
+        work.step("s", 1, cl1)
+        work.gain("wa", 1)
         local bf1 = get_score()
         reset_recent_best()
-        work.i_score_step("s", 1, cl2)
-        work.i_score_gain("wa", 1)
+        work.step("s", 1, cl2)
+        work.gain("wa", 1)
         local bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end -- if
         reset_recent_best()
         bf1 = get_score()
-        work.i_score_step("s", 1, cl1 - 0.02)
-        work.i_score_gain("wa", 1)
+        work.step("s", 1, cl1 - 0.02)
+        work.gain("wa", 1)
         bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end -- if
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
-        work.i_score_step("wa", 1, cl1)
+        work.step("wa", 1, cl1)
     elseif option == 1 then
         local qs1 = get_score()
         reset_recent_best()
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.i_score_step("s", 1, cl1)
-        work.i_score_step("wa", 1, cl2)
-        work.i_score_step("s", 1, 1)
-        work.i_score_gain("wa", 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 1, cl2)
+        work.step("s", 1, 1)
+        work.gain("wa", 1)
         local qs2 = get_score()
         if qs2 < qs1 then
             restore_recent_best()
@@ -538,7 +518,7 @@ local function _part(option, cl1, cl2)
     local s1_f = debug.score()
     fuze.loss(option, cl1, cl2)
     if option ~= 2 or option ~= 1 then
-        work.i_score_gain("wa", 1)
+        work.gain("wa", 1)
     end -- if
     local s2_f = debug.score()
     if s2_f > s1_f then
@@ -658,7 +638,6 @@ function score(g, slot)
         p("++", s1, "++")
         c_s = s1
         quicksave(slot)
-        work.flow("s")
     else -- if
         quickload(slot)
     end -- if
@@ -674,12 +653,12 @@ local function _gain(g, cl)
             iter = iter + 1
             local s1_f = debug.score()
             if iter < i_maxiter then
-                work.i_score_step(g, iter, cl)
+                work.step(g, iter, cl)
             end -- if
             local s2_f = debug.score()
         until s2_f - s1_f < i_score_step
         local s3_f = debug.score()
-        work.i_score_step("s")
+        work.step("s")
         local s4_f = debug.score()
     until s4_f - s3_f < i_score_step
 end
@@ -726,8 +705,6 @@ local function _flow(g)
     local iter = 0
     if rebuilding then
         slot = sl_re
-    elseif snapping then
-        slot = snapwork
     else -- if
         slot = overall
     end -- if
@@ -739,7 +716,7 @@ local function _flow(g)
         end -- if iter
         s1 = debug.score()
         if iter < i_maxiter then
-            work.i_score_step(g, iter)
+            work.step(g, iter)
         end -- <
         s2 = debug.score()
     until s2 - s1 < (i_score_step * iter)
@@ -754,8 +731,8 @@ local function _flow(g)
 end -- function
 
 work =
-{   i_score_gain    = _gain,
-    i_score_step    = _step,
+{   gain    = _gain,
+    step    = _step,
     flow    = _flow
 }
 --Working#
@@ -763,6 +740,8 @@ work =
 function percentage(i)
     p(i / _end * 100, "%")
 end
+--Header#
+
 --#Bonding
 --#Center
 local function _cp(locally)
@@ -854,9 +833,9 @@ bonding =
 
 --#Rebuilding
 function rebuild()
+    local iter = 1
     rebuilding = true
     sl_re = sl.request()
-    sl_best = sl.request()
     quickload(overall)
     quicksave(sl_re)
     select.segs(false, seg, r)
@@ -865,46 +844,37 @@ function rebuild()
     else
         p("Rebuilding Segment ", seg, "-", r)
     end
+    cs0 = debug.score()
     for i = 1, i_max_rebuilds do
         p("Try ", i, "/", i_max_rebuilds)
         cs_0 = debug.score()
         set_behavior_clash_importance(0.01)
-        do_local_rebuild(i_rebuild_str * i)
         while debug.score() == cs_0 do
-            do_local_rebuild(i_rebuild_str * i * iter)
-            iter = iter + i
+            do_local_rebuild(iter * i_rebuild_str)
+            iter = iter + 1
+            if iter > i_maxiter then
+                iter = i_maxiter
+            end
         end
-        if re_sc or re_sc < str_rs then
-            re_sc = str_rs
+        iter = 1
+        str_rs = debug.score()
+        if cs_0 < str_rs then
+            cs_0 = str_rs - math.abs(str_rs)/2
             quicksave(sl_re)
         end
     end
+    quickload(sl_re)
     set_behavior_clash_importance(1)
-    p(debug.score() - cs_0)
+    p(debug.score() - cs0)
     c_s = debug.score()
-    quicksave(sl_re)
-    if b_mutate then
-        mutate()
-    end
     if b_r_dist then
         dists()
     end
-    if b_r_fuze then
-        fuze.start(sl_re)
-    end
+    fuze.start(sl_re)
     quickload(sl_re)
-    if csr and csr < debug.score() then
-        local csr = debug.score()
-        quicksave(sl_best)
-    end
-    if csr then
-        c_s = csr
-    end
-    quickload(sl_best)
-    sl.release(sl_best)
-    p("+", c_s - cs_0, "+")
+    p("+", c_s - cs0, "+")
     sl.release(sl_re)
-    if c_s < cs_0 then
+    if c_s < cs0 then
         quickload(overall)
     else
         quicksave(overall)
@@ -973,6 +943,7 @@ function all()
                         local s = get_segment_score(iii)
                         if s < worst then
                             seg = iii
+                            worst = s
                         end
                     end
                     r = seg + ii
@@ -986,6 +957,7 @@ function all()
                     work.flow("wb")
                     work.flow("ws")
                     work.flow("wa")
+                    work.flow("s")
                     sc_changed = false
                 end
             end
@@ -1007,5 +979,5 @@ quicksave(overall)
 all()
 quickload(overall)
 s_1 = debug.score()
-p("+++ Overall i_score_gain +++")
+p("+++ Overall gain +++")
 p("+++", s_1 - s_0, "+++")
