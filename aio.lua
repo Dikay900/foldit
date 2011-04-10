@@ -19,7 +19,7 @@ i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = true      -- false    rebuild | see #Rebuilding
+b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
@@ -28,8 +28,8 @@ b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring
-i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.02     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -978,6 +978,7 @@ overall = sl.request()
 quicksave(overall)
 all()
 quickload(overall)
+sl.release(overall)
 s_1 = debug.score()
 p("+++ Overall gain +++")
 p("+++", s_1 - s_0, "+++")
