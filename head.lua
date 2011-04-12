@@ -154,33 +154,33 @@ calc =
 }
 
 function calculate()
-p("Calculating Scoring Matrix")
-hci_table = {}
-cci_table = {}
-sci_table = {}
-_end = #amino_segs
-for i = 1, #amino_segs do
-    percentage(i)
-    hci_table[amino_segs[i]] = {}
-    cci_table[amino_segs[i]] = {}
-    sci_table[amino_segs[i]] = {}
-    for ii = 1, #amino_segs do
-        hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
-        cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
-        sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
-    end
-end
-p("Getting Segment Score out of the Matrix")
-strength = {}
-_end = numsegs
-for i = 1, numsegs do
-    percentage(i)
-    strength[i] = {}
-    for ii = i + 2, numsegs - 2 do
-        strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
-    end 
-end
-end
+    p("Calculating Scoring Matrix")
+    hci_table = {}
+    cci_table = {}
+    sci_table = {}
+    _end = #amino_segs
+    for i = 1, #amino_segs do
+        percentage(i)
+        hci_table[amino_segs[i]] = {}
+        cci_table[amino_segs[i]] = {}
+        sci_table[amino_segs[i]] = {}
+        for ii = 1, #amino_segs do
+            hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
+            cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
+            sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
+        end -- for ii
+    end -- for i
+    p("Getting Segment Score out of the Matrix")
+    strength = {}
+    _end = numsegs
+    for i = 1, numsegs do
+        percentage(i)
+        strength[i] = {}
+        for ii = i + 2, numsegs - 2 do
+            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+        end  -- for ii
+    end -- for i
+end -- function
 --Calculations#
 --Amino#
 
@@ -220,8 +220,14 @@ local function _MWC()
     return lngX
 end -- function
 
-local function _floor(value)
-    return value - (value % 1)
+local function _floor(value, _n)
+    local n
+    if _n then
+        n = 1 * 10 ^ (-_n)
+    else
+        n = 1
+    end
+    return value - (value % n)
 end -- function
 
 local function _randomseed(x)
@@ -694,14 +700,128 @@ local function _flow(g)
     score(g, slot)
 end -- function
 
+function _quake()
+    local s3 = get_score(true) / 100 * i_pp_loss
+    local strength = 0.05
+    reset_recent_best()
+    select_all()
+    local bands = get_band_count()
+    repeat
+        strength = strength * 2 - strength * 9 / 10
+        p("Band strength: ", strength)
+        restore_recent_best()
+        local s1 = get_score(true)
+        for i = 1, bands do
+            band_set_strength(i, strength)
+        end -- for
+        do_global_wiggle_backbone(1)
+        local s2 = get_score(true)
+        if s2 > s1 then
+            reset_recent_best()
+            s1 = get_score(true)
+        end -- if >
+    until s1 - s2 > s3
+    quicksave(pp)
+end -- function
+
 work =
 {   gain    = _gain,
     step    = _step,
-    flow    = _flow
+    flow    = _flow,
+    quake   = _quake
 }
 --Working#
 
 function percentage(i)
     p(i / _end * 100, "%")
 end
+
+--#Bonding
+--#Center
+local function _cp(locally)
+    local indexCenter = get.center()
+    local start
+    local _end
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = i_start_seg
+        _end = i_end_seg
+    end
+    for i = start, _end do
+        if i ~= indexCenter then
+            if hydro[i] then
+                band_add_segment_segment(i, indexCenter)
+            end
+        end
+    end
+end
+--Center#
+
+--#Pull
+local function _p(bandsp)
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = i_start_seg
+        _end = i_end_seg
+    end
+    get.dists()
+    for x = start, _end - 2 do
+        if hydro[x] then
+            for y = x + 2, numsegs do
+                math.randomseed(distances[x][y])
+                if hydro[y] and math.random() < bandsp then
+                    maxdistance = distances[x][y]
+                    band_add_segment_segment(x, y)
+                repeat
+                    maxdistance = maxdistance * 3 / 4
+                until maxdistance <= 20
+                local band = get_band_count()
+                --band_set_strength(band, maxdistance / 15)
+                band_set_length(band, maxdistance)
+                end
+            end
+        end
+    end
+end
+--Pull#
+
+--#BandMaxDist
+local function _maxdist()
+    get.dists()
+    local maxdistance = 0
+    for i = i_start_seg, i_end_seg do
+        for j = i_start_seg, i_end_seg do
+            if i ~= j then
+                local x = i
+                local y = j
+                if x > y then
+                    x, y = y, x
+                end
+                if distances[x][y] > maxdistance then
+                    maxdistance = distances[x][y]
+                    maxx = i
+                    maxy = j
+                end
+            end
+        end
+    end
+    band_add_segment_segment(maxx, maxy)
+    repeat
+        maxdistance = maxdistance * 3 / 4
+    until maxdistance <= 20
+    --band_set_strength(get_band_count(), maxdistance / 15)
+    band_set_length(get_band_count(), maxdistance)
+end
+--BandMaxDist#
+
+bonding =
+{   centerpull  = _cp,
+    pull        = _p,
+    maxdist     = _maxdist
+}
+--Bonding#
 --Header#

@@ -18,10 +18,10 @@ i_score_step    = 0.01
 --#Structed rebuilding      default     description
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
-b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
+b_str_re_dist   = true     -- false    same as b_r_dist at #Rebuilding
 b_re_he         = true
 b_re_sh         = true
-b_str_re_fuze   = false     -- true
+b_str_re_fuze   = true     -- true
 --Structed rebuilding#
 --Settings#
 
@@ -704,16 +704,125 @@ local function _flow(g)
     score(g, slot)
 end -- function
 
+function _quake()
+    local s3 = get_score(true) / 100 * i_pp_loss
+    local strength = 0.05
+    reset_recent_best()
+    select_all()
+    local bands = get_band_count()
+    repeat
+        strength = strength * 2 - strength * 9 / 10
+        p("Band strength: ", strength)
+        restore_recent_best()
+        local s1 = get_score(true)
+        for i = 1, bands do
+            band_set_strength(i, strength)
+        end -- for
+        do_global_wiggle_backbone(1)
+        local s2 = get_score(true)
+        if s2 > s1 then
+            reset_recent_best()
+            s1 = get_score(true)
+        end -- if >
+    until s1 - s2 > s3
+    quicksave(pp)
+end -- function
+
 work =
 {   gain    = _gain,
     step    = _step,
-    flow    = _flow
+    flow    = _flow,
+    quake   = _quake
 }
 --Working#
 
 function percentage(i)
     p(i / _end * 100, "%")
 end
+
+--#Bonding
+--#Center
+local function _cp(locally)
+    local indexCenter = get.center()
+    local start
+    local _end
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = i_start_seg
+        _end = i_end_seg
+    end
+    for i = start, _end do
+        if i ~= indexCenter then
+            if hydro[i] then
+                band_add_segment_segment(i, indexCenter)
+            end
+        end
+    end
+end
+--Center#
+
+--#Pull
+local function _p(bandsp)
+    start = seg
+    _end = r
+    get.dists()
+    for x = start, _end - 2 do
+        if hydro[x] then
+            for y = x + 2, numsegs do
+                math.randomseed(distances[x][y])
+                if hydro[y] and math.random() < bandsp then
+                    maxdistance = distances[x][y]
+                    band_add_segment_segment(x, y)
+                repeat
+                    maxdistance = maxdistance * 3 / 4
+                until maxdistance <= 20
+                local band = get_band_count()
+                --band_set_strength(band, maxdistance / 15)
+                band_set_length(band, maxdistance)
+                end
+            end
+        end
+    end
+end
+--Pull#
+
+--#BandMaxDist
+local function _maxdist()
+    get.dists()
+    local maxdistance = 0
+    for i = i_start_seg, i_end_seg do
+        for j = i_start_seg, i_end_seg do
+            if i ~= j then
+                local x = i
+                local y = j
+                if x > y then
+                    x, y = y, x
+                end
+                if distances[x][y] > maxdistance then
+                    maxdistance = distances[x][y]
+                    maxx = i
+                    maxy = j
+                end
+            end
+        end
+    end
+    band_add_segment_segment(maxx, maxy)
+    repeat
+        maxdistance = maxdistance * 3 / 4
+    until maxdistance <= 20
+    --band_set_strength(get_band_count(), maxdistance / 15)
+    band_set_length(get_band_count(), maxdistance)
+end
+--BandMaxDist#
+
+bonding =
+{   centerpull  = _cp,
+    pull        = _p,
+    maxdist     = _maxdist
+}
+--Bonding#
 --Header#
 
 --#predictss
@@ -975,8 +1084,11 @@ function struct_rebuild()
         end
         set_behavior_clash_importance(1)
         if b_str_re_dist then
-            dists()
-        elseif b_str_re_fuze then
+            bonding.pull(0.05)
+            do_global_wiggle_all(1)
+            band_delete()
+        end
+        if b_str_re_fuze then
             rebuilding = true
             fuze.start(best)
             rebuilding = false
@@ -1129,7 +1241,7 @@ end
 s1 = get_score(true)
 s2 = s1
 s3 = s2 / 100
-strength = 0.08
+strength = 0.06
 reset_recent_best()
 select_all()
 local bands = get_band_count()
@@ -1153,6 +1265,6 @@ check.aacid()
 check.hydro()
 
 overall = sl.request()
---predict_ss()
---struct_rebuild()
+predict_ss()
+struct_rebuild()
 matrixcalc()

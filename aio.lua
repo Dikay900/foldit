@@ -11,7 +11,7 @@ Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: default
+--#Settings: Rebuilding Walker
 --#Working                  default     description
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
@@ -28,13 +28,14 @@ b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
+i_pp_loss       = 0.05
 --Pull#
 
 --#Fuzing
@@ -47,6 +48,8 @@ i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be c
 i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
+
+
 --Settings#
 
 --#Constants
@@ -190,33 +193,33 @@ calc =
 }
 
 function calculate()
-p("Calculating Scoring Matrix")
-hci_table = {}
-cci_table = {}
-sci_table = {}
-_end = #amino_segs
-for i = 1, #amino_segs do
-    percentage(i)
-    hci_table[amino_segs[i]] = {}
-    cci_table[amino_segs[i]] = {}
-    sci_table[amino_segs[i]] = {}
-    for ii = 1, #amino_segs do
-        hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
-        cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
-        sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
-    end
-end
-p("Getting Segment Score out of the Matrix")
-strength = {}
-_end = numsegs
-for i = 1, numsegs do
-    percentage(i)
-    strength[i] = {}
-    for ii = i + 2, numsegs - 2 do
-        strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
-    end 
-end
-end
+    p("Calculating Scoring Matrix")
+    hci_table = {}
+    cci_table = {}
+    sci_table = {}
+    _end = #amino_segs
+    for i = 1, #amino_segs do
+        percentage(i)
+        hci_table[amino_segs[i]] = {}
+        cci_table[amino_segs[i]] = {}
+        sci_table[amino_segs[i]] = {}
+        for ii = 1, #amino_segs do
+            hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
+            cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
+            sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
+        end -- for ii
+    end -- for i
+    p("Getting Segment Score out of the Matrix")
+    strength = {}
+    _end = numsegs
+    for i = 1, numsegs do
+        percentage(i)
+        strength[i] = {}
+        for ii = i + 2, numsegs - 2 do
+            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+        end  -- for ii
+    end -- for i
+end -- function
 --Calculations#
 --Amino#
 
@@ -256,8 +259,14 @@ local function _MWC()
     return lngX
 end -- function
 
-local function _floor(value)
-    return value - (value % 1)
+local function _floor(value, _n)
+    local n
+    if _n then
+        n = 1 * 10 ^ (-_n)
+    else
+        n = 1
+    end
+    return value - (value % n)
 end -- function
 
 local function _randomseed(x)
@@ -730,10 +739,35 @@ local function _flow(g)
     score(g, slot)
 end -- function
 
+function _quake()
+    local s3 = get_score(true) / 100 * i_pp_loss
+    local strength = 0.05
+    reset_recent_best()
+    select_all()
+    local bands = get_band_count()
+    repeat
+        strength = strength * 2 - strength * 9 / 10
+        p("Band strength: ", strength)
+        restore_recent_best()
+        local s1 = get_score(true)
+        for i = 1, bands do
+            band_set_strength(i, strength)
+        end -- for
+        do_global_wiggle_backbone(1)
+        local s2 = get_score(true)
+        if s2 > s1 then
+            reset_recent_best()
+            s1 = get_score(true)
+        end -- if >
+    until s1 - s2 > s3
+    quicksave(pp)
+end -- function
+
 work =
 {   gain    = _gain,
     step    = _step,
-    flow    = _flow
+    flow    = _flow,
+    quake   = _quake
 }
 --Working#
 
@@ -774,6 +808,7 @@ local function _p(locally, bandsp)
         start = i_start_seg
         _end = i_end_seg
     end
+
     get.dists()
     for x = start, _end - 2 do
         if hydro[x] then
@@ -786,7 +821,7 @@ local function _p(locally, bandsp)
                     maxdistance = maxdistance * 3 / 4
                 until maxdistance <= 20
                 local band = get_band_count()
-                band_set_strength(band, maxdistance / 15)
+                --band_set_strength(band, maxdistance / 15)
                 band_set_length(band, maxdistance)
                 end
             end
@@ -819,7 +854,7 @@ local function _maxdist()
     repeat
         maxdistance = maxdistance * 3 / 4
     until maxdistance <= 20
-    band_set_strength(get_band_count(), maxdistance / 15)
+    --band_set_strength(get_band_count(), maxdistance / 15)
     band_set_length(get_band_count(), maxdistance)
 end
 --BandMaxDist#
@@ -886,23 +921,20 @@ end
 --#Pull
 function dists()
     pp = sl.request()
-    quicksave(pp)
     s_dist = get_score()
     if b_comp then
         bonding.maxdist()
         select_all()
-        set_behavior_clash_importance(0.7)
-        do_global_wiggle_backbone(1)
+        work.quake()
         band_delete()
         fuze.start(pp)
         if get_score() < s_dist then
             quickload(overall)
         end
     end
-    bonding.pull(false, 0.05)
+    bonding.pull(false, 0.02)
     select_all()
-    set_behavior_clash_importance(0.4)
-    do_global_wiggle_backbone(1)
+    work.quake()
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
@@ -910,8 +942,7 @@ function dists()
     end
     bonding.centerpull()
     select_all()
-    set_behavior_clash_importance(0.4)
-    do_global_wiggle_backbone(1)
+    work.quake()
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
@@ -967,6 +998,7 @@ function all()
         fuze.start(overall)
     end
 end
+
 
 s_0 = debug.score()
 c_s = s_0
