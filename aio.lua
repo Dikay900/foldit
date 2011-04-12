@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1066"
+Version     = "1067"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -49,6 +49,14 @@ i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at defa
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
 
+--#Structed rebuilding      default     description
+i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
+i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
+b_str_re_dist   = true      -- false    same as b_r_dist at #Rebuilding
+b_re_he         = true      -- true
+b_re_sh         = true      -- true
+b_str_re_fuze   = true      -- true
+--Structed rebuilding#
 
 --Settings#
 
@@ -951,7 +959,427 @@ function dists()
 end
 --Pull#
 
-function all()
+--#predictss
+function predict_ss()
+    local p_he = {}
+    local p_sh = {}
+    local p_lo = {}
+    local helix
+    local sheet
+    local loop
+    local i = 1
+    _end = numsegs - 3
+    while i < numsegs - 2 do
+        percentage(i)
+        loop = false
+        if hydro[i] then
+            if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                if not helix then
+                    helix = true
+                    p_he[#p_he + 1] = {}
+                end
+            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
+                if not sheet then
+                    sheet = true
+                    p_sh[#p_sh + 1] = {}
+                end
+            else
+                p_lo[#p_lo + 1] = {}
+                loop = true
+            end
+        elseif not hydro[i] then
+            if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
+                if not helix then
+                    helix = true
+                    p_he[#p_he + 1] = {}
+                end
+            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                if not sheet then
+                    sheet = true
+                    p_sh[#p_sh + 1] = {}
+                end
+            else
+                if not sheet and not helix then
+                    p_lo[#p_lo + 1] = {}
+                end
+                loop = true
+            end
+        end
+        if helix then
+            p_he[#p_he][#p_he[#p_he] + 1] = i
+            if loop or sheet then
+                helix = false
+                p_he[#p_he][#p_he[#p_he] + 1] = i + 1
+                p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+                i = i + 2
+            end
+        elseif sheet then
+            p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
+            if loop then
+                sheet = false
+                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
+                p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
+                i = i + 2
+            end
+        else
+            p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
+        end
+        i = i + 1
+    end
+    p("Found ", #p_he, " Helix ", #p_sh, " Sheet and ", #p_lo, " Loop parts... Combining...")
+    select_all()
+    replace_ss("L")
+    deselect_all()
+    for i = 1, #p_he do
+        for ii = p_he[i][1], p_he[i][#p_he[i]] do
+            select_index(ii)
+        end
+    end
+    replace_ss("H")
+    deselect_all()
+    for i = 1, #p_sh do
+        for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
+            select_index(ii)
+        end
+    end
+    replace_ss("E")
+    quicksave(10)
+    quicksave(1)
+end
+--predictss#
+
+function struct_rebuild()
+    check.struct()
+    p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
+    local iter = 1
+    if b_re_he then
+    for i = 1, #he do
+        p("Working on Helix ", i)
+        deselect_all()
+        str_rs = debug.score()
+        seg = he[i][1] - 3
+        if seg < 1 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        if get_band_count() < 3 then
+        for ii = he[i][1], he[i][#he[i]] - 3, 3 do
+            band_add_segment_segment(ii, ii + 3)
+        end
+        for ii = he[i][1] + 1, he[i][#he[i]] - 3, 3 do
+            band_add_segment_segment(ii, ii + 3)
+        end
+        for ii = he[i][1] + 2, he[i][#he[i]] - 3, 3 do
+            band_add_segment_segment(ii, ii + 3)
+        end
+        for ii = he[i][1] + 3, he[i][#he[i]] - 3, 3 do
+            band_add_segment_segment(ii, ii + 3)
+        end
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        set_behavior_clash_importance(0.05)
+        best = sl.request()
+        quicksave(best)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
+            end
+        end
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
+            end
+        end
+        str_sc = nil
+        quickload(best)
+        local bands = get_band_count()
+        if bands > 0 then
+            band_delete()
+        end
+        seg = he[i][1] - 1
+        if seg < 1 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 1
+        if r > numsegs then
+            r = numsegs
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        quickload(best)
+        seg = he[i][1] - 3
+        if seg < 1 then
+            seg = 1
+        end
+        r = he[i][1] - 1
+        if r < 1 then
+            r = 1
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        seg = he[i][#he[i]] + 1
+        if seg < 1 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        select_index_range(seg, r)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        quickload(best)
+        seg = he[i][1] - 2
+        if seg < 1 then
+            seg = 1
+        end
+        r = he[i][#he[i]] + 2
+        if r > numsegs then
+            r = numsegs
+        end
+        set_behavior_clash_importance(1)
+        if b_str_re_dist then
+            bonding.pull(0.05)
+            do_global_wiggle_all(1)
+            band_delete()
+        end
+        if b_str_re_fuze then
+            rebuilding = true
+            fuze.start(best)
+            rebuilding = false
+        end
+        str_sc = nil
+        str_rs = nil
+        sl.release(best)
+    end
+    end
+
+    if b_re_sh then
+    for i = 1, #sh do
+        p("Working on Sheet ", i)
+        deselect_all()
+        str_rs = debug.score()
+        seg = sh[i][1] - 3
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 3
+        if r > numsegs then
+            r = numsegs
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        set_behavior_clash_importance(0.05)
+        best = sl.request()
+        quicksave(best)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs
+                quicksave(best)
+            end
+        end
+        str_sc = nil
+        quickload(best)
+        local bands = get_band_count()
+        if bands > 0 then
+            band_delete()
+        end
+        seg = sh[i][1] - 1
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 1
+        if r > numsegs then
+            r = numsegs
+        end
+        deselect_all()
+        select_index_range(seg, r)
+        for i = 1, i_str_re_max_re do
+            while debug.score() == str_rs do
+                do_local_rebuild(iter * i_str_re_re_str)
+                iter = iter + 1
+                if iter > i_maxiter then
+                    iter = i_maxiter
+                end
+            end
+            iter = 1
+            str_rs = debug.score()
+            if not str_sc or str_sc < str_rs then
+                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
+                quicksave(best)
+            end
+        end
+        quickload(best)
+        seg = sh[i][1] - 2
+        if seg < 1 then
+            seg = 1
+        end
+        r = sh[i][#sh[i]] + 2
+        if r > numsegs then
+            r = numsegs
+        end
+        set_behavior_clash_importance(1)
+        if b_str_re_dist then
+            dists()
+        elseif b_str_re_fuze then
+            rebuilding = true
+            fuze.start(best)
+            rebuilding = false
+        end
+        str_sc = nil
+        str_rs = nil
+        sl.release(best)
+    end
+    end
+
+    for i = 100, #he do
+        seg = he[i][1]
+        for ii = 1, #he do
+            if i ~= ii then
+                r = he[ii][1]
+                band_add_segment_segment(seg, r)
+            end
+        end
+        seg = he[i][#he[i]]
+        for ii = 1, #he do
+            if i ~= ii then
+                r = he[ii][#he[ii]]
+                band_add_segment_segment(seg, r)
+            end
+        end
+    end
+
+    for i = 1, #sh - 1 do
+        seg = sh[i][1]
+        r = sh[i + 1][1]
+        band_add_segment_segment(seg, r)
+        seg = sh[i][#sh[i]]
+        r = sh[i + 1][#sh[i + 1]]
+        band_add_segment_segment(seg, r)
+    end
+    quicksave(overall)
+end
+
+function matrixcalc()
+calculate()
+get.dists()
+for i = 1, numsegs do
+    local max_str = 0
+    local min_dist = 999
+    for ii = i + 2, numsegs - 2 do
+        if max_str <= strength[i][ii] then
+            if max_str ~= strength[i][ii] then
+                min_dist = 999
+            end
+            max_str = strength[i][ii]
+            if min_dist > distances[i][ii] then
+                min_dist = distances[i][ii]
+            end
+        end
+    end
+    for ii = i + 2, numsegs - 2 do
+        if strength[i][ii] == max_str and min_dist == distances[i][ii] then
+            band_add_segment_segment(i , ii)
+        end
+    end
+end
+
+s_0 = debug.score()
+c_s = s_0
+check.aacid()
+check.ligand()
+check.hydro()
+p("Starting Score: ", c_s)
+overall = sl.request()
+quicksave(overall)
     p("v", Version)
     if b_pp then
         for i = 1, i_pp_trys do
@@ -997,18 +1425,6 @@ function all()
     if b_fuze then
         fuze.start(overall)
     end
-end
-
-
-s_0 = debug.score()
-c_s = s_0
-check.aacid()
-check.ligand()
-check.hydro()
-p("Starting Score: ", c_s)
-overall = sl.request()
-quicksave(overall)
-all()
 quickload(overall)
 sl.release(overall)
 s_1 = debug.score()
