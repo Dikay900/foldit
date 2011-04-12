@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1067"
+Version     = "1068"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -20,7 +20,7 @@ i_start_walk    = 0         -- 0        with how many segs shall we work - Walke
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
---[[v=v=v=v=v=NO=WALKING=HERE=v=v=v=v=v=v]]--
+--
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 -- TEMP
@@ -53,11 +53,10 @@ b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = true      -- false    same as b_r_dist at #Rebuilding
-b_re_he         = true      -- true
-b_re_sh         = true      -- true
-b_str_re_fuze   = true      -- true
+b_re_he         = true      -- true     should we rebuild helices
+b_re_sh         = true      -- true     should we rebuild sheets
+b_str_re_fuze   = true      -- true     should we fuze after one rebuild
 --Structed rebuilding#
-
 --Settings#
 
 --#Constants
@@ -108,35 +107,34 @@ debug =
 amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
 amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
 amino_table     = {
-                  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl      }
-                    ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
-                    ['c'] = {'Cys', 'Cysteine',         'phobic',   -17,    'E',    121.15404,  5.05    },
-                    ['d'] = {'Asp', 'Aspartic acid',    'philic',   6.7,    'L',    133.10384,  2.85    },
-                    ['e'] = {'Glu', 'Glutamic acid',    'philic',   8.1,    'H',    147.13074,  3.15    },
-                    ['f'] = {'Phe', 'Phenylalanine',    'phobic',   -6.3,   'E',    165.19184,  5.49    },
-                    ['g'] = {'Gly', 'Glycine',          'phobic',   1.7,    'L',    75.06714,   6.06    },
-                    ['h'] = {'His', 'Histidine',        'philic',   -5.6,   nil,    155.15634,  7.60    },
-                    ['i'] = {'Ile', 'Isoleucine',       'phobic',   -2.4,   'E',    131.17464,  6.05    },
-                    ['k'] = {'Lys', 'Lysine',           'philic',   6.5,    'H',    146.18934,  9.60    },
-                    ['l'] = {'Leu', 'Leucine',          'phobic',   1,      'H',    131.17464,  6.01    },
-                    ['m'] = {'Met', 'Methionine',       'phobic',   3.4,    'H',    149.20784,  5.74    },
-                    ['n'] = {'Asn', 'Asparagine',       'philic',   8.9,    'L',    132.11904,  5.41    },
-                    ['p'] = {'Pro', 'Proline',          'phobic',   -0.2,   'L',    115.13194,  6.30    },
-                    ['q'] = {'Gln', 'Glutamine',        'philic',   9.7,    'H',    146.14594,  5.65    },
-                    ['r'] = {'Arg', 'Arginine',         'philic',   9.8,    'H',    174.20274,  10.76   },
-                    ['s'] = {'Ser', 'Serine',           'philic',   3.7,    'L',    105.09344,  5.68    },
-                    ['t'] = {'Thr', 'Threonine',        'philic',   2.7,    'E',    119.12034,  5.60    },
-                    ['v'] = {'Val', 'Valine',           'phobic',   -2.9,   'E',    117.14784,  6.00    },
-                    ['w'] = {'Trp', 'Tryptophan',       'phobic',   -9.1,   'E',    204.22844,  5.89    },
-                    ['y'] = {'Tyr', 'Tyrosine',         'phobic',   -5.1,   'E',    181.19124,  5.64    },
-              --[[  ['b'] = {'Asx', 'Asparagine or Aspartic acid'},
-                    ['j'] = {'Xle', 'Leucine or Isoleucine'},
-                    ['o'] = {'Pyl', 'Pyrrolysine'},
-                    ['u'] = {'Sec', 'Selenocysteine'},
-                    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
-                    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
-                ]]}
---
+  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl      }
+    ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
+    ['c'] = {'Cys', 'Cysteine',         'phobic',   -17,    'E',    121.15404,  5.05    },
+    ['d'] = {'Asp', 'Aspartic acid',    'philic',   6.7,    'L',    133.10384,  2.85    },
+    ['e'] = {'Glu', 'Glutamic acid',    'philic',   8.1,    'H',    147.13074,  3.15    },
+    ['f'] = {'Phe', 'Phenylalanine',    'phobic',   -6.3,   'E',    165.19184,  5.49    },
+    ['g'] = {'Gly', 'Glycine',          'phobic',   1.7,    'L',    75.06714,   6.06    },
+    ['h'] = {'His', 'Histidine',        'philic',   -5.6,   nil,    155.15634,  7.60    },
+    ['i'] = {'Ile', 'Isoleucine',       'phobic',   -2.4,   'E',    131.17464,  6.05    },
+    ['k'] = {'Lys', 'Lysine',           'philic',   6.5,    'H',    146.18934,  9.60    },
+    ['l'] = {'Leu', 'Leucine',          'phobic',   1,      'H',    131.17464,  6.01    },
+    ['m'] = {'Met', 'Methionine',       'phobic',   3.4,    'H',    149.20784,  5.74    },
+    ['n'] = {'Asn', 'Asparagine',       'philic',   8.9,    'L',    132.11904,  5.41    },
+    ['p'] = {'Pro', 'Proline',          'phobic',   -0.2,   'L',    115.13194,  6.30    },
+    ['q'] = {'Gln', 'Glutamine',        'philic',   9.7,    'H',    146.14594,  5.65    },
+    ['r'] = {'Arg', 'Arginine',         'philic',   9.8,    'H',    174.20274,  10.76   },
+    ['s'] = {'Ser', 'Serine',           'philic',   3.7,    'L',    105.09344,  5.68    },
+    ['t'] = {'Thr', 'Threonine',        'philic',   2.7,    'E',    119.12034,  5.60    },
+    ['v'] = {'Val', 'Valine',           'phobic',   -2.9,   'E',    117.14784,  6.00    },
+    ['w'] = {'Trp', 'Tryptophan',       'phobic',   -9.1,   'E',    204.22844,  5.89    },
+    ['y'] = {'Tyr', 'Tyrosine',         'phobic',   -5.1,   'E',    181.19124,  5.64    },
+--[[['b'] = {'Asx', 'Asparagine or Aspartic acid'},
+    ['j'] = {'Xle', 'Leucine or Isoleucine'},
+    ['o'] = {'Pyl', 'Pyrrolysine'},
+    ['u'] = {'Sec', 'Selenocysteine'},
+    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
+    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
+  ]]                }
 
 local function _short(seg)
     return amino_table[aa[seg]][amino_part.short]
@@ -224,7 +222,7 @@ function calculate()
         percentage(i)
         strength[i] = {}
         for ii = i + 2, numsegs - 2 do
-            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 1.5) + (cci_table[aa[i]][aa[ii]] * (1 + 0.26 * 0.065)) + (sci_table[aa[i]][aa[ii]] * 1.5)
         end  -- for ii
     end -- for i
 end -- function
@@ -271,9 +269,9 @@ local function _floor(value, _n)
     local n
     if _n then
         n = 1 * 10 ^ (-_n)
-    else
+    else -- if
         n = 1
-    end
+    end -- if
     return value - (value % n)
 end -- function
 
@@ -321,7 +319,7 @@ local function _dists()
             distances[i][j] = get_segment_distance(i, j)
         end -- for j
     end -- for i
-end
+end -- function
 
 local function _sphere(seg, radius)
     sphere = {}
