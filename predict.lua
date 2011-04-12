@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "14"
+Version     = "15"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -164,33 +164,35 @@ calc =
 }
 
 function calculate()
-p("Calculating Scoring Matrix")
-hci_table = {}
-cci_table = {}
-sci_table = {}
-_end = #amino_segs
-for i = 1, #amino_segs do
-    percentage(i)
-    hci_table[amino_segs[i]] = {}
-    cci_table[amino_segs[i]] = {}
-    sci_table[amino_segs[i]] = {}
-    for ii = 1, #amino_segs do
-        hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
-        cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
-        sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
-    end
-end
-p("Getting Segment Score out of the Matrix")
-strength = {}
-_end = numsegs
-for i = 1, numsegs do
-    percentage(i)
-    strength[i] = {}
-    for ii = i + 2, numsegs - 2 do
-        strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
-    end 
-end
-end
+    p("Calculating Scoring Matrix")
+    hci_table = {}
+    cci_table = {}
+    sci_table = {}
+    _end = #amino_segs
+    for i = 1, #amino_segs do
+        percentage(i)
+        hci_table[amino_segs[i]] = {}
+        cci_table[amino_segs[i]] = {}
+        sci_table[amino_segs[i]] = {}
+        for ii = 1, #amino_segs do
+            hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
+            cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
+            sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
+        end -- for ii
+    end -- for i
+
+
+    p("Getting Segment Score out of the Matrix")
+    strength = {}
+    _end = numsegs
+    for i = 1, numsegs do
+        percentage(i)
+        strength[i] = {}
+        for ii = i + 2, numsegs - 2 do
+            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+        end  -- for ii
+    end -- for i
+end -- function
 --Calculations#
 --Amino#
 
@@ -230,8 +232,14 @@ local function _MWC()
     return lngX
 end -- function
 
-local function _floor(value)
-    return value - (value % 1)
+local function _floor(value, _n)
+    local n
+    if _n then
+        n = 1 * 10 ^ (-_n)
+    else
+        n = 1
+    end
+    return value - (value % n)
 end -- function
 
 local function _randomseed(x)
@@ -506,6 +514,7 @@ local function _start(slot)
     fuzing = true
     select_all()
     sl_f1 = sl.request()
+    c_s = get_score(true)
     quicksave(sl_f1)
     fuze.part(1, 0.1, 0.4)
     fuze.part(2, 0.05, 0.07)
@@ -765,8 +774,13 @@ end
 
 --#Pull
 local function _p(bandsp)
-    start = seg
-    _end = r
+    if locally then
+        start = seg
+        _end = r
+    else
+        start = i_start_seg
+        _end = i_end_seg
+    end
     get.dists()
     for x = start, _end - 2 do
         if hydro[x] then

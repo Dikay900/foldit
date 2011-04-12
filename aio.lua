@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1065"
+Version     = "1066"
 Release     = true          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -541,6 +541,7 @@ local function _start(slot)
     fuzing = true
     select_all()
     sl_f1 = sl.request()
+    c_s = get_score(true)
     quicksave(sl_f1)
     fuze.part(1, 0.1, 0.4)
     fuze.part(2, 0.05, 0.07)
@@ -774,7 +775,6 @@ work =
 function percentage(i)
     p(i / _end * 100, "%")
 end
---Header#
 
 --#Bonding
 --#Center
@@ -808,7 +808,6 @@ local function _p(locally, bandsp)
         start = i_start_seg
         _end = i_end_seg
     end
-
     get.dists()
     for x = start, _end - 2 do
         if hydro[x] then
@@ -865,6 +864,7 @@ bonding =
     maxdist     = _maxdist
 }
 --Bonding#
+--Header#
 
 --#Rebuilding
 function rebuild()

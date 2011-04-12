@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "4"
+Version     = "5"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -502,6 +502,7 @@ local function _start(slot)
     fuzing = true
     select_all()
     sl_f1 = sl.request()
+    c_s = get_score(true)
     quicksave(sl_f1)
     fuze.part(1, 0.1, 0.4)
     fuze.part(2, 0.05, 0.07)
@@ -760,7 +761,7 @@ end
 --Center#
 
 --#Pull
-local function _p(bandsp)
+local function _p(locally, bandsp)
     if locally then
         start = seg
         _end = r
