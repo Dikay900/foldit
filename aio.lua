@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1070"
+Version     = "1071"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -23,8 +23,8 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = true
-b_str_re        = false
+b_predict       = false
+b_str_re        = true
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
@@ -1111,6 +1111,10 @@ function struct_rebuild()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
     if b_re_he then
+    for i = 1, #sh do
+        select.list(sh[i])
+        replace_ss("L")
+    end
     for i = 1, #he do
         p("Working on Helix ", i)
         deselect_all()
@@ -1151,6 +1155,11 @@ function struct_rebuild()
         end
         deselect_all()
         select_index_range(seg, r)
+        local bands = get_band_count()
+        for ii = 1, bands do
+            band_set_strength(ii, 2)
+        end
+        do_global_wiggle_backbone(1)
         set_behavior_clash_importance(0.05)
         best = sl.request()
         quicksave(best)
@@ -1231,41 +1240,6 @@ function struct_rebuild()
             end
         end
         quickload(best)
-        seg = he[i][1] - 3
-        if seg < 1 then
-            seg = 1
-        end
-        r = he[i][1] - 1
-        if r < 1 then
-            r = 1
-        end
-        deselect_all()
-        select_index_range(seg, r)
-        seg = he[i][#he[i]] + 1
-        if seg < 1 then
-            seg = 1
-        end
-        r = he[i][#he[i]] + 3
-        if r > numsegs then
-            r = numsegs
-        end
-        select_index_range(seg, r)
-        for i = 1, i_str_re_max_re do
-            while debug.score() == str_rs do
-                do_local_rebuild(iter * i_str_re_re_str)
-                iter = iter + 1
-                if iter > i_maxiter then
-                    iter = i_maxiter
-                end
-            end
-            iter = 1
-            str_rs = debug.score()
-            if not str_sc or str_sc < str_rs then
-                str_sc = str_rs - ((str_rs ^ 2)^(1/2))/2
-                quicksave(best)
-            end
-        end
-        quickload(best)
         seg = he[i][1] - 2
         if seg < 1 then
             seg = 1
@@ -1288,6 +1262,10 @@ function struct_rebuild()
         str_sc = nil
         str_rs = nil
         sl.release(best)
+    end
+    for i = 1, #sh do
+        select.list(sh[i])
+        replace_ss("E")
     end
     end
 
