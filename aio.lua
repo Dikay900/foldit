@@ -6,8 +6,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1068"
-Release     = true          -- if true this script is relatively safe ;)
+Version     = "1069"
+Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -21,8 +21,10 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
+b_predict       = false
+b_str_re        = false
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
@@ -35,7 +37,7 @@ i_score_gain    = 0.01     -- 0.002    Score will get applied after the score ch
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.05
+i_pp_loss       = 0.5
 --Pull#
 
 --#Fuzing
@@ -52,10 +54,10 @@ b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --#Structed rebuilding      default     description
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
-b_str_re_dist   = true      -- false    same as b_r_dist at #Rebuilding
+b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = true      -- true     should we fuze after one rebuild
+b_str_re_fuze   = false     -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
@@ -107,7 +109,7 @@ debug =
 amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
 amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
 amino_table     = {
-  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl      }
+  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl,     }
     ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
     ['c'] = {'Cys', 'Cysteine',         'phobic',   -17,    'E',    121.15404,  5.05    },
     ['d'] = {'Asp', 'Aspartic acid',    'philic',   6.7,    'L',    133.10384,  2.85    },
@@ -134,7 +136,7 @@ amino_table     = {
     ['u'] = {'Sec', 'Selenocysteine'},
     ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
     ['z'] = {'Glx', 'Glutamine or glutamic acid'}
-  ]]                }
+  ]]}
 
 local function _short(seg)
     return amino_table[aa[seg]][amino_part.short]
@@ -419,7 +421,7 @@ end -- function
 --Getting AA#
 
 local function _struct()
-    check.ss()
+    check.sstruct()
     local helix
     local sheet
     local loop
@@ -957,7 +959,7 @@ function dists()
 end
 --Pull#
 
---#predictss
+--#Predict ss
 function predict_ss()
     local p_he = {}
     local p_sh = {}
@@ -966,8 +968,8 @@ function predict_ss()
     local sheet
     local loop
     local i = 1
-    _end = numsegs - 3
-    while i < numsegs - 2 do
+    _end = numsegs
+    while i < numsegs do
         percentage(i)
         loop = false
         if hydro[i] then
@@ -1007,8 +1009,12 @@ function predict_ss()
             p_he[#p_he][#p_he[#p_he] + 1] = i
             if loop or sheet then
                 helix = false
-                p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-                p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+                if i + 1 < numsegs then
+                    p_he[#p_he][#p_he[#p_he] + 1] = i + 1
+                end
+                if i + 2 < numsegs then
+                    p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+                end
                 i = i + 2
             end
         elseif sheet then
@@ -1020,7 +1026,7 @@ function predict_ss()
                 i = i + 2
             end
         else
-            p_lo[#p_lo][#p_lo[#p_lo] + 1] = i
+            p_lo[#p_lo] = nil
         end
         i = i + 1
     end
@@ -1029,22 +1035,60 @@ function predict_ss()
     replace_ss("L")
     deselect_all()
     for i = 1, #p_he do
-        for ii = p_he[i][1], p_he[i][#p_he[i]] do
-            select_index(ii)
-        end
+        select.list(p_he[i])
     end
     replace_ss("H")
     deselect_all()
     for i = 1, #p_sh do
-        for ii = p_sh[i][1], p_sh[i][#p_sh[i]] do
-            select_index(ii)
-        end
+        select.list(p_sh[i])
     end
     replace_ss("E")
     quicksave(10)
     quicksave(1)
+    check.struct()
+    for i = 1, numsegs do
+        if ss[i] == "L" then
+            for ii = 1, #he - 1 do
+                for iii = he[ii][1], he[ii][#he[ii]] do
+                    if iii + 1 == i and he[ii + 1][1] == i + 1 then
+                        deselect_all()
+                        select_index(i)
+                        replace_ss("H")
+                    end
+                end
+            end
+            for ii = 1, #sh - 1 do
+                for iii = sh[ii][1], sh[ii][#sh[ii]] do
+                    if iii + 1 == i and sh[ii + 1][1] == i + 1 then
+                        deselect_all()
+                        select_index(i)
+                        replace_ss("E")
+                    end
+                end
+            end
+        end
+    end
+    quicksave(10)
+    quicksave(1)
 end
 --predictss#
+function bonding.helix()
+check.struct()
+for i = 1, #he do
+        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end
+        end
+        end
 
 function struct_rebuild()
     check.struct()
@@ -1369,6 +1413,7 @@ for i = 1, numsegs do
         end
     end
 end
+end
 
 s_0 = debug.score()
 c_s = s_0
@@ -1379,6 +1424,12 @@ p("Starting Score: ", c_s)
 overall = sl.request()
 quicksave(overall)
     p("v", Version)
+    if b_predict then
+        predict_ss()
+    end
+    if b_str_re then
+        struct_rebuild()
+    end
     if b_pp then
         for i = 1, i_pp_trys do
             dists()
