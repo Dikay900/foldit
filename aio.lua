@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1069"
+Version     = "1070"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,9 +21,9 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = false
+b_predict       = true
 b_str_re        = false
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
@@ -37,7 +37,7 @@ i_score_gain    = 0.01     -- 0.002    Score will get applied after the score ch
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.5
+i_pp_loss       = 0.2
 --Pull#
 
 --#Fuzing
@@ -938,7 +938,19 @@ function dists()
         fuze.start(pp)
         if get_score() < s_dist then
             quickload(overall)
+            s_dist = get_score()
+            quicksave(overall)
         end
+    end
+    matrixcalc()
+    select_all()
+    work.quake()
+    band_delete()
+    fuze.start(pp)
+    if get_score() < s_dist then
+        quickload(overall)
+        s_dist = get_score()
+        quicksave(overall)
     end
     bonding.pull(false, 0.02)
     select_all()
@@ -947,6 +959,8 @@ function dists()
     fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
+        s_dist = get_score()
+        quicksave(overall)
     end
     bonding.centerpull()
     select_all()
@@ -955,6 +969,8 @@ function dists()
     fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
+        s_dist = get_score()
+        quicksave(overall)
     end
 end
 --Pull#
