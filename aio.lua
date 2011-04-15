@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1073"
+Version     = "1074"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -18,20 +18,21 @@ i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = false     -- false    do local wiggle and rewiggle
+b_lws           = true      -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = true
+b_predict       = false
 b_str_re        = false
+b_sphered       = true
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.001     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -224,7 +225,7 @@ function calculate()
         percentage(i)
         strength[i] = {}
         for ii = i + 2, numsegs - 2 do
-            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 1.5) + (cci_table[aa[i]][aa[ii]] * (1 + 0.26 * 0.065)) + (sci_table[aa[i]][aa[ii]] * 1.5)
+            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
         end  -- for ii
     end -- for i
 end -- function
@@ -321,7 +322,7 @@ local function _dists()
             distances[i][j] = get_segment_distance(i, j)
         end -- for j
     end -- for i
-end -- function
+end
 
 local function _sphere(seg, radius)
     sphere = {}
@@ -482,22 +483,27 @@ check =
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
-    if option == 3 then
-        p("Pink Fuse cl1-s-cl2-wa")
-        work.step("s", 1, cl1)
-        work.step("wa", 1, cl2)
-    elseif option == 4 then
-        p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.step("wa", 1, cl1)
-        work.step("wa", 1, 1)
-        work.step("wa", 1, cl2)
+    if option == 1 then
+        local qs1 = get_score()
+        reset_recent_best()
+        p("qStab cl1-s-cl2-wa-cl=1-s")
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
+        work.step(false, "s", 1, 1)
+        work.gain(false, "wa", 1)
+        local qs2 = get_score()
+        if qs2 < qs1 then
+            restore_recent_best()
+        else -- if
+            fuze.loss(1, cl1, cl2)
+        end -- if
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work.step("s", 1, cl1)
+        work.step(false, "s", 1, cl1)
         work.gain("wa", 1)
         local bf1 = get_score()
         reset_recent_best()
-        work.step("s", 1, cl2)
+        work.step(false, "s", 1, cl2)
         work.gain("wa", 1)
         local bf2 = get_score()
         if bf2 < bf1 then
@@ -505,29 +511,24 @@ local function _loss(option, cl1, cl2)
         end -- if
         reset_recent_best()
         bf1 = get_score()
-        work.step("s", 1, cl1 - 0.02)
+        work.step(false, "s", 1, cl1 - 0.02)
         work.gain("wa", 1)
         bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end -- if
+    elseif option == 3 then
+        p("Pink Fuse cl1-s-cl2-wa")
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
+    elseif option == 4 then
+        p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
+        work.step(false, "wa", 1, cl1)
+        work.step(false, "wa", 1, 1)
+        work.step(false, "wa", 1, cl2)
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
-        work.step("wa", 1, cl1)
-    elseif option == 1 then
-        local qs1 = get_score()
-        reset_recent_best()
-        p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step("s", 1, cl1)
-        work.step("wa", 1, cl2)
-        work.step("s", 1, 1)
-        work.gain("wa", 1)
-        local qs2 = get_score()
-        if qs2 < qs1 then
-            restore_recent_best()
-        else -- if
-            fuze.loss(1, cl1, cl2)
-        end -- if
+        work.step(false, "wa", 1, cl1)
     end -- if option
 end -- function
 
@@ -671,23 +672,25 @@ local function _gain(g, cl)
             iter = iter + 1
             local s1_f = debug.score()
             if iter < i_maxiter then
-                work.step(g, iter, cl)
+                work.step(false, g, iter, cl)
             end -- if
             local s2_f = debug.score()
         until s2_f - s1_f < i_score_step
         local s3_f = debug.score()
-        work.step("s")
+        work.step(false, "s")
         local s4_f = debug.score()
     until s4_f - s3_f < i_score_step
 end
 
-local function _step(_g, iter, cl)
+local function _step(sphered, _g, iter, cl)
     if cl then
         set_behavior_clash_importance(cl)
     end -- if
     if rebuilding and _g == "s" then
         select.segs(true, seg, r)
-    else -- if rebuilding
+    elseif sphered then
+        select.segs(true, seg, r)
+    else
         select.segs()
     end -- if rebuilding
     if _g == "wa" then
@@ -734,7 +737,11 @@ local function _flow(g)
         end -- if iter
         s1 = debug.score()
         if iter < i_maxiter then
-            work.step(g, iter)
+            if b_sphered then
+                work.step(true, g, iter)
+            else -- if b_sphered
+                work.step(false, g, iter)
+            end -- if b_sphered
         end -- <
         s2 = debug.score()
     until s2 - s1 < (i_score_step * iter)
@@ -782,7 +789,7 @@ work =
 
 function percentage(i)
     p(i / _end * 100, "%")
-end
+end--- function
 
 --#Bonding
 --#Center
@@ -793,18 +800,18 @@ local function _cp(locally)
     if locally then
         start = seg
         _end = r
-    else
+    else -- if
         start = i_start_seg
         _end = i_end_seg
-    end
+    end -- if
     for i = start, _end do
         if i ~= indexCenter then
             if hydro[i] then
                 band_add_segment_segment(i, indexCenter)
-            end
-        end
-    end
-end
+            end -- if hydro
+        end -- if ~=
+    end -- for
+end -- function
 --Center#
 
 --#Pull
@@ -812,10 +819,10 @@ local function _p(locally, bandsp)
     if locally then
         start = seg
         _end = r
-    else
+    else -- if
         start = i_start_seg
         _end = i_end_seg
-    end
+    end -- if
     get.dists()
     for x = start, _end - 2 do
         if hydro[x] then
@@ -824,17 +831,17 @@ local function _p(locally, bandsp)
                 if hydro[y] and math.random() < bandsp then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
-                repeat
-                    maxdistance = maxdistance * 3 / 4
-                until maxdistance <= 20
-                local band = get_band_count()
-                --band_set_strength(band, maxdistance / 15)
-                band_set_length(band, maxdistance)
-                end
-            end
-        end
-    end
-end
+                    repeat
+                        maxdistance = maxdistance * 3 / 4
+                    until maxdistance <= 20
+                    local band = get_band_count()
+                    --band_set_strength(band, maxdistance / 15)
+                    band_set_length(band, maxdistance)
+                end -- hydro y
+            end -- for y
+        end -- if hydro x
+    end -- for x
+end -- function
 --Pull#
 
 --#BandMaxDist
@@ -848,22 +855,22 @@ local function _maxdist()
                 local y = j
                 if x > y then
                     x, y = y, x
-                end
+                end -- >
                 if distances[x][y] > maxdistance then
                     maxdistance = distances[x][y]
                     maxx = i
                     maxy = j
-                end
-            end
-        end
-    end
+                end -- if distances
+            end -- if ~=
+        end -- for j
+    end -- for i
     band_add_segment_segment(maxx, maxy)
     repeat
         maxdistance = maxdistance * 3 / 4
     until maxdistance <= 20
     --band_set_strength(get_band_count(), maxdistance / 15)
     band_set_length(get_band_count(), maxdistance)
-end
+end -- function
 --BandMaxDist#
 
 bonding =

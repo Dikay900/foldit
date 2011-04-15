@@ -1,4 +1,4 @@
---[[#Header
+﻿--[[#Header
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks and Credits for external functions goes to Rav3n_pl, Tlaloc and Gary Forbis
 Special thanks goes also to Seagat2011
@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "5"
+Version     = "6"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -18,6 +18,8 @@ numsegs     = get_segment_count()
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 fuzing          = false
+rebuilding      = false
+sc_changed      = true
 --Constants#
 
 --#Securing for changes that will be made at Fold.it
@@ -61,35 +63,34 @@ debug =
 amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
 amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
 amino_table     = {
-                  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl      }
-                    ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
-                    ['c'] = {'Cys', 'Cysteine',         'phobic',   -17,    'E',    121.15404,  5.05    },
-                    ['d'] = {'Asp', 'Aspartic acid',    'philic',   6.7,    'L',    133.10384,  2.85    },
-                    ['e'] = {'Glu', 'Glutamic acid',    'philic',   8.1,    'H',    147.13074,  3.15    },
-                    ['f'] = {'Phe', 'Phenylalanine',    'phobic',   -6.3,   'E',    165.19184,  5.49    },
-                    ['g'] = {'Gly', 'Glycine',          'phobic',   1.7,    'L',    75.06714,   6.06    },
-                    ['h'] = {'His', 'Histidine',        'philic',   -5.6,   nil,    155.15634,  7.60    },
-                    ['i'] = {'Ile', 'Isoleucine',       'phobic',   -2.4,   'E',    131.17464,  6.05    },
-                    ['k'] = {'Lys', 'Lysine',           'philic',   6.5,    'H',    146.18934,  9.60    },
-                    ['l'] = {'Leu', 'Leucine',          'phobic',   1,      'H',    131.17464,  6.01    },
-                    ['m'] = {'Met', 'Methionine',       'phobic',   3.4,    'H',    149.20784,  5.74    },
-                    ['n'] = {'Asn', 'Asparagine',       'philic',   8.9,    'L',    132.11904,  5.41    },
-                    ['p'] = {'Pro', 'Proline',          'phobic',   -0.2,   'L',    115.13194,  6.30    },
-                    ['q'] = {'Gln', 'Glutamine',        'philic',   9.7,    'H',    146.14594,  5.65    },
-                    ['r'] = {'Arg', 'Arginine',         'philic',   9.8,    'H',    174.20274,  10.76   },
-                    ['s'] = {'Ser', 'Serine',           'philic',   3.7,    'L',    105.09344,  5.68    },
-                    ['t'] = {'Thr', 'Threonine',        'philic',   2.7,    'E',    119.12034,  5.60    },
-                    ['v'] = {'Val', 'Valine',           'phobic',   -2.9,   'E',    117.14784,  6.00    },
-                    ['w'] = {'Trp', 'Tryptophan',       'phobic',   -9.1,   'E',    204.22844,  5.89    },
-                    ['y'] = {'Tyr', 'Tyrosine',         'phobic',   -5.1,   'E',    181.19124,  5.64    },
-              --[[  ['b'] = {'Asx', 'Asparagine or Aspartic acid'},
-                    ['j'] = {'Xle', 'Leucine or Isoleucine'},
-                    ['o'] = {'Pyl', 'Pyrrolysine'},
-                    ['u'] = {'Sec', 'Selenocysteine'},
-                    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
-                    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
-                ]]}
---
+  -- short, {abbrev,longname,           hydro,      scale,  pref,   mol,        pl,     }
+    ['a'] = {'Ala', 'Alanine',          'phobic',   -1.6,   'H',    89.09404,   6.01    },
+    ['c'] = {'Cys', 'Cysteine',         'phobic',   -17,    'E',    121.15404,  5.05    },
+    ['d'] = {'Asp', 'Aspartic acid',    'philic',   6.7,    'L',    133.10384,  2.85    },
+    ['e'] = {'Glu', 'Glutamic acid',    'philic',   8.1,    'H',    147.13074,  3.15    },
+    ['f'] = {'Phe', 'Phenylalanine',    'phobic',   -6.3,   'E',    165.19184,  5.49    },
+    ['g'] = {'Gly', 'Glycine',          'phobic',   1.7,    'L',    75.06714,   6.06    },
+    ['h'] = {'His', 'Histidine',        'philic',   -5.6,   nil,    155.15634,  7.60    },
+    ['i'] = {'Ile', 'Isoleucine',       'phobic',   -2.4,   'E',    131.17464,  6.05    },
+    ['k'] = {'Lys', 'Lysine',           'philic',   6.5,    'H',    146.18934,  9.60    },
+    ['l'] = {'Leu', 'Leucine',          'phobic',   1,      'H',    131.17464,  6.01    },
+    ['m'] = {'Met', 'Methionine',       'phobic',   3.4,    'H',    149.20784,  5.74    },
+    ['n'] = {'Asn', 'Asparagine',       'philic',   8.9,    'L',    132.11904,  5.41    },
+    ['p'] = {'Pro', 'Proline',          'phobic',   -0.2,   'L',    115.13194,  6.30    },
+    ['q'] = {'Gln', 'Glutamine',        'philic',   9.7,    'H',    146.14594,  5.65    },
+    ['r'] = {'Arg', 'Arginine',         'philic',   9.8,    'H',    174.20274,  10.76   },
+    ['s'] = {'Ser', 'Serine',           'philic',   3.7,    'L',    105.09344,  5.68    },
+    ['t'] = {'Thr', 'Threonine',        'philic',   2.7,    'E',    119.12034,  5.60    },
+    ['v'] = {'Val', 'Valine',           'phobic',   -2.9,   'E',    117.14784,  6.00    },
+    ['w'] = {'Trp', 'Tryptophan',       'phobic',   -9.1,   'E',    204.22844,  5.89    },
+    ['y'] = {'Tyr', 'Tyrosine',         'phobic',   -5.1,   'E',    181.19124,  5.64    },
+--[[['b'] = {'Asx', 'Asparagine or Aspartic acid'},
+    ['j'] = {'Xle', 'Leucine or Isoleucine'},
+    ['o'] = {'Pyl', 'Pyrrolysine'},
+    ['u'] = {'Sec', 'Selenocysteine'},
+    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
+    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
+  ]]}
 
 local function _short(seg)
     return amino_table[aa[seg]][amino_part.short]
@@ -224,9 +225,9 @@ local function _floor(value, _n)
     local n
     if _n then
         n = 1 * 10 ^ (-_n)
-    else
+    else -- if
         n = 1
-    end
+    end -- if
     return value - (value % n)
 end -- function
 
@@ -374,7 +375,7 @@ end -- function
 --Getting AA#
 
 local function _struct()
-    check.ss()
+    check.sstruct()
     local helix
     local sheet
     local loop
@@ -435,22 +436,27 @@ check =
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
-    if option == 3 then
-        p("Pink Fuse cl1-s-cl2-wa")
-        work.step("s", 1, cl1)
-        work.step("wa", 1, cl2)
-    elseif option == 4 then
-        p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.step("wa", 1, cl1)
-        work.step("wa", 1, 1)
-        work.step("wa", 1, cl2)
+    if option == 1 then
+        local qs1 = get_score()
+        reset_recent_best()
+        p("qStab cl1-s-cl2-wa-cl=1-s")
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
+        work.step(false, "s", 1, 1)
+        work.gain(false, "wa", 1)
+        local qs2 = get_score()
+        if qs2 < qs1 then
+            restore_recent_best()
+        else -- if
+            fuze.loss(1, cl1, cl2)
+        end -- if
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work.step("s", 1, cl1)
+        work.step(false, "s", 1, cl1)
         work.gain("wa", 1)
         local bf1 = get_score()
         reset_recent_best()
-        work.step("s", 1, cl2)
+        work.step(false, "s", 1, cl2)
         work.gain("wa", 1)
         local bf2 = get_score()
         if bf2 < bf1 then
@@ -458,29 +464,24 @@ local function _loss(option, cl1, cl2)
         end -- if
         reset_recent_best()
         bf1 = get_score()
-        work.step("s", 1, cl1 - 0.02)
+        work.step(false, "s", 1, cl1 - 0.02)
         work.gain("wa", 1)
         bf2 = get_score()
         if bf2 < bf1 then
             restore_recent_best()
         end -- if
+    elseif option == 3 then
+        p("Pink Fuse cl1-s-cl2-wa")
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
+    elseif option == 4 then
+        p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
+        work.step(false, "wa", 1, cl1)
+        work.step(false, "wa", 1, 1)
+        work.step(false, "wa", 1, cl2)
     elseif option == 5 then
         p("cl1-wa[-cl2-wa]")
-        work.step("wa", 1, cl1)
-    elseif option == 1 then
-        local qs1 = get_score()
-        reset_recent_best()
-        p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step("s", 1, cl1)
-        work.step("wa", 1, cl2)
-        work.step("s", 1, 1)
-        work.gain("wa", 1)
-        local qs2 = get_score()
-        if qs2 < qs1 then
-            restore_recent_best()
-        else -- if
-            fuze.loss(1, cl1, cl2)
-        end -- if
+        work.step(false, "wa", 1, cl1)
     end -- if option
 end -- function
 
@@ -624,23 +625,25 @@ local function _gain(g, cl)
             iter = iter + 1
             local s1_f = debug.score()
             if iter < i_maxiter then
-                work.step(g, iter, cl)
+                work.step(false, g, iter, cl)
             end -- if
             local s2_f = debug.score()
         until s2_f - s1_f < i_score_step
         local s3_f = debug.score()
-        work.step("s")
+        work.step(false, "s")
         local s4_f = debug.score()
     until s4_f - s3_f < i_score_step
 end
 
-local function _step(_g, iter, cl)
+local function _step(sphered, _g, iter, cl)
     if cl then
         set_behavior_clash_importance(cl)
     end -- if
     if rebuilding and _g == "s" then
         select.segs(true, seg, r)
-    else -- if rebuilding
+    elseif sphered then
+        select.segs(true, seg, r)
+    else
         select.segs()
     end -- if rebuilding
     if _g == "wa" then
@@ -687,7 +690,11 @@ local function _flow(g)
         end -- if iter
         s1 = debug.score()
         if iter < i_maxiter then
-            work.step(g, iter)
+            if b_sphered then
+                work.step(true, g, iter)
+            else -- if b_sphered
+                work.step(false, g, iter)
+            end -- if b_sphered
         end -- <
         s2 = debug.score()
     until s2 - s1 < (i_score_step * iter)
@@ -735,7 +742,7 @@ work =
 
 function percentage(i)
     p(i / _end * 100, "%")
-end
+end--- function
 
 --#Bonding
 --#Center
@@ -746,18 +753,18 @@ local function _cp(locally)
     if locally then
         start = seg
         _end = r
-    else
+    else -- if
         start = i_start_seg
         _end = i_end_seg
-    end
+    end -- if
     for i = start, _end do
         if i ~= indexCenter then
             if hydro[i] then
                 band_add_segment_segment(i, indexCenter)
-            end
-        end
-    end
-end
+            end -- if hydro
+        end -- if ~=
+    end -- for
+end -- function
 --Center#
 
 --#Pull
@@ -765,10 +772,10 @@ local function _p(locally, bandsp)
     if locally then
         start = seg
         _end = r
-    else
+    else -- if
         start = i_start_seg
         _end = i_end_seg
-    end
+    end -- if
     get.dists()
     for x = start, _end - 2 do
         if hydro[x] then
@@ -777,17 +784,17 @@ local function _p(locally, bandsp)
                 if hydro[y] and math.random() < bandsp then
                     maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
-                repeat
-                    maxdistance = maxdistance * 3 / 4
-                until maxdistance <= 20
-                local band = get_band_count()
-                --band_set_strength(band, maxdistance / 15)
-                band_set_length(band, maxdistance)
-                end
-            end
-        end
-    end
-end
+                    repeat
+                        maxdistance = maxdistance * 3 / 4
+                    until maxdistance <= 20
+                    local band = get_band_count()
+                    --band_set_strength(band, maxdistance / 15)
+                    band_set_length(band, maxdistance)
+                end -- hydro y
+            end -- for y
+        end -- if hydro x
+    end -- for x
+end -- function
 --Pull#
 
 --#BandMaxDist
@@ -801,22 +808,22 @@ local function _maxdist()
                 local y = j
                 if x > y then
                     x, y = y, x
-                end
+                end -- >
                 if distances[x][y] > maxdistance then
                     maxdistance = distances[x][y]
                     maxx = i
                     maxy = j
-                end
-            end
-        end
-    end
+                end -- if distances
+            end -- if ~=
+        end -- for j
+    end -- for i
     band_add_segment_segment(maxx, maxy)
     repeat
         maxdistance = maxdistance * 3 / 4
     until maxdistance <= 20
     --band_set_strength(get_band_count(), maxdistance / 15)
     band_set_length(get_band_count(), maxdistance)
-end
+end -- function
 --BandMaxDist#
 
 bonding =
