@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1072"
+Version     = "1073"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -1018,15 +1018,15 @@ function predict_ss()
             end
         end
         if helix then
-        if aa[i] ~= "f" then
+        if aa[i] ~= "p" then
             p_he[#p_he][#p_he[#p_he] + 1] = i
             if loop or sheet then
                 helix = false
                 if i + 1 < numsegs then
-                if aa[i + 1] ~= "f" then
+                if aa[i + 1] ~= "p" then
                 p_he[#p_he][#p_he[#p_he] + 1] = i + 1
                 if i + 2 < numsegs then
-                if aa[i + 2] ~= "f" then
+                if aa[i + 2] ~= "p" then
                     p_he[#p_he][#p_he[#p_he] + 1] = i + 2
                     end
                 end
