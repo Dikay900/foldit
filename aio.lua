@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1076"
+Version     = "1077"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -24,15 +24,15 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false
-b_str_re        = true
+b_str_re        = false
 b_sphered       = false
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -58,7 +58,7 @@ i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = false      -- true     should we fuze after one rebuild
+b_str_re_fuze   = true      -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
@@ -195,13 +195,7 @@ local function _CCI(seg_a, seg_b) -- charge
     return 11 - (amino.charge(seg_a) - 7) * (amino.charge(seg_b) - 7) * 19/33.8
 end
 
-calc =
-{   hci = _HCI,
-    sci = _SCI,
-    cci = _CCI
-}
-
-function calculate()
+local function _calc()
     p("Calculating Scoring Matrix")
     hci_table = {}
     cci_table = {}
@@ -229,6 +223,13 @@ function calculate()
         end  -- for ii
     end -- for i
 end -- function
+
+calc =
+{   hci = _HCI,
+    sci = _SCI,
+    cci = _CCI,
+    run = _calc
+}
 --Calculations#
 --Amino#
 
@@ -322,7 +323,7 @@ local function _dists()
             distances[i][j] = get_segment_distance(i, j)
         end -- for j
     end -- for i
-end
+end -- function
 
 local function _sphere(seg, radius)
     sphere = {}
@@ -573,22 +574,17 @@ local function _start(slot)
         c_s = s_f
         p("++", c_s, "++")
         if b_f_deep and s_fg > i_score_gain then
-            fuze.again(slot)
+            fuze.start(slot)
         end -- if deep
     else -- if s_f
         quickload(slot)
     end -- if s_f
 end -- function
 
-local function _again(slot)
-    fuze.start(slot)
-end -- function
-
 fuze =
 {   loss    =   _loss,
     part    =   _part,
-    start   =   _start,
-    again   =   _again
+    start   =   _start
 }
 --Fuzing#
 
@@ -689,11 +685,9 @@ local function _step(sphered, _g, iter, cl)
     if cl then
         set_behavior_clash_importance(cl)
     end -- if
-    if rebuilding and _g == "s" then
+    if rebuilding and _g == "s" or sphered then
         select.segs(true, seg, r)
-    elseif sphered then
-        select.segs(true, seg, r)
-    else
+    else -- if rebuiling
         select.segs()
     end -- if rebuilding
     if _g == "wa" then
@@ -717,9 +711,6 @@ local function _step(sphered, _g, iter, cl)
             else -- if >
                 quickload(wl)
             end -- if >
-            if s_s2 == s_s1 then
-                break
-            end -- if ==
         end -- for
         sl.release(wl)
     end -- if _g
@@ -765,7 +756,7 @@ function _quake()
     select_all()
     local bands = get_band_count()
     repeat
-        strength = strength * 2 - strength * 9 / 10
+        strength = math.floor(strength * 2 - strength * 9 / 10, 3)
         p("Band strength: ", strength)
         restore_recent_best()
         local s1 = get_score(true)
@@ -790,9 +781,15 @@ work =
 }
 --Working#
 
-function percentage(i)
+--#Progress
+local function _percentage(i)
     p(i / _end * 100, "%")
-end--- function
+end -- function
+
+progress =
+{   perc    = _percentage
+}
+--Progress#
 
 --#Bonding
 --#Center
@@ -950,38 +947,38 @@ function dists()
             quickload(overall)
             s_dist = get_score()
             quicksave(overall)
-        end
-    end
+        end -- if <
+    end -- if b_comp
     matrixcalc()
     select_all()
-    do_global_wiggle_all(1)
+    work.quake()
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
         s_dist = get_score()
         quicksave(overall)
-    end
+    end -- if <
     bonding.pull(false, 0.05)
     select_all()
-    do_global_wiggle_all(1)
+    work.quake()
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
         s_dist = get_score()
         quicksave(overall)
-    end
+    end -- if <
     bonding.centerpull()
     select_all()
-    do_global_wiggle_all(1)
+    work.quake()
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
         quickload(overall)
         s_dist = get_score()
         quicksave(overall)
-    end
+    end -- if <
 end
 --Pull#
 
