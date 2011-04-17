@@ -6,33 +6,33 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1074"
+Version     = "1075"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
---#Settings: Rebuilding Walker
+--#Settings: default
 --#Working                  default     description
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = true      -- false    do local wiggle and rewiggle
+b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false
 b_str_re        = false
-b_sphered       = true
+b_sphered       = false
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.001     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -57,8 +57,8 @@ i_str_re_max_re = 3         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 2         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
-b_re_sh         = false      -- true     should we rebuild sheets
-b_str_re_fuze   = false     -- true     should we fuze after one rebuild
+b_re_sh         = true      -- true     should we rebuild sheets
+b_str_re_fuze   = false      -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
@@ -490,7 +490,7 @@ local function _loss(option, cl1, cl2)
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
         work.step(false, "s", 1, 1)
-        work.gain(false, "wa", 1)
+        work.gain("wa", 1)
         local qs2 = get_score()
         if qs2 < qs1 then
             restore_recent_best()
@@ -940,7 +940,7 @@ function dists()
     if b_comp then
         bonding.maxdist()
         select_all()
-        work.quake()
+        do_global_wiggle_all(1)
         band_delete()
         fuze.start(pp)
         if get_score() < s_dist then
@@ -951,7 +951,7 @@ function dists()
     end
     matrixcalc()
     select_all()
-    work.quake()
+    do_global_wiggle_all(1)
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
@@ -959,9 +959,9 @@ function dists()
         s_dist = get_score()
         quicksave(overall)
     end
-    bonding.pull(false, 0.02)
+    bonding.pull(false, 0.05)
     select_all()
-    work.quake()
+    do_global_wiggle_all(1)
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
@@ -971,7 +971,7 @@ function dists()
     end
     bonding.centerpull()
     select_all()
-    work.quake()
+    do_global_wiggle_all(1)
     band_delete()
     fuze.start(pp)
     if get_score() < s_dist then
@@ -1075,12 +1075,14 @@ function predict_ss()
     check.struct()
     for i = 1, numsegs do
         if ss[i] == "L" then
-            for ii = 1, #he - 1 do
-                for iii = he[ii][1], he[ii][#he[ii]] do
-                    if iii + 1 == i and he[ii + 1][1] == i + 1 then
-                        deselect_all()
-                        select_index(i)
-                        replace_ss("H")
+            if aa[i] ~= "p" then
+                for ii = 1, #he - 1 do
+                    for iii = he[ii][1], he[ii][#he[ii]] do
+                        if iii + 1 == i and he[ii + 1][1] == i + 1 then
+                            deselect_all()
+                            select_index(i)
+                            replace_ss("H")
+                        end
                     end
                 end
             end
@@ -1100,47 +1102,46 @@ function predict_ss()
 end
 --predictss#
 function bonding.helix()
-check.struct()
-for i = 1, #he do
+    check.struct()
+    for i = 1, #he do
         for ii = he[i][1], he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
-        end
+        end -- for ii
         for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
-        end
+        end -- for ii
         for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
-        end
+        end -- for ii
         for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
             band_add_segment_segment(ii, ii + 4)
-        end
-        end
-        end
+        end -- for ii
+    end -- for i
+end -- function
 
 function struct_rebuild()
     check.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
-    
-        if b_re_sh then
-    for i = 1, #he do
-    deselect_all()
-        select.list(he[i])
-        replace_ss("L")
-    end
-    for i = 1, #sh do
-        p("Working on Sheet ", i)
-        deselect_all()
-        str_rs = debug.score()
-        seg = sh[i][1] - 3
-        if seg < 1 then
-            seg = 1
+    if b_re_sh then
+        for i = 1, #he do
+            deselect_all()
+            select.list(he[i])
+            replace_ss("L")
         end
-        r = sh[i][#sh[i]] + 3
-        if r > numsegs then
-            r = numsegs
-        end
-        deselect_all()
+        for i = 1, #sh do
+            p("Working on Sheet ", i)
+            deselect_all()
+            str_rs = debug.score()
+            seg = sh[i][1] - 3
+            if seg < 1 then
+                seg = 1
+            end
+            r = sh[i][#sh[i]] + 3
+            if r > numsegs then
+                r = numsegs
+            end
+            deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0)
         best = sl.request()
