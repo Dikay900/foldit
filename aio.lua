@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1075"
+Version     = "1076"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,10 +21,10 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false
-b_str_re        = false
+b_str_re        = true
 b_sphered       = false
 -- TEMP
 b_explore       = false     -- false    Exploration Puzzle
@@ -553,12 +553,15 @@ local function _start(slot)
     c_s = get_score(true)
     quicksave(sl_f1)
     fuze.part(1, 0.1, 0.4)
+    local c_s2 = get_score(true)
+    if c_s2 > c_s then
     fuze.part(2, 0.05, 0.07)
     fuze.part(3, 0.1, 0.7)
     fuze.part(3, 0.3, 0.6)
     fuze.part(4, 0.5, 0.7)
     fuze.part(4, 0.7, 0.5)
     fuze.part(5, 0.3)
+    end
     quickload(sl_f1)
     s_f = debug.score()
     sl.release(sl_f1)
