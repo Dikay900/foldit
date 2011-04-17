@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1077"
+Version     = "1078"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -22,7 +22,7 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
-b_fuze          = false     -- false    should we fuze | see #Fuzing
+b_fuze          = true     -- false    should we fuze | see #Fuzing
 b_predict       = false
 b_str_re        = false
 b_sphered       = false
@@ -38,7 +38,7 @@ i_score_gain    = 0.002     -- 0.002    Score will get applied after the score c
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.2
+i_pp_loss       = 0.15
 --Pull#
 
 --#Fuzing
@@ -202,7 +202,7 @@ local function _calc()
     sci_table = {}
     _end = #amino_segs
     for i = 1, #amino_segs do
-        percentage(i)
+        progress.perc(i)
         hci_table[amino_segs[i]] = {}
         cci_table[amino_segs[i]] = {}
         sci_table[amino_segs[i]] = {}
@@ -216,7 +216,7 @@ local function _calc()
     strength = {}
     _end = numsegs
     for i = 1, numsegs do
-        percentage(i)
+        progress.perc(i)
         strength[i] = {}
         for ii = i + 2, numsegs - 2 do
             strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
@@ -404,26 +404,22 @@ end -- function
 --Ligand Check#
 
 --#Structurecheck
---#Getting SS
 local function _ss()
     ss = {}
     for i = 1, numsegs do
         ss[i] = get_ss(i)
     end -- for i
 end -- function
---Getting SS#
 
---#Getting AA
 local function _aa()
     aa = {}
     for i = 1, numsegs do
         aa[i] = get_aa(i)
     end -- for i
 end -- function
---Getting AA#
 
 local function _struct()
-    check.sstruct()
+    check.secstr()
     local helix
     local sheet
     local loop
@@ -473,13 +469,14 @@ end -- function
 --Structurecheck#
 
 check =
-{   sstruct = _ss,
+{   secstr = _ss,
     aacid   = _aa,
     ligand  = _ligand,
     hydro   = _hydro,
     struct  = _struct
 }
 --Checks#
+
 --#Fuzing
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
@@ -873,10 +870,55 @@ local function _maxdist()
 end -- function
 --BandMaxDist#
 
+local function _helix()
+    check.struct()
+    for i = 1, #he do
+        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+    end -- for i
+end -- function
+
+local function _matrix()
+    calc.run()
+    get.dists()
+    for i = 1, numsegs do
+        local max_str = 0
+        local min_dist = 999
+        for ii = i + 2, numsegs - 2 do
+            if max_str <= strength[i][ii] then
+                if max_str ~= strength[i][ii] then
+                    min_dist = 999
+                end
+                max_str = strength[i][ii]
+                if min_dist > distances[i][ii] then
+                    min_dist = distances[i][ii]
+                end
+            end
+        end
+        for ii = i + 2, numsegs - 2 do
+            if strength[i][ii] == max_str and min_dist == distances[i][ii] then
+                band_add_segment_segment(i , ii)
+            end
+        end
+    end
+end
+
 bonding =
 {   centerpull  = _cp,
     pull        = _p,
-    maxdist     = _maxdist
+    maxdist     = _maxdist,
+    helix       = _helix,
+    matrix      = _matrix
 }
 --Bonding#
 --Header#
@@ -949,7 +991,7 @@ function dists()
             quicksave(overall)
         end -- if <
     end -- if b_comp
-    matrixcalc()
+    bonding.matrix()
     select_all()
     work.quake()
     band_delete()
@@ -993,7 +1035,7 @@ function predict_ss()
     local i = 1
     _end = numsegs
     while i < numsegs do
-        percentage(i)
+        progress.perc(i)
         loop = false
         if hydro[i] then
             if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
@@ -1101,23 +1143,6 @@ function predict_ss()
     quicksave(1)
 end
 --predictss#
-function bonding.helix()
-    check.struct()
-    for i = 1, #he do
-        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-    end -- for i
-end -- function
 
 function struct_rebuild()
     check.struct()
@@ -1404,31 +1429,6 @@ function struct_rebuild()
         band_add_segment_segment(seg, r)
     end
     quicksave(overall)
-end
-
-function matrixcalc()
-calculate()
-get.dists()
-for i = 1, numsegs do
-    local max_str = 0
-    local min_dist = 999
-    for ii = i + 2, numsegs - 2 do
-        if max_str <= strength[i][ii] then
-            if max_str ~= strength[i][ii] then
-                min_dist = 999
-            end
-            max_str = strength[i][ii]
-            if min_dist > distances[i][ii] then
-                min_dist = distances[i][ii]
-            end
-        end
-    end
-    for ii = i + 2, numsegs - 2 do
-        if strength[i][ii] == max_str and min_dist == distances[i][ii] then
-            band_add_segment_segment(i , ii)
-        end
-    end
-end
 end
 
 s_0 = debug.score()
