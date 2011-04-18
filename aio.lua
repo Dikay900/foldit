@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1078"
+Version     = "1079"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -22,8 +22,8 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
-b_fuze          = true     -- false    should we fuze | see #Fuzing
-b_predict       = false
+b_fuze          = false     -- false    should we fuze | see #Fuzing
+b_predict       = true
 b_str_re        = false
 b_sphered       = false
 -- TEMP
@@ -1042,75 +1042,75 @@ function predict_ss()
                 if not helix then
                     helix = true
                     p_he[#p_he + 1] = {}
-                end
+                end -- if helix
             elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
                 if not sheet then
                     sheet = true
                     p_sh[#p_sh + 1] = {}
-                end
-            else
+                end -- if sheet
+            else -- hydro i +
                 loop = true
-            end
+            end -- hydro i +
         elseif not hydro[i] then
             if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
                 if not helix then
                     helix = true
                     p_he[#p_he + 1] = {}
-                end
+                end -- if helix
             elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
                 if not sheet then
                     sheet = true
                     p_sh[#p_sh + 1] = {}
-                end
-            else
+                end -- if sheet
+            else -- if hydro +
                 loop = true
-            end
-        end
+            end -- if hydro +
+        end -- hydro[i]
         if helix then
-        if aa[i] ~= "p" then
-            p_he[#p_he][#p_he[#p_he] + 1] = i
-            if loop or sheet then
-                helix = false
-                if i + 1 < numsegs then
-                if aa[i + 1] ~= "p" then
-                p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-                if i + 2 < numsegs then
-                if aa[i + 2] ~= "p" then
-                    p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-                    end
-                end
-                end
-                end
-                i = i + 2
-            end
-        end
+            if aa[i] ~= "p" then
+                p_he[#p_he][#p_he[#p_he] + 1] = i
+                if loop or sheet then
+                    helix = false
+                    if i + 1 < numsegs then
+                        if aa[i + 1] ~= "p" then
+                            p_he[#p_he][#p_he[#p_he] + 1] = i + 1
+                            if i + 2 < numsegs then
+                                if aa[i + 2] ~= "p" then
+                                    p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+                                end -- if aa i + 2
+                            end -- if i + 2
+                        end -- if aa i + 1
+                    end -- if i + 1
+                    i = i + 2
+                end -- if loop | sheet
+            end -- if aa
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
             if loop then
                 sheet = false
                 if i + 1 < numsegs then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
-                end
+                end -- if i + 1
                 if i + 2 < numsegs then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
-                end
+                end -- if i + 2
                 i = i + 2
-            end
-        end
+            end -- if loop
+        end -- if sheet
         i = i + 1
-    end
+    end -- while
     p("Found ", #p_he, " Helix and ", #p_sh, " Sheet parts... Combining...")
     select_all()
     replace_ss("L")
     deselect_all()
     for i = 1, #p_he do
         select.list(p_he[i])
-    end
+    end -- for
     replace_ss("H")
     deselect_all()
     for i = 1, #p_sh do
         select.list(p_sh[i])
-    end
+    end -- for
     replace_ss("E")
     quicksave(10)
     quicksave(1)
@@ -1124,21 +1124,21 @@ function predict_ss()
                             deselect_all()
                             select_index(i)
                             replace_ss("H")
-                        end
-                    end
-                end
-            end
+                        end -- if iii
+                    end -- for iii
+                end -- for ii
+            end -- if aa
             for ii = 1, #sh - 1 do
                 for iii = sh[ii][1], sh[ii][#sh[ii]] do
                     if iii + 1 == i and sh[ii + 1][1] == i + 1 then
                         deselect_all()
                         select_index(i)
                         replace_ss("E")
-                    end
-                end
-            end
-        end
-    end
+                    end -- if iii
+                end -- for iii
+            end -- for ii
+        end -- if ss
+    end -- for i
     quicksave(10)
     quicksave(1)
 end
