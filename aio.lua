@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1081"
+Version     = "1082"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -16,12 +16,12 @@ numsegs     = get_segment_count()
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
-i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_walk    = 1         -- 0        with how many segs shall we work - Walker
+i_end_walk      = 2         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = false     -- false    rebuild | see #Rebuilding
+b_rebuild       = true     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false
 b_str_re        = false
@@ -31,14 +31,14 @@ b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.5
+i_pp_loss       = 0.1
 --Pull#
 
 --#Fuzing
@@ -48,7 +48,7 @@ b_f_deep        = false     -- false    fuze till no gain is possible
 --#Rebuilding
 b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein
 i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
-i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
+i_rebuild_str   = 4         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
 
@@ -593,10 +593,10 @@ local function _segs(sphered, start, _end, more)
     if start then
         if sphered then
             if start ~= _end then
-                local list1 = get.sphere(_end, 14)
+                local list1 = get.sphere(_end, 10)
                 select.list(list1)
             end -- if ~= end
-            local list1 = get.sphere(start, 14)
+            local list1 = get.sphere(start, 10)
             select.list(list1)
             if start > _end then
                 local _start = _end
@@ -753,7 +753,7 @@ function _quake()
     select_all()
     local bands = get_band_count()
     repeat
-        strength = math.floor(strength * 2 - strength * 7 / 10, 3)
+        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
         p("Band strength: ", strength)
         restore_recent_best()
         local s1 = get_score(true)
@@ -928,6 +928,7 @@ function rebuild()
     local iter = 1
     rebuilding = true
     sl_re = sl.request()
+    local saved = false
     quickload(overall)
     quicksave(sl_re)
     select.segs(false, seg, r)
@@ -940,7 +941,7 @@ function rebuild()
     for i = 1, i_max_rebuilds do
         p("Try ", i, "/", i_max_rebuilds)
         cs_0 = debug.score()
-        set_behavior_clash_importance(0)
+        set_behavior_clash_importance(1)
         while debug.score() == cs_0 do
             do_local_rebuild(iter * i_rebuild_str)
             iter = iter + 1
@@ -950,9 +951,15 @@ function rebuild()
         end
         iter = 1
         str_rs = debug.score()
-        if cs_0 < str_rs then
-            cs_0 = str_rs - math.abs(str_rs)/2
+        if saved then
+            if cs_0 < str_rs then
+                cs_0 = str_rs - math.abs(str_rs)/10
+                quicksave(sl_re)
+            end
+        else
             quicksave(sl_re)
+            cs_0 = str_rs
+            saved = true
         end
     end
     quickload(sl_re)
