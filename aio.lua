@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1082"
+Version     = "1083"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -19,7 +19,7 @@ i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 1         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 2         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = true     -- false    rebuild | see #Rebuilding
+b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
@@ -31,8 +31,8 @@ b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -697,19 +697,17 @@ local function _step(sphered, _g, iter, cl)
         do_global_wiggle_sidechains(iter)
     elseif _g == "wl" then
         select.segs(false, seg, r)
-        wl = sl.request()
-        quicksave(wl)
+        reset_recent_best()
         for i = iter, iter + 5 do
             local s_s1 = debug.score()
             do_local_wiggle(iter)
             local s_s2 = debug.score()
             if s_s2 > s_s1 then
-                quicksave(wl)
+                reset_recent_best()
             else -- if >
-                quickload(wl)
+                restore_recent_best()
             end -- if >
         end -- for
-        sl.release(wl)
     end -- if _g
 end -- function
 
