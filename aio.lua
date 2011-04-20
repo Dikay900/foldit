@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1079"
+Version     = "1080"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,9 +21,9 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = true
+b_predict       = false
 b_str_re        = false
 b_sphered       = false
 -- TEMP
@@ -38,7 +38,7 @@ i_score_gain    = 0.002     -- 0.002    Score will get applied after the score c
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.15
+i_pp_loss       = 1
 --Pull#
 
 --#Fuzing
@@ -748,12 +748,12 @@ end -- function
 
 function _quake()
     local s3 = get_score(true) / 100 * i_pp_loss
-    local strength = 0.05
+    local strength = 0.05 + 0.075 * i_pp_loss
     reset_recent_best()
     select_all()
     local bands = get_band_count()
     repeat
-        strength = math.floor(strength * 2 - strength * 9 / 10, 3)
+        strength = math.floor(strength * 2 - strength * 7 / 10, 3)
         p("Band strength: ", strength)
         restore_recent_best()
         local s1 = get_score(true)
