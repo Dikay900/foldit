@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1083"
+Version     = "1084"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -16,9 +16,9 @@ numsegs     = get_segment_count()
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 1         -- 0        with how many segs shall we work - Walker
-i_end_walk      = 2         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = false     -- false    do local wiggle and rewiggle
+i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
+i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
+b_lws           = true     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
@@ -110,27 +110,27 @@ debug =
 amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
 amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
 amino_table     = {
-  -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     }
-    ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01    },
-    ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05    },
-    ['d'] = {'Asp', 'Aspartic acid',    false,      6.7,    'L',    133.10384,  2.85    },
-    ['e'] = {'Glu', 'Glutamic acid',    false,      8.1,    'H',    147.13074,  3.15    },
-    ['f'] = {'Phe', 'Phenylalanine',    true,       -6.3,   'E',    165.19184,  5.49    },
-    ['g'] = {'Gly', 'Glycine',          true,       1.7,    'L',    75.06714,   6.06    },
-    ['h'] = {'His', 'Histidine',        false,      -5.6,   nil,    155.15634,  7.60    },
-    ['i'] = {'Ile', 'Isoleucine',       true,       -2.4,   'E',    131.17464,  6.05    },
-    ['k'] = {'Lys', 'Lysine',           false,      6.5,    'H',    146.18934,  9.60    },
-    ['l'] = {'Leu', 'Leucine',          true,       1,      'H',    131.17464,  6.01    },
-    ['m'] = {'Met', 'Methionine',       true,       3.4,    'H',    149.20784,  5.74    },
-    ['n'] = {'Asn', 'Asparagine',       false,      8.9,    'L',    132.11904,  5.41    },
-    ['p'] = {'Pro', 'Proline',          true,       -0.2,   'L',    115.13194,  6.30    },
-    ['q'] = {'Gln', 'Glutamine',        false,      9.7,    'H',    146.14594,  5.65    },
-    ['r'] = {'Arg', 'Arginine',         false,      9.8,    'H',    174.20274,  10.76   },
-    ['s'] = {'Ser', 'Serine',           false,      3.7,    'L',    105.09344,  5.68    },
-    ['t'] = {'Thr', 'Threonine',        false,      2.7,    'E',    119.12034,  5.60    },
-    ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00    },
-    ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89    },
-    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64    },
+  -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw vol }
+    ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67      },
+    ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05,   86      },
+    ['d'] = {'Asp', 'Aspartic acid',    false,      6.7,    'L',    133.10384,  2.85,   91      },
+    ['e'] = {'Glu', 'Glutamic acid',    false,      8.1,    'H',    147.13074,  3.15,   109     },
+    ['f'] = {'Phe', 'Phenylalanine',    true,       -6.3,   'E',    165.19184,  5.49,   135     },
+    ['g'] = {'Gly', 'Glycine',          true,       1.7,    'L',    75.06714,   6.06,   48      },
+    ['h'] = {'His', 'Histidine',        false,      -5.6,   nil,    155.15634,  7.60,   118     },
+    ['i'] = {'Ile', 'Isoleucine',       true,       -2.4,   'E',    131.17464,  6.05,   124     },
+    ['k'] = {'Lys', 'Lysine',           false,      6.5,    'H',    146.18934,  9.60,   135     },
+    ['l'] = {'Leu', 'Leucine',          true,       1,      'H',    131.17464,  6.01,   124     },
+    ['m'] = {'Met', 'Methionine',       true,       3.4,    'H',    149.20784,  5.74,   124     },
+    ['n'] = {'Asn', 'Asparagine',       false,      8.9,    'L',    132.11904,  5.41,   96      },
+    ['p'] = {'Pro', 'Proline',          true,       -0.2,   'L',    115.13194,  6.30,   90      },
+    ['q'] = {'Gln', 'Glutamine',        false,      9.7,    'H',    146.14594,  5.65,   114     },
+    ['r'] = {'Arg', 'Arginine',         false,      9.8,    'H',    174.20274,  10.76,  148     },
+    ['s'] = {'Ser', 'Serine',           false,      3.7,    'L',    105.09344,  5.68,   73      },
+    ['t'] = {'Thr', 'Threonine',        false,      2.7,    'E',    119.12034,  5.60,   93      },
+    ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00,   105     },
+    ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89,   163     },
+    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141     },
 --[[['b'] = {'Asx', 'Asparagine or Aspartic acid'},
     ['j'] = {'Xle', 'Leucine or Isoleucine'},
     ['o'] = {'Pyl', 'Pyrrolysine'},
@@ -171,6 +171,14 @@ local function _pl(seg)
     return amino_table[aa[seg]][amino_part.pl]
 end
 
+local function _vdw_radius (seg)
+    local vol
+    local radius
+    vol = amino_table[seg][amino_part.vdw_vol]
+    radius = ((vol * 3 / 4) / 3.14159) ^ (1 / 3)
+    return radius
+end
+
 amino =
 {   short       = _short,
     abbrev      = _abbrev,
@@ -179,7 +187,8 @@ amino =
     hydroscale  = _hscale,
     preffered   = _pref,
     size        = _mol,
-    charge      = _pl
+    charge      = _pl,
+    vdw_radius  = _vdw_radius
 }
 
 --#Calculations
@@ -700,12 +709,13 @@ local function _step(sphered, _g, iter, cl)
         reset_recent_best()
         for i = iter, iter + 5 do
             local s_s1 = debug.score()
-            do_local_wiggle(iter)
+            do_local_wiggle(i)
             local s_s2 = debug.score()
             if s_s2 > s_s1 then
                 reset_recent_best()
-            else -- if >
+            else
                 restore_recent_best()
+                break
             end -- if >
         end -- for
     end -- if _g
