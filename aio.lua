@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1084"
+Version     = "1085"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -18,10 +18,10 @@ i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = true     -- false    do local wiggle and rewiggle
+b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false
 b_str_re        = false
@@ -38,11 +38,11 @@ i_score_gain    = 0.002     -- 0.002    Score will get applied after the score c
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.1
+i_pp_loss       = 2.5
 --Pull#
 
 --#Fuzing
-b_f_deep        = false     -- false    fuze till no gain is possible
+b_fuze_deep     = false     -- false    fuze till no gain is possible
 --Fuzing#
 
 --#Rebuilding
@@ -108,7 +108,7 @@ debug =
 
 --#Amino
 amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
-amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7}
+amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7, vdw_vol = 8}
 amino_table     = {
   -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw vol }
     ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67      },
@@ -560,14 +560,17 @@ local function _start(slot)
     c_s = get_score(true)
     quicksave(sl_f1)
     fuze.part(1, 0.1, 0.4)
+    fuze.part(1, 0.05, 0.4)
     local c_s2 = get_score(true)
     if c_s2 > c_s then
-    fuze.part(2, 0.05, 0.07)
-    fuze.part(3, 0.1, 0.7)
-    fuze.part(3, 0.3, 0.6)
-    fuze.part(4, 0.5, 0.7)
-    fuze.part(4, 0.7, 0.5)
-    fuze.part(5, 0.3)
+        fuze.part(2, 0.05, 0.07)
+        if b_fuze_deep then
+            fuze.part(3, 0.1, 0.7)
+            fuze.part(3, 0.3, 0.6)
+            fuze.part(4, 0.5, 0.7)
+            fuze.part(4, 0.7, 0.5)
+            fuze.part(5, 0.3)
+        end
     end
     quickload(sl_f1)
     s_f = debug.score()
