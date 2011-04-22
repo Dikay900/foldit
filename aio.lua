@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1085"
+Version     = "1086"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -38,7 +38,8 @@ i_score_gain    = 0.002     -- 0.002    Score will get applied after the score c
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 2.5
+i_pp_loss       = 0.25
+b_solo_quake    = true
 --Pull#
 
 --#Fuzing
@@ -757,20 +758,34 @@ local function _flow(g)
     score(g, slot)
 end -- function
 
-function _quake()
+function _quake(band)
     local s3 = get_score(true) / 100 * i_pp_loss
     local strength = 0.05 + 0.075 * i_pp_loss
-    reset_recent_best()
-    select_all()
     local bands = get_band_count()
+    select_all()
+    if b_solo_quake then
+        for iii = 1, bands do
+            band_disable(iii)
+        end
+        band_enable(band)
+    end
+    reset_recent_best()
     repeat
         strength = math.floor(strength * 2 - strength * 19 / 20, 3)
+        if b_solo_quake then
+            strength = math.floor(strength * 2 - strength * 9 / 10, 3)
+            strength = math.floor(strength * 2 - strength * 9 / 10, 3)
+        end
         p("Band strength: ", strength)
         restore_recent_best()
         local s1 = get_score(true)
+        if b_solo_quake then
+            band_set_strength(band, strength)
+        else
         for i = 1, bands do
             band_set_strength(i, strength)
         end -- for
+        end
         do_global_wiggle_backbone(1)
         local s2 = get_score(true)
         if s2 > s1 then
@@ -1011,14 +1026,31 @@ function dists()
     end -- if b_comp
     bonding.matrix()
     select_all()
-    work.quake()
-    band_delete()
-    fuze.start(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-        s_dist = get_score()
-        quicksave(overall)
-    end -- if <
+    local bandcount = get_band_count()
+    if b_solo_quake then
+    rebuilding = true
+        for ii = 1, bandcount do
+        seg = ii
+        work.quake(ii)
+        band_delete()
+        fuze.start(pp)
+        if get_score() < s_dist then
+            quickload(overall)
+            s_dist = get_score()
+            quicksave(overall)
+        end -- if <
+        end
+        rebuilding = false
+    else
+        work.quake()
+        band_delete()
+        fuze.start(pp)
+        if get_score() < s_dist then
+            quickload(overall)
+            s_dist = get_score()
+            quicksave(overall)
+        end -- if <
+    end
     bonding.pull(false, 0.05)
     select_all()
     work.quake()
