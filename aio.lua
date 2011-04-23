@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1086"
+Version     = "1087"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -38,9 +38,9 @@ i_score_gain    = 0.002     -- 0.002    Score will get applied after the score c
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.25
+i_pp_loss       = 0.1
 b_solo_quake    = true
---Pull#
+--Pull
 
 --#Fuzing
 b_fuze_deep     = false     -- false    fuze till no gain is possible
@@ -561,7 +561,6 @@ local function _start(slot)
     c_s = get_score(true)
     quicksave(sl_f1)
     fuze.part(1, 0.1, 0.4)
-    fuze.part(1, 0.05, 0.4)
     local c_s2 = get_score(true)
     if c_s2 > c_s then
         fuze.part(2, 0.05, 0.07)
@@ -600,24 +599,29 @@ fuze =
 
 --#Universal select
 local function _segs(sphered, start, _end, more)
+    local list1
     if not more then
         deselect_all()
     end -- if more
     if start then
         if sphered then
-            if start ~= _end then
-                local list1 = get.sphere(_end, 10)
-                select.list(list1)
-            end -- if ~= end
-            local list1 = get.sphere(start, 10)
+            if _end then
+                if start ~= _end then
+                    list1 = get.sphere(_end, 10)
+                    select.list(list1)
+                end -- if ~= end
+                if  start > _end then
+                    local _start = _end
+                    _end = start
+                    start = _start
+                end -- if > end
+                select_index_range(start, _end)
+            else
+                select_index(start)
+            end
+            list1 = get.sphere(start, 10)
             select.list(list1)
-            if start > _end then
-                local _start = _end
-                _end = start
-                start = _start
-            end -- if > end
-            select_index_range(start, _end)
-        elseif start ~= _end then
+        elseif _end and start ~= _end then
             if start > _end then
                 local _start = _end
                 _end = start
@@ -764,18 +768,11 @@ function _quake(band)
     local bands = get_band_count()
     select_all()
     if b_solo_quake then
-        for iii = 1, bands do
-            band_disable(iii)
-        end
         band_enable(band)
+        strength = strength * 6
     end
     reset_recent_best()
     repeat
-        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
-        if b_solo_quake then
-            strength = math.floor(strength * 2 - strength * 9 / 10, 3)
-            strength = math.floor(strength * 2 - strength * 9 / 10, 3)
-        end
         p("Band strength: ", strength)
         restore_recent_best()
         local s1 = get_score(true)
@@ -792,6 +789,10 @@ function _quake(band)
             reset_recent_best()
             s1 = get_score(true)
         end -- if >
+        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
+        if b_solo_quake then
+            strength = math.floor(strength * 2 - strength * 4 / 5, 3)
+        end
     until s1 - s2 > s3
     quicksave(pp)
 end -- function
@@ -1030,9 +1031,12 @@ function dists()
     if b_solo_quake then
     rebuilding = true
         for ii = 1, bandcount do
+            band_disable(ii)
+        end
+        for ii = 1, bandcount do
         seg = ii
         work.quake(ii)
-        band_delete()
+        band_disable(ii)
         fuze.start(pp)
         if get_score() < s_dist then
             quickload(overall)
