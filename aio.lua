@@ -771,9 +771,9 @@ function _quake()
         end -- for
         end
         do_global_wiggle_backbone(1)
-        restore_recent_best()
         local s2 = debug.score()
         if s2 > s1 then
+            restore_recent_best()
             reset_recent_best()
             s1 = debug.score()
         end -- if >
