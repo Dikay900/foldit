@@ -6,8 +6,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1088"
-Release     = false          -- if true this script is relatively safe ;)
+Version     = "1089"
+Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -31,15 +31,15 @@ b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.001     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.002     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.1
-b_solo_quake    = true
+i_pp_loss       = 4
+b_solo_quake    = false
 --Pull
 
 --#Fuzing
@@ -547,7 +547,7 @@ end -- function
 local function _start(slot)
     fuzing = true
     select.segs()
-    local sl_f = sl.request()
+    sl_f = sl.request()
     c_s = debug.score()
     quicksave(sl_f)
     fuze.part(1, 0.1, 0.4)
@@ -777,7 +777,7 @@ function _quake()
             reset_recent_best()
             s1 = debug.score()
         end -- if >
-        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
+        strength = math.floor(strength * 2 - strength * 9 / 10, 3)
         if b_solo_quake then
             strength = math.floor(strength * 2 - strength * 4 / 5, 3)
         end
@@ -793,10 +793,13 @@ local function _dist()
         for ii = 1, bandcount do
             band_disable(ii)
         end
-        for ii = 1, bandcount do
+        quicksave(overall)
         seg = 1
+        for ii = 1, bandcount do
+        if ii ~= 1 then
+            band_delete(1)
+        end
         work.quake()
-        band_delete(1)
         fuze.start(pp)
         if debug.score() > dist_score then
             quicksave(overall)
@@ -876,14 +879,7 @@ local function _p(locally, bandsp)
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
                 if hydro[y] and math.random() < bandsp then
-                    maxdistance = distances[x][y]
                     band_add_segment_segment(x, y)
-                    repeat
-                        maxdistance = maxdistance * 3 / 4
-                    until maxdistance <= 20
-                    local band = get_band_count()
-                    --band_set_strength(band, maxdistance / 15)
-                    band_set_length(band, maxdistance)
                 end -- hydro y
             end -- for y
         end -- if hydro x
@@ -912,11 +908,6 @@ local function _maxdist()
         end -- for j
     end -- for i
     band_add_segment_segment(maxx, maxy)
-    repeat
-        maxdistance = maxdistance * 3 / 4
-    until maxdistance <= 20
-    --band_set_strength(get_band_count(), maxdistance / 15)
-    band_set_length(get_band_count(), maxdistance)
 end -- function
 --BandMaxDist#
 
@@ -1039,41 +1030,14 @@ function dists()
     dist_score = debug.score()
     if b_comp then
         bonding.maxdist()
-        select.segs()
-        do_global_wiggle_all(1)
-        band_delete()
-        fuze.start(pp)
-        if debug.score() > dist_score then
-            quicksave(overall)
-            dist_score = debug.score()
-        else
-            quickload(overall)
-        end
+        work.dist()
     end -- if b_comp
     bonding.matrix()
     work.dist()
     bonding.pull(false, 0.05)
-    select.segs()
-    work.quake()
-    band_delete()
-    fuze.start(pp)
-    if debug.score() > dist_score then
-            quicksave(overall)
-            dist_score = debug.score()
-        else
-            quickload(overall)
-        end
+    work.dist()
     bonding.centerpull()
-    select.segs()
-    work.quake()
-    band_delete()
-    fuze.start(pp)
-    if debug.score() > dist_score then
-            quicksave(overall)
-            dist_score = debug.score()
-        else
-            quickload(overall)
-        end
+    work.dist()
     sl.release(pp)
 end
 --Pull#
@@ -1317,32 +1281,7 @@ function struct_rebuild()
         if r > numsegs then
             r = numsegs
         end
-        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end
-        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end
-        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end
-        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end
-        if get_band_count() < 3 then
-        for ii = he[i][1], he[i][#he[i]] - 3, 3 do
-            band_add_segment_segment(ii, ii + 3)
-        end
-        for ii = he[i][1] + 1, he[i][#he[i]] - 3, 3 do
-            band_add_segment_segment(ii, ii + 3)
-        end
-        for ii = he[i][1] + 2, he[i][#he[i]] - 3, 3 do
-            band_add_segment_segment(ii, ii + 3)
-        end
-        for ii = he[i][1] + 3, he[i][#he[i]] - 3, 3 do
-            band_add_segment_segment(ii, ii + 3)
-        end
-        end
+        bonding.helix()
         deselect_all()
         select_index_range(seg, r)
         set_behavior_clash_importance(0.4)
