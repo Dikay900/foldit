@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1087"
+Version     = "1088"
 Release     = false          -- if true this script is relatively safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -491,40 +491,29 @@ check =
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
+    reset_recent_best()
     if option == 1 then
-        local qs1 = get_score()
-        reset_recent_best()
+        local qs1 = debug.score()
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
         work.step(false, "s", 1, 1)
         work.gain("wa", 1)
-        local qs2 = get_score()
-        if qs2 < qs1 then
-            restore_recent_best()
-        else -- if
+        local qs2 = debug.score()
+        restore_recent_best()
+        if qs2 > qs1 then
             fuze.loss(1, cl1, cl2)
         end -- if
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
         work.step(false, "s", 1, cl1)
         work.gain("wa", 1)
-        local bf1 = get_score()
-        reset_recent_best()
         work.step(false, "s", 1, cl2)
         work.gain("wa", 1)
-        local bf2 = get_score()
-        if bf2 < bf1 then
-            restore_recent_best()
-        end -- if
-        reset_recent_best()
-        bf1 = get_score()
+        restore_recent_best()
         work.step(false, "s", 1, cl1 - 0.02)
         work.gain("wa", 1)
-        bf2 = get_score()
-        if bf2 < bf1 then
-            restore_recent_best()
-        end -- if
+        restore_recent_best()
     elseif option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
         work.step(false, "s", 1, cl1)
@@ -538,47 +527,45 @@ local function _loss(option, cl1, cl2)
         p("cl1-wa[-cl2-wa]")
         work.step(false, "wa", 1, cl1)
     end -- if option
+    restore_recent_best()
 end -- function
 
 local function _part(option, cl1, cl2)
     local s1_f = debug.score()
     fuze.loss(option, cl1, cl2)
-    if option ~= 2 or option ~= 1 then
+    if option ~= 1 then
         work.gain("wa", 1)
     end -- if
     local s2_f = debug.score()
     if s2_f > s1_f then
-        quicksave(sl_f1)
+        quicksave(sl_f)
         p("+", s2_f - s1_f, "+")
     end -- if
-    quickload(sl_f1)
+    quickload(sl_f)
 end -- function
 
 local function _start(slot)
     fuzing = true
-    select_all()
-    sl_f1 = sl.request()
-    c_s = get_score(true)
-    quicksave(sl_f1)
+    select.segs()
+    local sl_f = sl.request()
+    c_s = debug.score()
+    quicksave(sl_f)
     fuze.part(1, 0.1, 0.4)
-    local c_s2 = get_score(true)
-    if c_s2 > c_s then
+    if b_fuze_deep then
         fuze.part(2, 0.05, 0.07)
-        if b_fuze_deep then
-            fuze.part(3, 0.1, 0.7)
-            fuze.part(3, 0.3, 0.6)
-            fuze.part(4, 0.5, 0.7)
-            fuze.part(4, 0.7, 0.5)
-            fuze.part(5, 0.3)
-        end
+        fuze.part(3, 0.1, 0.7)
+        fuze.part(3, 0.3, 0.6)
+        fuze.part(4, 0.5, 0.7)
+        fuze.part(4, 0.7, 0.5)
+        fuze.part(5, 0.3)
     end
-    quickload(sl_f1)
-    s_f = debug.score()
-    sl.release(sl_f1)
+    quickload(sl_f)
+    local s_f = debug.score()
+    sl.release(sl_f)
     fuzing = false
     if s_f > c_s then
         quicksave(slot)
-        s_fg = s_f - c_s
+        local s_fg = s_f - c_s
         p("+", s_fg, "+")
         c_s = s_f
         p("++", c_s, "++")
@@ -762,32 +749,33 @@ local function _flow(g)
     score(g, slot)
 end -- function
 
-function _quake(band)
-    local s3 = get_score(true) / 100 * i_pp_loss
+function _quake()
+    local s3 = debug.score() / 100 * i_pp_loss
     local strength = 0.05 + 0.075 * i_pp_loss
     local bands = get_band_count()
-    select_all()
+    select.segs()
     if b_solo_quake then
-        band_enable(band)
+        band_enable(1)
         strength = strength * 6
     end
     reset_recent_best()
     repeat
         p("Band strength: ", strength)
         restore_recent_best()
-        local s1 = get_score(true)
+        local s1 = debug.score()
         if b_solo_quake then
-            band_set_strength(band, strength)
+            band_set_strength(1, strength)
         else
         for i = 1, bands do
             band_set_strength(i, strength)
         end -- for
         end
         do_global_wiggle_backbone(1)
-        local s2 = get_score(true)
+        restore_recent_best()
+        local s2 = debug.score()
         if s2 > s1 then
             reset_recent_best()
-            s1 = get_score(true)
+            s1 = debug.score()
         end -- if >
         strength = math.floor(strength * 2 - strength * 19 / 20, 3)
         if b_solo_quake then
@@ -797,11 +785,46 @@ function _quake(band)
     quicksave(pp)
 end -- function
 
+local function _dist()
+    select.segs()
+    local bandcount = get_band_count()
+    if b_solo_quake then
+    rebuilding = true
+        for ii = 1, bandcount do
+            band_disable(ii)
+        end
+        for ii = 1, bandcount do
+        seg = 1
+        work.quake()
+        band_delete(1)
+        fuze.start(pp)
+        if debug.score() > dist_score then
+            quicksave(overall)
+            dist_score = debug.score()
+        else
+            quickload(overall)
+        end
+        end
+        rebuilding = false
+    else
+        work.quake()
+        band_delete()
+        fuze.start(pp)
+        if debug.score() > dist_score then
+            quicksave(overall)
+            dist_score = debug.score()
+        else
+            quickload(overall)
+        end
+    end
+end
+
 work =
 {   gain    = _gain,
     step    = _step,
     flow    = _flow,
-    quake   = _quake
+    quake   = _quake,
+    dist    = _dist
 }
 --Working#
 
@@ -1012,69 +1035,46 @@ end
 --#Pull
 function dists()
     pp = sl.request()
-    s_dist = get_score()
+    quicksave(overall)
+    dist_score = debug.score()
     if b_comp then
         bonding.maxdist()
-        select_all()
+        select.segs()
         do_global_wiggle_all(1)
         band_delete()
         fuze.start(pp)
-        if get_score() < s_dist then
-            quickload(overall)
-            s_dist = get_score()
+        if debug.score() > dist_score then
             quicksave(overall)
-        end -- if <
+            dist_score = debug.score()
+        else
+            quickload(overall)
+        end
     end -- if b_comp
     bonding.matrix()
-    select_all()
-    local bandcount = get_band_count()
-    if b_solo_quake then
-    rebuilding = true
-        for ii = 1, bandcount do
-            band_disable(ii)
-        end
-        for ii = 1, bandcount do
-        seg = ii
-        work.quake(ii)
-        band_disable(ii)
-        fuze.start(pp)
-        if get_score() < s_dist then
-            quickload(overall)
-            s_dist = get_score()
-            quicksave(overall)
-        end -- if <
-        end
-        rebuilding = false
-    else
-        work.quake()
-        band_delete()
-        fuze.start(pp)
-        if get_score() < s_dist then
-            quickload(overall)
-            s_dist = get_score()
-            quicksave(overall)
-        end -- if <
-    end
+    work.dist()
     bonding.pull(false, 0.05)
-    select_all()
+    select.segs()
     work.quake()
     band_delete()
     fuze.start(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-        s_dist = get_score()
-        quicksave(overall)
-    end -- if <
+    if debug.score() > dist_score then
+            quicksave(overall)
+            dist_score = debug.score()
+        else
+            quickload(overall)
+        end
     bonding.centerpull()
-    select_all()
+    select.segs()
     work.quake()
     band_delete()
     fuze.start(pp)
-    if get_score() < s_dist then
-        quickload(overall)
-        s_dist = get_score()
-        quicksave(overall)
-    end -- if <
+    if debug.score() > dist_score then
+            quicksave(overall)
+            dist_score = debug.score()
+        else
+            quickload(overall)
+        end
+    sl.release(pp)
 end
 --Pull#
 
@@ -1154,7 +1154,7 @@ function predict_ss()
         i = i + 1
     end -- while
     p("Found ", #p_he, " Helix and ", #p_sh, " Sheet parts... Combining...")
-    select_all()
+    select.segs()
     replace_ss("L")
     deselect_all()
     for i = 1, #p_he do
