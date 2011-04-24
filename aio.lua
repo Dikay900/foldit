@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1089"
+Version     = "1090"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -38,8 +38,8 @@ i_score_gain    = 0.01     -- 0.002    Score will get applied after the score ch
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 4
-b_solo_quake    = false
+i_pp_loss       = 0.3
+b_solo_quake    = true
 --Pull
 
 --#Fuzing
@@ -749,13 +749,13 @@ local function _flow(g)
     score(g, slot)
 end -- function
 
-function _quake()
+function _quake(ii)
     local s3 = debug.score() / 100 * i_pp_loss
     local strength = 0.05 + 0.075 * i_pp_loss
     local bands = get_band_count()
     select.segs()
     if b_solo_quake then
-        band_enable(1)
+        band_enable(ii)
         strength = strength * 6
     end
     reset_recent_best()
@@ -764,7 +764,7 @@ function _quake()
         restore_recent_best()
         local s1 = debug.score()
         if b_solo_quake then
-            band_set_strength(1, strength)
+            band_set_strength(ii, strength)
         else
         for i = 1, bands do
             band_set_strength(i, strength)
@@ -787,25 +787,25 @@ end -- function
 
 local function _dist()
     select.segs()
+    quicksave(overall)
     local bandcount = get_band_count()
     if b_solo_quake then
     rebuilding = true
         for ii = 1, bandcount do
             band_disable(ii)
         end
-        quicksave(overall)
         seg = 1
         for ii = 1, bandcount do
-        if ii ~= 1 then
-            band_delete(1)
-        end
-        work.quake()
+        quicksave(overall)
+        work.quake(ii)
+        band_delete(ii)
         fuze.start(pp)
         if debug.score() > dist_score then
             quicksave(overall)
             dist_score = debug.score()
         else
             quickload(overall)
+            band_delete(ii)
         end
         end
         rebuilding = false
