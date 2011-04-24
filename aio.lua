@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1090"
+Version     = "1091"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -38,8 +38,8 @@ i_score_gain    = 0.01     -- 0.002    Score will get applied after the score ch
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.3
-b_solo_quake    = true
+i_pp_loss       = 3
+b_solo_quake    = false
 --Pull
 
 --#Fuzing
@@ -92,9 +92,7 @@ end -- function
 local function _score()
     local s = 0
     if b_explore then
-        for i = 1, numsegs do
-            s = s + get_segment_score(i)
-        end -- for
+        s = get_score(true) * get_exploration_score()
     else -- if
         s = get_score(true)
     end -- if
@@ -398,6 +396,7 @@ sl =
 --#Checks
 --#Hydrocheck
 local function _hydro()
+    p("UNIQUE: Detecting hydrophobicy and store it")
     hydro = {}
     for i = 1, numsegs do
         hydro[i] = is_hydrophobic(i)
@@ -409,12 +408,14 @@ end -- function
 local function _ligand()
     if get_ss(numsegs) == 'M' then
         numsegs = numsegs - 1
+        p("UNIQUE: Detected a ligand puzzle")
     end -- if get_ss
 end -- function
 --Ligand Check#
 
 --#Structurecheck
 local function _ss()
+    p("Detecting current secondary structure and store it")
     ss = {}
     for i = 1, numsegs do
         ss[i] = get_ss(i)
@@ -422,6 +423,7 @@ local function _ss()
 end -- function
 
 local function _aa()
+    p("UNIQUE: Detecting amino acids and store it")
     aa = {}
     for i = 1, numsegs do
         aa[i] = get_aa(i)
@@ -430,6 +432,7 @@ end -- function
 
 local function _struct()
     check.secstr()
+    p("Detecting structures of the protein")
     local helix
     local sheet
     local loop
@@ -545,6 +548,7 @@ local function _part(option, cl1, cl2)
 end -- function
 
 local function _start(slot)
+    p("Started Fuzing")
     fuzing = true
     select.segs()
     sl_f = sl.request()
@@ -552,6 +556,7 @@ local function _start(slot)
     quicksave(sl_f)
     fuze.part(1, 0.1, 0.4)
     if b_fuze_deep then
+        p("Deep fuzing...")
         fuze.part(2, 0.05, 0.07)
         fuze.part(3, 0.1, 0.7)
         fuze.part(3, 0.3, 0.6)
@@ -575,6 +580,8 @@ local function _start(slot)
     else -- if s_f
         quickload(slot)
     end -- if s_f
+    fuzing = false
+    p("Fuzing ended")
 end -- function
 
 fuze =
@@ -751,6 +758,7 @@ end -- function
 
 function _quake(ii)
     local s3 = debug.score() / 100 * i_pp_loss
+    p("Pulling until a loss of more than ", s3)
     local strength = 0.05 + 0.075 * i_pp_loss
     local bands = get_band_count()
     select.segs()
@@ -786,11 +794,13 @@ function _quake(ii)
 end -- function
 
 local function _dist()
+    p("Quaker")
     select.segs()
     quicksave(overall)
     local bandcount = get_band_count()
     if b_solo_quake then
-    rebuilding = true
+        p("Solo quaking enabled")
+        rebuilding = true
         for ii = 1, bandcount do
             band_disable(ii)
         end
@@ -1057,7 +1067,7 @@ function predict_ss()
         loop = false
         if hydro[i] then
             if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if not helix then
+                if not helix and aa[i] ~= "p" then
                     helix = true
                     p_he[#p_he + 1] = {}
                 end -- if helix
@@ -1071,7 +1081,7 @@ function predict_ss()
             end -- hydro i +
         elseif not hydro[i] then
             if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
-                if not helix then
+                if not helix and aa[i] ~= "p" then
                     helix = true
                     p_he[#p_he + 1] = {}
                 end -- if helix
@@ -1085,23 +1095,21 @@ function predict_ss()
             end -- if hydro +
         end -- hydro[i]
         if helix then
-            if aa[i] ~= "p" then
-                p_he[#p_he][#p_he[#p_he] + 1] = i
-                if loop or sheet then
-                    helix = false
-                    if i + 1 < numsegs then
-                        if aa[i + 1] ~= "p" then
-                            p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-                            if i + 2 < numsegs then
-                                if aa[i + 2] ~= "p" then
-                                    p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-                                end -- if aa i + 2
-                            end -- if i + 2
-                        end -- if aa i + 1
-                    end -- if i + 1
-                    i = i + 2
-                end -- if loop | sheet
-            end -- if aa
+            p_he[#p_he][#p_he[#p_he] + 1] = i
+            if loop or sheet then
+                helix = false
+                if i + 1 < numsegs then
+                    if aa[i + 1] ~= "p" then
+                        p_he[#p_he][#p_he[#p_he] + 1] = i + 1
+                        if i + 2 < numsegs then
+                            if aa[i + 2] ~= "p" then
+                                p_he[#p_he][#p_he[#p_he] + 1] = i + 2
+                            end -- if aa i + 2
+                        end -- if i + 2
+                    end -- if aa i + 1
+                end -- if i + 1
+                i = i + 3
+            end -- if loop | sheet
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
             if loop then
@@ -1112,7 +1120,7 @@ function predict_ss()
                 if i + 2 < numsegs then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
                 end -- if i + 2
-                i = i + 2
+                i = i + 3
             end -- if loop
         end -- if sheet
         i = i + 1
