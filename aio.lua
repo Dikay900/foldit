@@ -38,13 +38,13 @@ i_score_gain    = 0.01     -- 0.002    Score will get applied after the score ch
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 0.05
+i_pp_loss       = 0.5
 b_solo_quake    = true
 --Pull
 
 --#Fuzing
 b_fuze_deep     = false     -- false    fuze till no gain is possible
-b_fast_fuze     = true
+b_fast_fuze     = false
 --Fuzing#
 
 --#Rebuilding
@@ -748,7 +748,7 @@ end -- function
 function _quake(ii)
     local s3 = debug.score() / 100 * i_pp_loss
     p("Pulling until a loss of more than ", s3)
-    local strength = 0.05 + 0.075 * i_pp_loss
+    local strength = 0.05 + 0.06 * i_pp_loss
     local bands = get_band_count()
     select.segs()
     if b_solo_quake then
@@ -774,9 +774,9 @@ function _quake(ii)
             reset_recent_best()
             s1 = debug.score()
         end -- if >
-        strength = math.floor(strength * 2 - strength * 9 / 10, 3)
+        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
         if b_solo_quake then
-            strength = math.floor(strength * 2 - strength * 4 / 5, 3)
+            strength = math.floor(strength * 2 - strength * 9 / 10, 3)
         end
     until s1 - s2 > s3
     quicksave(pp)
