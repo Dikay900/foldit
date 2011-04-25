@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1092"
+Version     = "1093"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -523,9 +523,6 @@ local function _loss(option, cl1, cl2)
         work.step(false, "wa", 1, cl1)
         work.step(false, "wa", 1, 1)
         work.step(false, "wa", 1, cl2)
-    elseif option == 5 then
-        p("cl1-wa[-cl2-wa]")
-        work.step(false, "wa", 1, cl1)
     end -- if option
     restore_recent_best()
 end -- function
@@ -555,14 +552,12 @@ local function _start(slot)
         fuze.part(3, 0.1, 1)
     else
         fuze.part(1, 0.1, 0.4)
+        fuze.part(3, 0.1, 0.7)
         if b_fuze_deep then
             p("Deep fuzing...")
             fuze.part(2, 0.05, 0.07)
-            fuze.part(3, 0.1, 0.7)
-            fuze.part(3, 0.3, 0.6)
             fuze.part(4, 0.5, 0.7)
             fuze.part(4, 0.7, 0.5)
-            fuze.part(5, 0.3)
         end
     end
     quickload(sl_f)
