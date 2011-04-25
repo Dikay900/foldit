@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1093"
+Version     = "1094"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -26,7 +26,6 @@ b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false
 b_str_re        = false
 b_sphered       = false
--- TEMP
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
 
@@ -37,9 +36,9 @@ i_score_gain    = 0.01     -- 0.002    Score will get applied after the score ch
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 2         -- 2        how often should the pull start over?
-i_pp_loss       = 5
-b_solo_quake    = false
+i_pp_trys       = 1         -- 2        how often should the pull start over?
+i_pp_loss       = 0.05
+b_solo_quake    = true
 --Pull
 
 --#Fuzing
@@ -772,6 +771,9 @@ function _quake(ii)
         strength = math.floor(strength * 2 - strength * 29 / 30, 3)
         if b_solo_quake then
             strength = math.floor(strength * 2 - strength * 14 / 15, 3)
+        end
+        if strength > 10 then
+            break
         end
     until s1 - s2 > s3
     quicksave(pp)
