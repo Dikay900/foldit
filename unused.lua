@@ -217,3 +217,38 @@ function freeze(f)
     end -- if
 end -- function
 --Freeze functions#
+
+function mkBand(a) --make band if found void in area of that segment
+	p("Banding segment ", a)
+	getDist()
+	local t={}--there we store possible sehments
+	for b=1,segCnt do --test all segments
+		local ab=dist(a,b) --distance between segments
+		if ab>minLenght then --no voind if less
+			--p(a," ",b," ",ab)
+			local void=true
+			for c=1,segCnt do --searhing that is any segment between them				
+				local ac=dist(a,c)
+				local bc=dist(b,c)
+				if ac~=0 and bc~=0 and ac<ab and bc<ab and ac>4 and bc>4 then
+					if ac+bc<ab+1.5
+						then void=false break --no void there for sure
+					end
+				end
+			end
+			if void==true then 
+				if math.abs(a-b)>=minDist then
+					t[#t+1]={a,b}
+				end
+			end
+		end
+	end
+	if #t>0 then
+		p("Found ",#t," possible bands across voids")
+		for i=1,#t do
+			band_add_segment_segment(t[i][1],t[i][2])
+		end
+	else
+		p("No voids found")
+	end
+end
