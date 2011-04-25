@@ -205,3 +205,15 @@ function FindMutable()
     deselect_all()
     return mutable
 end -- function
+
+--#Freeze functions
+function freeze(f)
+    if not f then
+        do_freeze(true, true)
+    elseif f == "b" then
+        do_freeze(true, false)
+    elseif f == "s" then
+        do_freeze(false, true)
+    end -- if
+end -- function
+--Freeze functions#
