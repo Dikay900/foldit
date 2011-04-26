@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1094"
+Version     = "1095"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -897,24 +897,6 @@ local function _maxdist()
 end -- function
 --BandMaxDist#
 
-local function _helix()
-    check.struct()
-    for i = 1, #he do
-        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
-            band_add_segment_segment(ii, ii + 4)
-        end -- for ii
-    end -- for i
-end -- function
-
 local function _matrix()
     calc.run()
     get.dists()
@@ -940,11 +922,42 @@ local function _matrix()
     end
 end
 
+local function _helix()
+    for i = 1, #he do
+        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
+            band_add_segment_segment(ii, ii + 4)
+        end -- for ii
+    end -- for i
+end -- function
+
+local function _sheets()
+    for i = 1, #sh - 1 do
+        seg = sh[i][1]
+        r = sh[i + 1][1]
+        band_add_segment_segment(seg, r)
+        seg = sh[i][#sh[i]]
+        r = sh[i + 1][#sh[i + 1]]
+        band_add_segment_segment(seg, r)
+    end
+end
+
 bonding =
 {   centerpull  = _cp,
     pull        = _p,
     maxdist     = _maxdist,
     helix       = _helix,
+    sheet       = _sheet,
+    comp.helix  = _str_helix,
+    comp.sheet  = _str_sheet,
     matrix      = _matrix
 }
 --Bonding#
@@ -1328,32 +1341,6 @@ function struct_rebuild()
             select.list(he[i])
             replace_ss("H")
         end
-    end
-
-    for i = 1, #he do
-        seg = he[i][1]
-        for ii = 1, #he do
-            if i ~= ii then
-                r = he[ii][1]
-                band_add_segment_segment(seg, r)
-            end
-        end
-        seg = he[i][#he[i]]
-        for ii = 1, #he do
-            if i ~= ii then
-                r = he[ii][#he[ii]]
-                band_add_segment_segment(seg, r)
-            end
-        end
-    end
-
-    for i = 1, #sh - 1 do
-        seg = sh[i][1]
-        r = sh[i + 1][1]
-        band_add_segment_segment(seg, r)
-        seg = sh[i][#sh[i]]
-        r = sh[i + 1][#sh[i + 1]]
-        band_add_segment_segment(seg, r)
     end
     quicksave(overall)
 end
