@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1095"
+Version     = "1096"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -79,6 +79,59 @@ math            = nil
 
 --#Optimizing
 p               = print
+
+local _get =
+{   distance        = get_segment_distance,
+    score           = get_score,
+    seg_score       = get_segment_score,
+    seg_score_part  = get_segment_score_part,
+    ss              = get_ss,
+    aa              = get_aa,
+    seg_count       = get_segment_count,
+    band_count      = get_band_count,
+    hydrophobic     = is_hydrophobic
+}
+
+local _reset =
+{   best    = restore_abs_best,
+    score   = reset_recent_best,
+    recent  = restore_recent_best,
+    puzzle  = reset_puzzle,
+}
+
+local _band =
+{   add         = band_add_segment_segment,
+    length      = band_set_length,
+    strength    = band_set_strength,
+    disable     = band_disable,
+    enable      = band_enable,
+    delete      = band_delete
+}
+
+local _do =
+{   shake       = do_shake,
+    wiggle      =
+    {   locally     = do_local_wiggle,
+        all         = do_global_wiggle_all,
+        sidechains  = do_global_wiggle_sidechains,
+        backbone    = do_global_wiggle_backbone
+    },
+    rebuild     = do_local_rebuild,
+    mutate      = do_mutate,
+    freeze      = do_freeze,
+    unfreeze    = do_unfreeze_all,
+    cl          = set_behavior_clash_importance,
+    deselect    =
+    {   index   = deselect_index,
+        all     = deselect_all
+    },
+    select      =
+    {   index   = select_index,
+        range   = select_index_range,
+        all     = select_all
+    },
+    replace_ss  = replace_ss
+}
 --Optimizing#
 
 --#Debug
@@ -365,7 +418,7 @@ end -- function
 get =
 {   dists   = _dists,
     sphere  = _sphere,
-    center  = _center
+    center  = _center,
 }
 --Getters#
 
@@ -383,7 +436,9 @@ end -- function
 
 sl =
 {   release = _release,
-    request = _request
+    request = _request,
+    save    = quicksave,
+    load    = quickload
 }
 --Saveslot manager#
 --External functions#
@@ -939,7 +994,7 @@ local function _helix()
     end -- for i
 end -- function
 
-local function _sheets()
+local function _comp_sheets()
     for i = 1, #sh - 1 do
         seg = sh[i][1]
         r = sh[i + 1][1]
@@ -950,14 +1005,25 @@ local function _sheets()
     end
 end
 
+local function _sheets()
+    for i = 1, #sh do
+        for ii = 1, #sh[i] - 2 do
+            band_add_segment_segment(sh[i][ii], sh[i][ii] + 2)
+            local band = get_band_count()
+            band_set_strength(band, 2)
+            band_set_length(band,15)
+        end
+    end
+end
+
 bonding =
 {   centerpull  = _cp,
     pull        = _p,
     maxdist     = _maxdist,
     helix       = _helix,
     sheet       = _sheet,
-    comp.helix  = _str_helix,
-    comp.sheet  = _str_sheet,
+    comp.helix  = _comp_helix,
+    comp.sheet  = _comp_sheet,
     matrix      = _matrix
 }
 --Bonding#
