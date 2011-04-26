@@ -21,10 +21,10 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = false
-b_str_re        = false
+b_predict       = true
+b_str_re        = true
 b_sphered       = false
 b_explore       = false     -- false    Exploration Puzzle
 --Working#
@@ -1194,7 +1194,7 @@ function struct_rebuild()
             do_global_wiggle_backbone(1)
             set_behavior_clash_importance(0)
             for i = 1, i_str_re_max_re do
-                str_rs = debug_score()
+                str_rs = debug.score()
                 str_rs2 = str_rs
                 while str_rs == str_rs2 do
                     do_local_rebuild(iter * i_str_re_re_str)
@@ -1218,7 +1218,7 @@ function struct_rebuild()
             deselect_all()
             select_index_range(seg, r)
             for i = 1, i_str_re_max_re do
-                str_rs = debug_score()
+                str_rs = debug.score()
                 str_rs2 = str_rs
                 while str_rs == str_rs2 do
                     do_local_rebuild(iter * i_str_re_re_str)
@@ -1272,7 +1272,7 @@ function struct_rebuild()
             select_index_range(seg, r)
             set_behavior_clash_importance(0)
             for i = 1, i_str_re_max_re do
-                str_rs = debug_score()
+                str_rs = debug.score()
                 str_rs2 = str_rs
                 while str_rs == str_rs2 do
                     do_local_rebuild(iter * i_str_re_re_str)
@@ -1296,7 +1296,7 @@ function struct_rebuild()
             deselect_all()
             select_index_range(seg, r)
             for i = 1, i_str_re_max_re do
-                str_rs = debug_score()
+                str_rs = debug.score()
                 str_rs2 = str_rs
                 while str_rs == str_rs2 do
                     do_local_rebuild(iter * i_str_re_re_str)
