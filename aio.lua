@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1099"
+Version     = "1100"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,10 +21,10 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false      -- false    should we fuze | see #Fuzing
-b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
@@ -55,6 +55,10 @@ i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be c
 i_rebuild_str   = 4         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
+
+--#Predicting
+b_predict_full  = false     -- try to detect the secondary structure between every segment, there can be less loops but the protein become impossible to rebuild
+--Predicting#
 
 --#Structed rebuilding      default     description
 i_str_re_max_re = 4         -- 2        same as i_max_rebuilds at #Rebuilding
@@ -136,7 +140,7 @@ end -- function
 local function _score()
     local s = 0
     if b_explore then
-        s = get.score(true) * get.expscore()
+        s = get.ranked()
     else -- if
         s = get.score(true)
     end -- if
@@ -412,6 +416,7 @@ get =
     center          = _center,
     distance        = get_segment_distance,
     score           = get_score,
+    ranked          = get_ranked_score,
     expscore        = get_exploration_score,
     seg_score       = get_segment_score,
     seg_score_part  = get_segment_score_part,
@@ -805,6 +810,9 @@ function _quake(ii)
         band.enable(ii)
         strength = strength * 6
     end
+    do_.cl(0.1)
+    do_.shake(1)
+    do_.cl(1)
     reset.score()
     repeat
         p("Band strength: ", strength)
@@ -817,9 +825,6 @@ function _quake(ii)
             band.strength(i, strength)
         end -- for
         end
-        do_.cl(0.1)
-        do_.shake(1)
-        do_.cl(1)
         do_.wiggle.backbone(1)
         local s2 = debug.score()
         if s2 > s1 then
@@ -827,7 +832,7 @@ function _quake(ii)
             reset.score()
             s1 = s2
         end -- if >
-        strength = math.floor(strength * 2 - strength * 29 / 30, 3)
+        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
         if b_solo_quake then
             strength = math.floor(strength * 2 - strength * 14 / 15, 3)
         end
@@ -1130,7 +1135,9 @@ local function _getdata()
     local sheet
     local loop
     local i = 1
+    local ui
     while i < numsegs do
+        ui = i
         loop = false
         if hydro[i] then
             if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
@@ -1181,6 +1188,7 @@ local function _getdata()
                     end -- if aa i + 1
                 end -- if i + 1
                 i = i + 4
+                ui = i + 3
             end -- if loop | sheet
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
@@ -1196,9 +1204,14 @@ local function _getdata()
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
                 end -- if i + 3
                 i = i + 4
+                ui = i + 3
             end -- if loop
         end -- if sheet
-        i = i + 1
+        if b_predict_full then
+            i = ui + 1
+        else
+            i = i + 1
+        end            
     end -- while
     p("Found ", #p_he, " Helix and ", #p_sh, " Sheet parts... Combining...")
     select.segs()
