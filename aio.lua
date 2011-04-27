@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1098"
+Version     = "1099"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -22,9 +22,9 @@ b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
-b_fuze          = true      -- false    should we fuze | see #Fuzing
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_fuze          = false      -- false    should we fuze | see #Fuzing
+b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
@@ -60,7 +60,7 @@ b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 i_str_re_max_re = 4         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 3         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
-b_re_he         = true      -- true     should we rebuild helices
+b_re_he         = false      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
 b_str_re_fuze   = false     -- true     should we fuze after one rebuild
 --Structed rebuilding#
@@ -817,6 +817,9 @@ function _quake(ii)
             band.strength(i, strength)
         end -- for
         end
+        do_.cl(0.1)
+        do_.shake(1)
+        do_.cl(1)
         do_.wiggle.backbone(1)
         local s2 = debug.score()
         if s2 > s1 then
@@ -995,13 +998,13 @@ local function _helix()
     end -- for i
 end -- function
 
-local function _sheets()
+local function _sheet()
     for i = 1, #sh do
         for ii = 1, #sh[i] - 2 do
             band.add(sh[i][ii], sh[i][ii] + 2)
-            local band = get.band_count()
-            band.strength(band, 2)
-            band.length(band, 15)
+            local bands = get.band_count()
+            band.strength(bands, 2)
+            band.length(bands, 15)
         end
     end
 end
@@ -1265,11 +1268,11 @@ function struct_rebuild()
         for i = 1, #he do
             p("Working on Helix ", i)
             do_.deselect.all()
-            seg = he[i][1] - 3
+            seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
             end
-            r = he[i][#he[i]] + 3
+            r = he[i][#he[i]] + 2
             if r > numsegs then
                 r = numsegs
             end
@@ -1348,11 +1351,11 @@ function struct_rebuild()
         end
         for i = 1, #sh do
             p("Working on Sheet ", i)
-            seg = sh[i][1] - 3
+            seg = sh[i][1] - 2
             if seg < 1 then
                 seg = 1
             end
-            r = sh[i][#sh[i]] + 3
+            r = sh[i][#sh[i]] + 2
             if r > numsegs then
                 r = numsegs
             end
@@ -1362,29 +1365,6 @@ function struct_rebuild()
             do_.cl(0.4)
             do_.wiggle.backbone(1)
             do_.cl(0)
-            for i = 1, i_str_re_max_re do
-                str_rs = debug.score()
-                str_rs2 = str_rs
-                while str_rs == str_rs2 do
-                    do_.rebuild(iter * i_str_re_re_str)
-                    iter = iter + 1
-                    if iter > i_maxiter then
-                        iter = i_maxiter
-                    end
-                    str_rs2 = debug.score()
-                end
-                iter = 1
-            end
-            seg = sh[i][1] - 2
-            if seg < 1 then
-                seg = 1
-            end
-            r = sh[i][#sh[i]] + 2
-            if r > numsegs then
-                r = numsegs
-            end
-            do_.deselect.all()
-            do_.select.range(seg, r)
             for i = 1, i_str_re_max_re do
                 str_rs = debug.score()
                 str_rs2 = str_rs
