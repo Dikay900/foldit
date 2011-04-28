@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1100"
+Version     = "1101"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,17 +21,17 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
 b_fuze          = false      -- false    should we fuze | see #Fuzing
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
-b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_explore       = true     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01     -- 0.001    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01     -- 0.002    Score will get applied after the score changed this value
+i_score_step    = 0.01     -- 0.01    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01     -- 0.01    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -64,9 +64,9 @@ b_predict_full  = false     -- try to detect the secondary structure between eve
 i_str_re_max_re = 4         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 3         -- 2        same as i_rebuild_str at #Rebuilding
 b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
-b_re_he         = false      -- true     should we rebuild helices
+b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = false     -- true     should we fuze after one rebuild
+b_str_re_fuze   = true     -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
@@ -140,7 +140,7 @@ end -- function
 local function _score()
     local s = 0
     if b_explore then
-        s = get.ranked()
+        s = get.ranked(true)
     else -- if
         s = get.score(true)
     end -- if
@@ -810,9 +810,6 @@ function _quake(ii)
         band.enable(ii)
         strength = strength * 6
     end
-    do_.cl(0.1)
-    do_.shake(1)
-    do_.cl(1)
     reset.score()
     repeat
         p("Band strength: ", strength)
