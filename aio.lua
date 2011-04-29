@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1101"
+Version     = "1102"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -16,17 +16,17 @@ numsegs     = get_segment_count()
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
-i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = false     -- false    rebuild | see #Rebuilding
+i_start_walk    = 1         -- 0        with how many segs shall we work - Walker
+i_end_walk      = 1         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
+b_lws           = false      -- false    do local wiggle and rewiggle
+b_rebuild       = true     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
-b_fuze          = false      -- false    should we fuze | see #Fuzing
+b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
-b_explore       = true     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -46,7 +46,7 @@ b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the cente
 
 --#Fuzing
 b_fuze_deep     = false     -- false    after the qstab fuzing method you maybe would like to see Blue fuze and different Pink fuze methods to gain some more points
-b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab)
+b_fast_fuze     = true     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab)
 --Fuzing#
 
 --#Rebuilding
@@ -856,7 +856,7 @@ local function _dist()
         sl.save(overall)
         work.quake(ii)
         band.delete(ii)
-        fuze.start(pp)
+        fuze.start(overall)
         if debug.score() > dist_score then
             sl.save(overall)
             dist_score = debug.score()
@@ -869,7 +869,7 @@ local function _dist()
     else
         work.quake()
         band.delete()
-        fuze.start(pp)
+        fuze.start(overall)
         if debug.score() > dist_score then
             sl.save(overall)
             dist_score = debug.score()
@@ -1095,7 +1095,6 @@ end
 
 --#Pull
 function dists()
-    pp = sl.request()
     sl.save(overall)
     dist_score = debug.score()
     if b_comp then
@@ -1119,7 +1118,6 @@ function dists()
         work.dist()
         band.delete()
     end
-    sl.release(pp)
 end
 --Pull#
 
