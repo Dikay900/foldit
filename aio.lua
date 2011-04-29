@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1102"
+Version     = "1103"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -72,7 +72,6 @@ b_str_re_fuze   = true     -- true     should we fuze after one rebuild
 
 --#Constants
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-fuzing          = false
 rebuilding      = false
 sc_changed      = true
 --Constants#
@@ -103,29 +102,29 @@ band =
     delete      = band_delete
 }
 
+wiggle =
+{   _local      = do_local_wiggle,
+    all         = do_global_wiggle_all,
+    sidechains  = do_global_wiggle_sidechains,
+    backbone    = do_global_wiggle_backbone
+}
+
+deselect =
+{   index   = deselect_index,
+    all     = deselect_all
+}
+
 do_ =
 {   shake       = do_shake,
-    wiggle      =
-    {   _local      = do_local_wiggle,
-        all         = do_global_wiggle_all,
-        sidechains  = do_global_wiggle_sidechains,
-        backbone    = do_global_wiggle_backbone
-    },
     rebuild     = do_local_rebuild,
-    mutate      = do_mutate,
-    freeze      = do_freeze,
+    mutate      = do_mutate
+}
+
+set =
+{   freeze      = do_freeze,
     unfreeze    = do_unfreeze_all,
     cl          = set_behavior_clash_importance,
-    deselect    =
-    {   index   = deselect_index,
-        all     = deselect_all
-    },
-    select      =
-    {   index   = select_index,
-        range   = select_index_range,
-        all     = select_all
-    },
-    replace_ss  = replace_ss
+    ss          = replace_ss
 }
 --Optimizing#
 
@@ -218,12 +217,8 @@ local function _pl(seg)
     return amino_table[aa[seg]][amino_part.pl]
 end
 
-local function _vdw_radius (seg)
-    local vol
-    local radius
-    vol = amino_table[seg][amino_part.vdw_vol]
-    radius = ((vol * 3 / 4) / 3.14159) ^ (1 / 3)
-    return radius
+local function _vdw_radius(seg)
+    return ((amino_table[aa[seg]][amino_part.vdw_vol] * 3 / 4) / 3.14159) ^ (1 / 3)
 end
 
 amino =
@@ -345,7 +340,7 @@ local function _random(m,n)
     else -- if m
         if n < m then
             return nil
-        end -- n < m
+        end -- if n < m
         return math.floor((_MWC() / 4294967296) * (n - m + 1)) + m
     end -- if m
 end -- function
@@ -378,7 +373,7 @@ local function _dists()
 end -- function
 
 local function _sphere(seg, radius)
-    sphere = {}
+    local sphere = {}
     for i = 1, numsegs do
         if get.distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
@@ -387,8 +382,8 @@ local function _sphere(seg, radius)
     return sphere
 end -- function
 
-local function _center() -- by Rav3n_pl based on Tlaloc`s
-    local minDistance = 100000.0
+local function _center()
+    local minDistance = 10000
     local distance
     local indexCenter
     get.dists()
@@ -453,7 +448,6 @@ sl =
 --#Checks
 --#Hydrocheck
 local function _hydro()
-    p("UNIQUE: Detecting hydrophobicy and store it")
     hydro = {}
     for i = 1, numsegs do
         hydro[i] = get.hydrophobic(i)
@@ -465,14 +459,12 @@ end -- function
 local function _ligand()
     if get.ss(numsegs) == 'M' then
         numsegs = numsegs - 1
-        p("UNIQUE: Detected a ligand puzzle")
     end -- if get.ss
 end -- function
 --Ligand Check#
 
 --#Structurecheck
 local function _ss()
-    p("Detecting current secondary structure and store it")
     ss = {}
     for i = 1, numsegs do
         ss[i] = get.ss(i)
@@ -480,7 +472,6 @@ local function _ss()
 end -- function
 
 local function _aa()
-    p("UNIQUE: Detecting amino acids and store it")
     aa = {}
     for i = 1, numsegs do
         aa[i] = get.aa(i)
@@ -551,16 +542,16 @@ check =
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
-    reset.score()
     if option == 1 then
         local qs1 = debug.score()
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
         work.step(false, "s", 1, 1)
+        reset.score()
         work.gain("wa", 1)
-        local qs2 = debug.score()
         reset.recent()
+        local qs2 = debug.score()
         if qs2 > qs1 then
             fuze.loss(1, cl1, cl2)
         end -- if
@@ -568,6 +559,7 @@ local function _loss(option, cl1, cl2)
         p("Blue Fuse cl1-s; cl2-s;")
         work.step(false, "s", 1, cl1)
         work.gain("wa", 1)
+        reset.score()
         work.step(false, "s", 1, cl2)
         work.gain("wa", 1)
         reset.recent()
@@ -578,23 +570,25 @@ local function _loss(option, cl1, cl2)
         p("Pink Fuse cl1-s-cl2-wa")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
+        reset.score()
+        work.gain("wa", 1)
+        reset.recent()
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
         work.step(false, "wa", 1, cl1)
+        reset.score()
         work.step(false, "wa", 1, 1)
         work.step(false, "wa", 1, cl2)
+        work.gain("wa", 1)
+        reset.recent()
     end -- if option
-    reset.recent()
 end -- function
 
 local function _part(option, cl1, cl2)
-    local s1_f = debug.score()
+    local s_f1 = debug.score()
     fuze.loss(option, cl1, cl2)
-    if option ~= 1 then
-        work.gain("wa", 1)
-    end -- if
-    local s2_f = debug.score()
-    if s2_f > s1_f then
+    local s_f2 = debug.score()
+    if s_f2 > s_f1 then
         sl.save(sl_f)
         p("+", s2_f - s1_f, "+")
     end -- if
@@ -603,40 +597,25 @@ end -- function
 
 local function _start(slot)
     p("Started Fuzing")
-    fuzing = true
     select.segs()
     sl_f = sl.request()
-    c_s = debug.score()
+    local s_f1 = debug.score()
     sl.save(sl_f)
-    if b_fast_fuze then
-        fuze.part(3, 0.1, 1)
-    else
+    if not b_fast_fuze then
         fuze.part(1, 0.1, 0.4)
-        fuze.part(3, 0.1, 0.7)
-        if b_fuze_deep then
-            p("Deep fuzing...")
-            fuze.part(2, 0.05, 0.07)
-            fuze.part(4, 0.5, 0.7)
-            fuze.part(4, 0.7, 0.5)
-        end
-    end
+        fuze.part(2, 0.05, 0.07)
+    end -- if 
+    fuze.part(3, 0.1, 0.7)
     sl.load(sl_f)
-    local s_f = debug.score()
+    local s_f2 = debug.score()
     sl.release(sl_f)
-    fuzing = false
-    if s_f > c_s then
+    if s_f2 > s_f1 then
         sl.save(slot)
-        local s_fg = s_f - c_s
-        p("+", s_fg, "+")
-        c_s = s_f
-        p("++", c_s, "++")
-        if b_f_deep and s_fg > i_score_gain then
-            fuze.start(slot)
-        end -- if deep
-    else -- if s_f
+        p("++ Fuzing gained ", s_f2 - s_f1, "++")
+        p("==", s_f2, "==")
+    else -- if s_f2
         sl.load(slot)
-    end -- if s_f
-    fuzing = false
+    end -- if s_f2
     p("Fuzing ended")
 end -- function
 
@@ -651,7 +630,7 @@ fuze =
 local function _segs(sphered, start, _end, more)
     local list1
     if not more then
-        do_.deselect.all()
+        deselect.all()
     end -- if more
     if start then
         if sphered then
@@ -665,9 +644,9 @@ local function _segs(sphered, start, _end, more)
                     _end = start
                     start = _start
                 end -- if > end
-                do_.select.range(start, _end)
+                select.range(start, _end)
             else
-                do_.select.index(start)
+                select.index(start)
             end
             list1 = get.sphere(start, 10)
             select.list(list1)
@@ -677,42 +656,31 @@ local function _segs(sphered, start, _end, more)
                 _end = start
                 start = _start
             end -- if > end
-            do_.select.range(start, _end)
+            select.range(start, _end)
         else -- if sphered
-            do_.select.index(start)
+            select.index(start)
         end -- if sphered
     else -- if start
-        do_.select.all()
+        select.all()
     end -- if start
 end -- function
 
 local function _list(list)
     if list then
         for i = 1, #list do
-            do_.select.index(list[i])
+            select.index(list[i])
         end -- for
     end -- if list
 end -- function
 
 select =
 {   segs    = _segs,
-    list    = _list
+    list    = _list,
+    index   = select_index,
+    range   = select_index_range,
+    all     = select_all
 }
 --Universal select#
-
---#Scoring
-function score(g, slot)
-    local more = s1 - c_s
-    if more > i_score_gain then
-        p("+", more, "+")
-        p("++", s1, "++")
-        c_s = s1
-        sl.save(slot)
-    else -- if
-        sl.load(slot)
-    end -- if
-end -- function
---Scoring#
 
 --#working
 local function _gain(g, cl)
@@ -735,7 +703,7 @@ end
 
 local function _step(sphered, _g, iter, cl)
     if cl then
-        do_.cl(cl)
+        set.cl(cl)
     end -- if
     if rebuilding and _g == "s" or sphered then
         select.segs(true, seg, r)
@@ -743,24 +711,24 @@ local function _step(sphered, _g, iter, cl)
         select.segs()
     end -- if rebuilding
     if _g == "wa" then
-        do_.wiggle.all(iter)
+        wiggle.all(iter)
     elseif _g == "s" then
         do_.shake(1)
     elseif _g == "wb" then
-        do_.wiggle.backbone(iter)
+        wiggle.backbone(iter)
     elseif _g == "ws" then
-        do_.wiggle.sidechains(iter)
+        wiggle.sidechains(iter)
     elseif _g == "wl" then
         select.segs(false, seg, r)
         reset.score()
         for i = iter, iter + 5 do
             local s_s1 = debug.score()
-            do_.wiggle._local(i)
+            wiggle._local(i)
+            reset.recent()
             local s_s2 = debug.score()
             if s_s2 > s_s1 then
                 reset.score()
             else
-                reset.recent()
                 break
             end -- if >
         end -- for
@@ -796,8 +764,16 @@ local function _flow(g)
         s1 = s2
     end -- if <
     sl.release(work_sl)
-    do_.deselect.all()
-    score(g, slot)
+    deselect.all()
+    local more = s1 - c_s
+    if more > i_score_gain then
+        p("+", more, "+")
+        p("++", s1, "++")
+        c_s = s1
+        sl.save(slot)
+    else -- if
+        sl.load(slot)
+    end -- if
 end -- function
 
 function _quake(ii)
@@ -807,6 +783,7 @@ function _quake(ii)
     local bands = get.band_count()
     select.segs()
     if b_solo_quake then
+        band.disable()
         band.enable(ii)
         strength = strength * 6
     end
@@ -822,7 +799,7 @@ function _quake(ii)
             band.strength(i, strength)
         end -- for
         end
-        do_.wiggle.backbone(1)
+        wiggle.backbone(1)
         local s2 = debug.score()
         if s2 > s1 then
             reset.recent()
@@ -848,9 +825,6 @@ local function _dist()
     if b_solo_quake then
         p("Solo quaking enabled")
         rebuilding = true
-        for ii = 1, bandcount do
-            band.disable(ii)
-        end
         seg = 1
         for ii = 1, bandcount do
         sl.save(overall)
@@ -1052,7 +1026,7 @@ function rebuild()
     for i = 1, i_max_rebuilds do
         p("Try ", i, "/", i_max_rebuilds)
         cs_0 = debug.score()
-        do_.cl(1)
+        set.cl(1)
         while debug.score() == cs_0 do
             do_.rebuild(iter * i_rebuild_str)
             iter = iter + 1
@@ -1074,7 +1048,7 @@ function rebuild()
         end
     end
     sl.load(sl_re)
-    do_.cl(1)
+    set.cl(1)
     p(debug.score() - cs0)
     c_s = debug.score()
     if b_r_dist then
@@ -1210,17 +1184,17 @@ local function _getdata()
     end -- while
     p("Found ", #p_he, " Helix and ", #p_sh, " Sheet parts... Combining...")
     select.segs()
-    do_.replace_ss("L")
-    do_.deselect.all()
+    set.ss("L")
+    deselect.all()
     for i = 1, #p_he do
         select.list(p_he[i])
     end -- for
-    do_.replace_ss("H")
-    do_.deselect.all()
+    set.ss("H")
+    deselect.all()
     for i = 1, #p_sh do
         select.list(p_sh[i])
     end -- for
-    do_.replace_ss("E")
+    set.ss("E")
     for i = 1, 3 do
         predict.combine()
     end
@@ -1235,9 +1209,9 @@ local function _combine()
                 for ii = 1, #he - 1 do
                     for iii = he[ii][1], he[ii][#he[ii]] do
                         if iii + 1 == i and he[ii + 1][1] == i + 1 then
-                            do_.deselect.all()
-                            do_.select.index(i)
-                            do_.replace_ss("H")
+                            deselect.all()
+                            select.index(i)
+                            set.ss("H")
                         end -- if iii
                     end -- for iii
                 end -- for ii
@@ -1245,9 +1219,9 @@ local function _combine()
             for ii = 1, #sh - 1 do
                 for iii = sh[ii][1], sh[ii][#sh[ii]] do
                     if iii + 1 == i and sh[ii + 1][1] == i + 1 then
-                        do_.deselect.all()
-                        do_.select.index(i)
-                        do_.replace_ss("E")
+                        deselect.all()
+                        select.index(i)
+                        set.ss("E")
                     end -- if iii
                 end -- for iii
             end -- for ii
@@ -1269,13 +1243,13 @@ function struct_rebuild()
     local iter = 1
     if b_re_he then
         for i = 1, #sh do
-            do_.deselect.all()
+            deselect.all()
             select.list(sh[i])
-            do_.replace_ss("L")
+            set.ss("L")
         end
         for i = 1, #he do
             p("Working on Helix ", i)
-            do_.deselect.all()
+            deselect.all()
             seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
@@ -1285,13 +1259,13 @@ function struct_rebuild()
                 r = numsegs
             end
             bonding.helix()
-            do_.deselect.all()
-            do_.select.range(seg, r)
-            do_.cl(0.4)
-            do_.wiggle.backbone(1)
-            do_.cl(0.1)
+            deselect.all()
+            select.range(seg, r)
+            set.cl(0.4)
+            wiggle.backbone(1)
+            set.cl(0.1)
             do_.shake(1)
-            do_.cl(0)
+            set.cl(0)
             for i = 1, i_str_re_max_re do
                 str_rs = debug.score()
                 str_rs2 = str_rs
@@ -1313,8 +1287,8 @@ function struct_rebuild()
             if r > numsegs then
                 r = numsegs
             end
-            do_.deselect.all()
-            do_.select.range(seg, r)
+            deselect.all()
+            select.range(seg, r)
             for i = 1, i_str_re_max_re do
                 str_rs = debug.score()
                 str_rs2 = str_rs
@@ -1346,16 +1320,16 @@ function struct_rebuild()
             str_rs = nil
         end
         for i = 1, #sh do
-            do_.deselect.all()
+            deselect.all()
             select.list(sh[i])
-            do_.replace_ss("E")
+            set.ss("E")
         end
     end
     if b_re_sh then
         for i = 1, #he do
-            do_.deselect.all()
+            deselect.all()
             select.list(he[i])
-            do_.replace_ss("L")
+            set.ss("L")
         end
         for i = 1, #sh do
             p("Working on Sheet ", i)
@@ -1368,11 +1342,11 @@ function struct_rebuild()
                 r = numsegs
             end
             bonding.sheet()
-            do_.deselect.all()
-            do_.select.range(seg, r)
-            do_.cl(0.4)
-            do_.wiggle.backbone(1)
-            do_.cl(0)
+            deselect.all()
+            select.range(seg, r)
+            set.cl(0.4)
+            wiggle.backbone(1)
+            set.cl(0)
             for i = 1, i_str_re_max_re do
                 str_rs = debug.score()
                 str_rs2 = str_rs
@@ -1394,9 +1368,9 @@ function struct_rebuild()
             end
         end
         for i = 1, #he do
-            do_.deselect.all()
+            deselect.all()
             select.list(he[i])
-            do_.replace_ss("H")
+            set.ss("H")
         end
     end
     sl.save(overall)
