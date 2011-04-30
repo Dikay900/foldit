@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1103"
+Version     = "1104"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -16,12 +16,12 @@ numsegs     = get_segment_count()
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 1         -- 0        with how many segs shall we work - Walker
-i_end_walk      = 1         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
-b_lws           = false      -- false    do local wiggle and rewiggle
-b_rebuild       = true     -- false    rebuild | see #Rebuilding
+i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
+i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
+b_lws           = false     -- false    do local wiggle and rewiggle
+b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic sideshains in different modes together then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
@@ -37,7 +37,7 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_predicted  = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
@@ -45,15 +45,13 @@ b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the cente
 --Pull
 
 --#Fuzing
-b_fuze_deep     = false     -- false    after the qstab fuzing method you maybe would like to see Blue fuze and different Pink fuze methods to gain some more points
-b_fast_fuze     = true     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab)
+b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 --Fuzing#
 
 --#Rebuilding
-b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein
+--b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein | NOT READY YET
 i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 4         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
-b_r_dist        = false     -- false    start pull see #Pull after a rebuild
 --Rebuilding#
 
 --#Predicting
@@ -63,18 +61,17 @@ b_predict_full  = false     -- try to detect the secondary structure between eve
 --#Structed rebuilding      default     description
 i_str_re_max_re = 4         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 3         -- 2        same as i_rebuild_str at #Rebuilding
-b_str_re_dist   = false     -- false    same as b_r_dist at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = true     -- true     should we fuze after one rebuild
+b_str_re_fuze   = true      -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
---#Constants
+--#Constants | Game vars
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 rebuilding      = false
 sc_changed      = true
---Constants#
+--Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
 assert          = nil
@@ -590,7 +587,7 @@ local function _part(option, cl1, cl2)
     local s_f2 = debug.score()
     if s_f2 > s_f1 then
         sl.save(sl_f)
-        p("+", s2_f - s1_f, "+")
+        p("+", s_f2 - s_f1, "+")
     end -- if
     sl.load(sl_f)
 end -- function
@@ -690,7 +687,7 @@ local function _gain(g, cl)
         repeat
             iter = iter + 1
             local s1_f = debug.score()
-            if iter < i_maxiter then
+            if iter <= i_maxiter then
                 work.step(false, g, iter, cl)
             end -- if
             local s2_f = debug.score()
@@ -728,7 +725,7 @@ local function _step(sphered, _g, iter, cl)
             local s_s2 = debug.score()
             if s_s2 > s_s1 then
                 reset.score()
-            else
+            else -- if >
                 break
             end -- if >
         end -- for
@@ -777,44 +774,56 @@ local function _flow(g)
 end -- function
 
 function _quake(ii)
-    local s3 = math.abs(debug.score() / 100 * i_pp_loss * 0.75)
-    p("Pulling until a loss of more than ", s3)
-    local strength = 0.05 + 0.06 * i_pp_loss
+    local s1
+    local s2
+    local s3 = debug.score()
+    s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 3)
+    p("Pulling until a loss of more than ", s3, " points")
+    local strength = 0.05 + 0.03 * i_pp_loss
     local bands = get.band_count()
+    local quake = sl.request()
+    local quake2 = sl.request()
+    sl.save(quake2)
     select.segs()
     if b_solo_quake then
         band.disable()
         band.enable(ii)
-        strength = strength * 6
-    end
-    reset.score()
+        strength = strength * bands / 4
+    end -- if
     repeat
+        sl.load(quake2)
         p("Band strength: ", strength)
-        reset.recent()
-        local s1 = debug.score()
+        s1 = debug.score()
         if b_solo_quake then
             band.strength(ii, strength)
-        else
-        for i = 1, bands do
-            band.strength(i, strength)
-        end -- for
-        end
+        else -- if b_solo
+            for i = 1, bands do
+                band.strength(i, strength)
+            end -- for
+        end -- if b_solo
+        reset.score()
+        set.cl(0.7)
         wiggle.backbone(1)
-        local s2 = debug.score()
+        sl.save(quake)
+        reset.recent()
+        s2 = debug.score()
         if s2 > s1 then
             reset.recent()
-            reset.score()
+            sl.save(quake2)
             s1 = s2
         end -- if >
+        sl.load(quake)
+        s2 = debug.score()
         strength = math.floor(strength * 2 - strength * 19 / 20, 3)
         if b_solo_quake then
             strength = math.floor(strength * 2 - strength * 14 / 15, 3)
-        end
+        end -- if b_solo
         if strength > 10 then
             break
-        end
+        end -- if strength
     until s1 - s2 > s3
-    sl.save(pp)
+    sl.release(quake)
+    sl.release(quake2)
 end -- function
 
 local function _dist()
@@ -827,31 +836,31 @@ local function _dist()
         rebuilding = true
         seg = 1
         for ii = 1, bandcount do
-        sl.save(overall)
-        work.quake(ii)
-        band.delete(ii)
-        fuze.start(overall)
-        if debug.score() > dist_score then
             sl.save(overall)
-            dist_score = debug.score()
-        else
-            sl.load(overall)
+            work.quake(ii)
             band.delete(ii)
-        end
-        end
+            fuze.start(overall)
+            if debug.score() > dist_score then
+                sl.save(overall)
+                dist_score = debug.score()
+            else -- if score()
+                sl.load(overall)
+                band.delete(ii)
+            end -- if score()
+        end -- for ii
         rebuilding = false
-    else
+    else -- if b_solo_quake
         work.quake()
         band.delete()
         fuze.start(overall)
         if debug.score() > dist_score then
             sl.save(overall)
             dist_score = debug.score()
-        else
+        else -- if score()
             sl.load(overall)
-        end
-    end
-end
+        end -- if score()
+    end -- if b_solo_quake
+end -- function
 
 work =
 {   gain    = _gain,
@@ -942,20 +951,20 @@ local function _matrix()
             if max_str <= strength[i][ii] then
                 if max_str ~= strength[i][ii] then
                     min_dist = 999
-                end
+                end -- if max_str ~=
                 max_str = strength[i][ii]
                 if min_dist > distances[i][ii] then
                     min_dist = distances[i][ii]
-                end
-            end
-        end
+                end -- if min_dist
+            end -- if max_str <=
+        end -- for ii
         for ii = i + 2, numsegs - 2 do
             if strength[i][ii] == max_str and min_dist == distances[i][ii] then
                 band.add(i , ii)
-            end
-        end
-    end
-end
+            end -- if strength
+        end -- for ii
+    end -- for i
+end -- function
 
 local function _helix()
     for i = 1, #he do
@@ -981,9 +990,9 @@ local function _sheet()
             local bands = get.band_count()
             band.strength(bands, 2)
             band.length(bands, 15)
-        end
-    end
-end
+        end -- for ii
+    end -- for i
+end -- function
 
 local function _comp_sheets()
     for i = 1, #sh - 1 do
@@ -993,8 +1002,8 @@ local function _comp_sheets()
         seg = sh[i][#sh[i]]
         r = sh[i + 1][#sh[i + 1]]
         band.add(seg, r)
-    end
-end
+    end -- for i
+end -- function
 
 bonding =
 {   centerpull  = _cp,
@@ -1019,9 +1028,9 @@ function rebuild()
     select.segs(false, seg, r)
     if r == seg then
         p("Rebuilding Segment ", seg)
-    else
+    else -- if r
         p("Rebuilding Segment ", seg, "-", r)
-    end
+    end -- if r
     cs0 = debug.score()
     for i = 1, i_max_rebuilds do
         p("Try ", i, "/", i_max_rebuilds)
@@ -1032,39 +1041,36 @@ function rebuild()
             iter = iter + 1
             if iter > i_maxiter then
                 iter = i_maxiter
-            end
-        end
+            end -- if iter
+        end -- while
         iter = 1
         str_rs = debug.score()
         if saved then
             if cs_0 < str_rs then
                 cs_0 = str_rs - math.abs(str_rs)/10
                 sl.save(sl_re)
-            end
-        else
+            end -- if cs_0
+        else -- if save
             sl.save(sl_re)
             cs_0 = str_rs
             saved = true
-        end
-    end
+        end -- if saved
+    end -- for i
     sl.load(sl_re)
     set.cl(1)
     p(debug.score() - cs0)
     c_s = debug.score()
-    if b_r_dist then
-        dists()
-    end
     fuze.start(sl_re)
     sl.load(sl_re)
     p("+", c_s - cs0, "+")
     sl.release(sl_re)
     if c_s < cs0 then
         sl.load(overall)
-    else
+    else -- if c_s
         sl.save(overall)
-    end
+    end -- if c_s
     rebuilding = false
-end
+end -- function
 --Rebuilding#
 
 --#Pull
@@ -1081,18 +1087,18 @@ function dists()
         bonding.matrix()
         work.dist()
         band.delete()
-    end
+    end -- if b_pp_predicted
     if b_pp_pull then
         bonding.pull(false, 0.03)
         work.dist()
         band.delete()
-    end
+    end -- if b_pp_pull
     if b_pp_centerpull then
         bonding.centerpull()
         work.dist()
         band.delete()
-    end
-end
+    end -- if b_pp_centerpull
+end -- function
 --Pull#
 
 --#Predict ss
@@ -1178,9 +1184,9 @@ local function _getdata()
         end -- if sheet
         if b_predict_full then
             i = ui + 1
-        else
+        else -- if b_predict_full
             i = i + 1
-        end            
+        end -- if b_predict_full    
     end -- while
     p("Found ", #p_he, " Helix and ", #p_sh, " Sheet parts... Combining...")
     select.segs()
@@ -1197,7 +1203,7 @@ local function _getdata()
     set.ss("E")
     for i = 1, 3 do
         predict.combine()
-    end
+    end -- for
     sl.save(overall)
 end
 
@@ -1246,18 +1252,18 @@ function struct_rebuild()
             deselect.all()
             select.list(sh[i])
             set.ss("L")
-        end
+        end -- for i
         for i = 1, #he do
             p("Working on Helix ", i)
             deselect.all()
             seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
-            end
+            end -- if seg
             r = he[i][#he[i]] + 2
             if r > numsegs then
                 r = numsegs
-            end
+            end -- if r
             bonding.helix()
             deselect.all()
             select.range(seg, r)
@@ -1274,19 +1280,19 @@ function struct_rebuild()
                     iter = iter + 1
                     if iter > i_maxiter then
                         iter = i_maxiter
-                    end
+                    end -- if iter
                     str_rs2 = debug.score()
-                end
+                end -- while
                 iter = 1
-            end
+            end -- for i
             seg = he[i][1] - 1
             if seg < 1 then
                 seg = 1
-            end
+            end -- if seg
             r = he[i][#he[i]] + 1
             if r > numsegs then
                 r = numsegs
-            end
+            end -- if seg
             deselect.all()
             select.range(seg, r)
             for i = 1, i_str_re_max_re do
@@ -1297,50 +1303,50 @@ function struct_rebuild()
                     iter = iter + 1
                     if iter > i_maxiter then
                         iter = i_maxiter
-                    end
+                    end -- if iter
                     str_rs2 = debug.score()
-                end
+                end -- while
                 iter = 1
-            end
+            end -- for i
             seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
-            end
+            end -- if seg
             r = he[i][#he[i]] + 2
             if r > numsegs then
                 r = numsegs
-            end
+            end -- if r
             band.delete()
             if b_str_re_fuze then
                 rebuilding = true
                 fuze.start(best)
                 rebuilding = false
-            end
+            end -- if b_str_re_fuze
             str_sc = nil
             str_rs = nil
-        end
+        end -- for i
         for i = 1, #sh do
             deselect.all()
             select.list(sh[i])
             set.ss("E")
-        end
-    end
+        end -- for i
+    end -- if b_re_he
     if b_re_sh then
         for i = 1, #he do
             deselect.all()
             select.list(he[i])
             set.ss("L")
-        end
+        end -- for i
         for i = 1, #sh do
             p("Working on Sheet ", i)
             seg = sh[i][1] - 2
             if seg < 1 then
                 seg = 1
-            end
+            end -- if seg
             r = sh[i][#sh[i]] + 2
             if r > numsegs then
                 r = numsegs
-            end
+            end -- if r
             bonding.sheet()
             deselect.all()
             select.range(seg, r)
@@ -1355,47 +1361,47 @@ function struct_rebuild()
                     iter = iter + 1
                     if iter > i_maxiter then
                         iter = i_maxiter
-                    end
+                    end -- if iter
                     str_rs2 = debug.score()
-                end
+                end -- while
                 iter = 1
-            end
+            end -- for i
             band.delete()
             if b_str_re_fuze then
                 rebuilding = true
                 fuze.start(best)
                 rebuilding = false
-            end
-        end
+            end -- if b_str_re_fuze
+        end -- for i
         for i = 1, #he do
             deselect.all()
             select.list(he[i])
             set.ss("H")
-        end
-    end
+        end -- for i
+    end -- if b_re_sh
     sl.save(overall)
 end
 
 s_0 = debug.score()
 c_s = s_0
-check.aacid()
-check.ligand()
-check.hydro()
+p("v", Version)
 p("Starting Score: ", c_s)
 overall = sl.request()
 sl.save(overall)
-p("v", Version)
+check.aacid()
+check.ligand()
+check.hydro()
 if b_predict then
     predict.getdata()
-end
+end -- if b_predict
 if b_str_re then
     struct_rebuild()
-end
+end -- if b_str_re
 if b_pp then
     for i = 1, i_pp_trys do
         dists()
-    end
-end
+    end -- for i
+end -- if b_pp
 for i = i_start_seg, i_end_seg do
     seg = i
     c_s = debug.score()
@@ -1404,21 +1410,21 @@ for i = i_start_seg, i_end_seg do
         if r > numsegs then
             r = numsegs
             break
-        end
+        end -- if r
         if b_rebuild then
-            if b_worst_rebuild then
+            --[[if b_worst_rebuild then         NEW FUNCTION FOR WORST SEGMENT DETECT
                 local worst = 1000
                 for iii = 1, numsegs do
                     local s = get.seg_score(iii)
                     if s < worst then
                         seg = iii
                         worst = s
-                    end
+                    end -- if s
                 end
                 r = seg + ii
-            end
+            end]]
             rebuild()
-        end
+        end -- if b_rebuild
         if b_lws then
             p(seg, "-", r)
             work.flow("wl")
@@ -1428,13 +1434,13 @@ for i = i_start_seg, i_end_seg do
                 work.flow("wa")
                 work.flow("s")
                 sc_changed = false
-            end
-        end
-    end
-end
+            end -- if sc_changed
+        end -- if b_lws
+    end -- for ii
+end -- for i
 if b_fuze then
     fuze.start(overall)
-end
+end -- if b_fuze
 sl.load(overall)
 sl.release(overall)
 s_1 = debug.score()
