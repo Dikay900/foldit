@@ -6,8 +6,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1106"
-Release     = false         -- if true this script is probably safe ;)
+Version     = "1107"
+Release     = true         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -37,7 +37,7 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 0.5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_predicted  = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
@@ -778,18 +778,19 @@ function _quake(ii)
     local s2
     local s3 = debug.score()
     s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 4)
-    p("Pulling until a loss of more than ", s3, " points")
-    local strength = 0.05 + 0.03 * i_pp_loss
+    local strength = 0.05 + 0.04 * i_pp_loss
     local bands = get.band_count()
     local quake = sl.request()
     local quake2 = sl.request()
-    sl.save(quake2)
     select.segs()
     if b_solo_quake then
         band.disable()
         band.enable(ii)
+        s3 = math.floor(s3 / bands, 4)
         strength = strength * bands / 4
     end -- if
+    p("Pulling until a loss of more than ", s3, " points")
+    sl.save(quake2)
     repeat
         sl.load(quake2)
         p("Band strength: ", strength)
@@ -814,9 +815,9 @@ function _quake(ii)
         end -- if >
         sl.load(quake)
         s2 = debug.score()
-        strength = math.floor(strength * 2 - strength * 19 / 20, 4)
+        strength = math.floor(strength * 2 - strength * 14 / 15, 4)
         if b_solo_quake then
-            strength = math.floor(strength * 2 - strength * 14 / 15, 4)
+            strength = math.floor(strength * 2 - strength * 9 / 10, 4)
         end -- if b_solo
         if strength > 10 then
             break
@@ -829,12 +830,12 @@ end -- function
 local function _dist()
     p("Quaker")
     select.segs()
+    dist_score = debug.score()
     sl.save(overall)
     local bandcount = get.band_count()
     if b_solo_quake then
         p("Solo quaking enabled")
         rebuilding = true
-        seg = 1
         for ii = 1, bandcount do
             sl.save(overall)
             work.quake(ii)
@@ -845,7 +846,6 @@ local function _dist()
                 dist_score = debug.score()
             else -- if score()
                 sl.load(overall)
-                band.delete(ii)
             end -- if score()
         end -- for ii
         rebuilding = false
@@ -1043,14 +1043,15 @@ function rebuild()
     work.rebuild(i_max_rebuilds, i_rebuild_str)
     set.cl(1)
     p(debug.score() - cs0)
-    c_s = debug.score()
     fuze.start(sl_re)
+    c_s = debug.score()
     sl.load(sl_re)
-    p("+", c_s - cs0, "+")
     sl.release(sl_re)
     if c_s < cs0 then
+        p("No Gain")
         sl.load(overall)
     else -- if c_s
+        p("+", c_s - cs0, "+")
         sl.save(overall)
     end -- if c_s
     rebuilding = false
@@ -1140,14 +1141,17 @@ local function _getdata()
                                 if i + 3 < numsegs then
                                     if aa[i + 3] ~= "p" then
                                         p_he[#p_he][#p_he[#p_he] + 1] = i + 3
+                                        i = i + 1
                                     end -- if aa i + 3
                                 end -- if i + 3
+                                i = i + 1
                             end -- if aa i + 2
                         end -- if i + 2
+                        i = i + 1
                     end -- if aa i + 1
                 end -- if i + 1
-                i = i + 4
-                ui = i + 3
+                ui = i
+                i = i + 1
             end -- if loop | sheet
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
@@ -1162,8 +1166,8 @@ local function _getdata()
                 if i + 3 < numsegs then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
                 end -- if i + 3
-                i = i + 4
                 ui = i + 3
+                i = i + 4
             end -- if loop
         end -- if sheet
         if b_predict_full then
