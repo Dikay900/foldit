@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1105"
+Version     = "1106"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -23,8 +23,8 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
@@ -777,7 +777,7 @@ function _quake(ii)
     local s1
     local s2
     local s3 = debug.score()
-    s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 3)
+    s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 4)
     p("Pulling until a loss of more than ", s3, " points")
     local strength = 0.05 + 0.03 * i_pp_loss
     local bands = get.band_count()
@@ -814,9 +814,9 @@ function _quake(ii)
         end -- if >
         sl.load(quake)
         s2 = debug.score()
-        strength = math.floor(strength * 2 - strength * 19 / 20, 3)
+        strength = math.floor(strength * 2 - strength * 19 / 20, 4)
         if b_solo_quake then
-            strength = math.floor(strength * 2 - strength * 14 / 15, 3)
+            strength = math.floor(strength * 2 - strength * 14 / 15, 4)
         end -- if b_solo
         if strength > 10 then
             break
@@ -867,6 +867,7 @@ local function _rebuild(trys, str)
     local re2
     local iter = 1
     for i = 1, trys do
+        p("Try ", i, "/", trys)
         re1 = debug.score()
         re2 = re1
         while re1 == re2 do
@@ -988,16 +989,7 @@ end -- function
 
 local function _helix()
     for i = 1, #he do
-        for ii = he[i][1], he[i][#he[i]] - 4, 4 do
-            band.add(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 1, he[i][#he[i]] - 4, 4 do
-            band.add(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 2, he[i][#he[i]] - 4, 4 do
-            band.add(ii, ii + 4)
-        end -- for ii
-        for ii = he[i][1] + 3, he[i][#he[i]] - 4, 4 do
+        for ii = he[i][1], he[i][#he[i]] - 4 do
             band.add(ii, ii + 4)
         end -- for ii
     end -- for i
@@ -1016,12 +1008,8 @@ end -- function
 
 local function _comp_sheets()
     for i = 1, #sh - 1 do
-        seg = sh[i][1]
-        r = sh[i + 1][1]
-        band.add(seg, r)
-        seg = sh[i][#sh[i]]
-        r = sh[i + 1][#sh[i + 1]]
-        band.add(seg, r)
+        band.add(sh[i][1], sh[i + 1][1])
+        band.add(sh[i][#sh[i]], sh[i + 1][#sh[i + 1]])
     end -- for i
 end -- function
 
@@ -1052,31 +1040,7 @@ function rebuild()
         p("Rebuilding Segment ", seg, "-", r)
     end -- if r
     cs0 = debug.score()
-    for i = 1, i_max_rebuilds do
-        p("Try ", i, "/", i_max_rebuilds)
-        cs_0 = debug.score()
-        set.cl(1)
-        while debug.score() == cs_0 do
-            do_.rebuild(iter * i_rebuild_str)
-            iter = iter + 1
-            if iter > i_maxiter then
-                iter = i_maxiter
-            end -- if iter
-        end -- while
-        iter = 1
-        str_rs = debug.score()
-        if saved then
-            if cs_0 < str_rs then
-                cs_0 = str_rs - math.abs(str_rs)/10
-                sl.save(sl_re)
-            end -- if cs_0
-        else -- if save
-            sl.save(sl_re)
-            cs_0 = str_rs
-            saved = true
-        end -- if saved
-    end -- for i
-    sl.load(sl_re)
+    work.rebuild(i_max_rebuilds, i_rebuild_str)
     set.cl(1)
     p(debug.score() - cs0)
     c_s = debug.score()
