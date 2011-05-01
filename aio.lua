@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1107"
+Version     = "1108"
 Release     = true         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -23,6 +23,7 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
+b_snap          = true     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -63,13 +64,14 @@ i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = true      -- true     should we fuze after one rebuild
+b_str_re_fuze   = false      -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
 --#Constants | Game vars
 saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 rebuilding      = false
+snapping        = false
 sc_changed      = true
 --Constants | Game vars#
 
@@ -111,16 +113,27 @@ deselect =
     all     = deselect_all
 }
 
+local function _freeze(f)
+    if f == "b" then
+        do_freeze(true, false)
+    elseif f == "s" then
+        do_freeze(false, true)
+    else
+        do_freeze(true, true)
+    end -- if
+end -- function
+
 do_ =
 {   shake       = do_shake,
     rebuild     = do_local_rebuild,
-    mutate      = do_mutate
+    mutate      = do_mutate,
+    snap        = do_sidechain_snap,
+    freeze      = _freeze,
+    unfreeze    = do_unfreeze_all
 }
 
 set =
-{   freeze      = do_freeze,
-    unfreeze    = do_unfreeze_all,
-    cl          = set_behavior_clash_importance,
+{   cl          = set_behavior_clash_importance,
     ss          = replace_ss
 }
 --Optimizing#
@@ -416,7 +429,8 @@ get =
     aa              = get_aa,
     seg_count       = get_segment_count,
     band_count      = get_band_count,
-    hydrophobic     = is_hydrophobic
+    hydrophobic     = is_hydrophobic,
+    snapcount       = get_sidechain_snap_count
 }
 --Getters#
 
@@ -702,7 +716,7 @@ local function _step(sphered, _g, iter, cl)
     if cl then
         set.cl(cl)
     end -- if
-    if rebuilding and _g == "s" or sphered then
+    if rebuilding and _g == "s" or snapping and _g == "s" or sphered then
         select.segs(true, seg, r)
     else -- if rebuiling
         select.segs()
@@ -736,6 +750,8 @@ local function _flow(g)
     local iter = 0
     if rebuilding then
         slot = sl_re
+    elseif snapping then -- if
+        slot = snapwork
     else -- if
         slot = overall
     end -- if
@@ -761,9 +777,9 @@ local function _flow(g)
         s1 = s2
     end -- if <
     sl.release(work_sl)
-    deselect.all()
     local more = s1 - c_s
     if more > i_score_gain then
+        sc_changed = true
         p("+", more, "+")
         p("++", s1, "++")
         c_s = s1
@@ -1024,6 +1040,62 @@ bonding =
 }
 --Bonding#
 --Header#
+
+--#Snapping
+function snap()
+    snapping = true
+    snaps = sl.request()
+    c_snap = debug.score()
+    cs = c_snap
+    sl.save(snaps)
+    iii = get.snapcount(seg)
+    p("Snapcount: ", iii, " - Segment ", seg)
+    if iii ~= 1 then
+        snapwork = sl.request()
+        for ii = 1, iii do
+            sl.load(snaps)
+            c_s = debug.score()
+            c_s2 = debug.score()
+            while c_s2 == c_s do
+                p("Snap ", ii, "/ ", iii)
+                do_.snap(seg, ii)
+                c_s2 = debug.score()
+                p(c_s2 - c_s)
+            end
+            sl.save(snapwork)
+            select.segs(false, seg)
+            do_.freeze("b")
+            fuze.start(snapwork)
+            do_.unfreeze()
+            work.gain("wa", 1)
+            if c_snap < debug.score() then
+            c_snap = debug.score()
+            end
+        end
+        sl.load(snapwork)
+        sl.release(snapwork)
+        if cs < c_snap then
+            sl.save(snaps)
+        else
+            sl.load(snaps)
+        end
+    else
+        p("Skipping...")
+    end
+    snapping = false
+    sl.release(snaps)
+    if mutated then
+        s_snap = debug.score()
+        if s_mut < s_snap then
+            sl.save(overall)
+        else
+            sl.load(sl_mut)
+        end
+    else
+        sl.save(overall)
+    end
+end
+--Snapping#
 
 --#Rebuilding
 function rebuild()
@@ -1361,6 +1433,9 @@ if b_pp then
 end -- if b_pp
 for i = i_start_seg, i_end_seg do
     seg = i
+    if b_snap then
+        snap()
+    end
     c_s = debug.score()
     for ii = i_start_walk, i_end_walk do
         r = i + ii

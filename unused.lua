@@ -1,6 +1,5 @@
 --[[
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_snap          = false     -- false    should we snap every sidechain to different positions
 --#Mutating
 b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
 b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
@@ -8,7 +7,6 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 ]]
 
 --[[
-snapping        = false
 mutating        = false
 ]]
 
@@ -46,61 +44,6 @@ function compress()
     range = 0
 end
 --Compressor#
-
---#Snapping
-function snap(mutated)
-    snapping = true
-    snaps = RequestSaveSlot()
-    c_snap = PuzzleScore(b_explore)
-    cs = PuzzleScore(b_explore)
-    quicksave(snaps)
-    iii = get_sidechain_snap_count(seg)
-    p("Snapcount: ", iii, " - Segment ", seg)
-    if iii ~= 1 then
-    snapwork = RequestSaveSlot()
-        for ii = 1, iii do
-            quickload(snaps)
-            p("Snap ", ii, "/ ", iii)
-            c_s = PuzzleScore(b_explore)
-            select()
-            do_sidechain_snap(seg, ii)
-            p(PuzzleScore(b_explore) - c_s)
-            c_s = PuzzleScore(b_explore)
-            quicksave(snapwork)
-            gd("s")
-            gd("wa")
-            gd("ws")
-            gd("wb")
-            gd("wl")
-            if c_snap < PuzzleScore(b_explore) then
-            c_snap = PuzzleScore(b_explore)
-            end
-        end
-        quickload(snaps)
-        quickload(snapwork)
-        ReleaseSaveSlot(snapwork)
-        if cs < c_snap then
-            quicksave(snaps)
-        else
-            quickload(snaps)
-        end
-    else
-        p("Skipping...")
-    end
-    snapping = false
-    ReleaseSaveSlot(snaps)
-    if mutated then
-        s_snap = PuzzleScore(b_explore)
-        if s_mut < s_snap then
-            quicksave(overall)
-        else
-            quickload(sl_mut)
-        end
-    else
-        quicksave(overall)
-    end
-end
---Snapping#
 
 --#Mutate function
 function mutate()
@@ -205,18 +148,6 @@ function FindMutable()
     deselect_all()
     return mutable
 end -- function
-
---#Freeze functions
-function freeze(f)
-    if not f then
-        do_freeze(true, true)
-    elseif f == "b" then
-        do_freeze(true, false)
-    elseif f == "s" then
-        do_freeze(false, true)
-    end -- if
-end -- function
---Freeze functions#
 
 function mkBand(a) --make band if found void in area of that segment
 	p("Banding segment ", a)
