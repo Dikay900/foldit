@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1104"
+Version     = "1105"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -23,8 +23,8 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
@@ -37,7 +37,7 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_predicted  = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
@@ -51,7 +51,7 @@ b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pi
 --#Rebuilding
 --b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein | NOT READY YET
 i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
-i_rebuild_str   = 4         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
+i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
 --Rebuilding#
 
 --#Predicting
@@ -59,8 +59,8 @@ b_predict_full  = false     -- try to detect the secondary structure between eve
 --Predicting#
 
 --#Structed rebuilding      default     description
-i_str_re_max_re = 4         -- 2        same as i_max_rebuilds at #Rebuilding
-i_str_re_re_str = 3         -- 2        same as i_rebuild_str at #Rebuilding
+i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
+i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
 b_str_re_fuze   = true      -- true     should we fuze after one rebuild
@@ -862,12 +862,32 @@ local function _dist()
     end -- if b_solo_quake
 end -- function
 
+local function _rebuild(trys, str)
+    local re1
+    local re2
+    local iter = 1
+    for i = 1, trys do
+        re1 = debug.score()
+        re2 = re1
+        while re1 == re2 do
+            do_.rebuild(iter * str)
+            iter = iter + 1
+            if iter > i_maxiter then
+                iter = i_maxiter
+            end -- if iter
+            re2 = debug.score()
+        end -- while
+        iter = 1
+    end -- for i
+end -- function
+
 work =
 {   gain    = _gain,
     step    = _step,
     flow    = _flow,
     quake   = _quake,
-    dist    = _dist
+    dist    = _dist,
+    rebuild = _rebuild
 }
 --Working#
 
@@ -1244,6 +1264,7 @@ predict =
 function struct_rebuild()
     local str_rs
     local str_rs2
+    str_re_best = sl.request()
     check.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     local iter = 1
@@ -1269,22 +1290,8 @@ function struct_rebuild()
             select.range(seg, r)
             set.cl(0.4)
             wiggle.backbone(1)
-            set.cl(0.1)
-            do_.shake(1)
             set.cl(0)
-            for i = 1, i_str_re_max_re do
-                str_rs = debug.score()
-                str_rs2 = str_rs
-                while str_rs == str_rs2 do
-                    do_.rebuild(iter * i_str_re_re_str)
-                    iter = iter + 1
-                    if iter > i_maxiter then
-                        iter = i_maxiter
-                    end -- if iter
-                    str_rs2 = debug.score()
-                end -- while
-                iter = 1
-            end -- for i
+            work.rebuild(i_str_re_max_re, i_str_re_re_str)
             seg = he[i][1] - 1
             if seg < 1 then
                 seg = 1
@@ -1295,19 +1302,9 @@ function struct_rebuild()
             end -- if seg
             deselect.all()
             select.range(seg, r)
-            for i = 1, i_str_re_max_re do
-                str_rs = debug.score()
-                str_rs2 = str_rs
-                while str_rs == str_rs2 do
-                    do_.rebuild(iter * i_str_re_re_str)
-                    iter = iter + 1
-                    if iter > i_maxiter then
-                        iter = i_maxiter
-                    end -- if iter
-                    str_rs2 = debug.score()
-                end -- while
-                iter = 1
-            end -- for i
+            work.rebuild(i_str_re_max_re, i_str_re_re_str)
+            set.cl(1)
+            work.rebuild(i_str_re_max_re, i_str_re_re_str)
             seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
@@ -1319,7 +1316,8 @@ function struct_rebuild()
             band.delete()
             if b_str_re_fuze then
                 rebuilding = true
-                fuze.start(best)
+                fuze.start(str_re_best)
+                sl.load(str_re_best)
                 rebuilding = false
             end -- if b_str_re_fuze
             str_sc = nil
@@ -1353,23 +1351,14 @@ function struct_rebuild()
             set.cl(0.4)
             wiggle.backbone(1)
             set.cl(0)
-            for i = 1, i_str_re_max_re do
-                str_rs = debug.score()
-                str_rs2 = str_rs
-                while str_rs == str_rs2 do
-                    do_.rebuild(iter * i_str_re_re_str)
-                    iter = iter + 1
-                    if iter > i_maxiter then
-                        iter = i_maxiter
-                    end -- if iter
-                    str_rs2 = debug.score()
-                end -- while
-                iter = 1
-            end -- for i
+            work.rebuild(i_str_re_max_re, i_str_re_re_str)
+            set.cl(1)
+            work.rebuild(i_str_re_max_re, i_str_re_re_str)
             band.delete()
             if b_str_re_fuze then
                 rebuilding = true
-                fuze.start(best)
+                fuze.start(str_re_best)
+                sl.load(str_re_best)
                 rebuilding = false
             end -- if b_str_re_fuze
         end -- for i
