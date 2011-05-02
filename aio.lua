@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1110"
+Version     = "1111"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -1086,7 +1086,7 @@ function snap()
                 end
                 ii = ii + 1
             end
-            if ii >= iii then
+            if ii >= iii + 1 then
                 break
             end
             sl.save(snapwork)
