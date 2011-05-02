@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1111"
+Version     = "1112"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -51,6 +51,10 @@ b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the cente
 --#Fuzing
 b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 --Fuzing#
+
+--#Snapping
+b_snap_fast     = true
+--Snapping#
 
 --#Rebuilding
 --b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein | NOT READY YET
@@ -554,18 +558,14 @@ check =
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
-    local f_sphere = false
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
-    if snapping then
-        f_sphere = true
-    end
     if option == 1 then
         local qs1 = debug.score()
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step(f_sphere, "s", 1, cl1)
-        work.step(f_sphere, "wa", 1, cl2)
-        work.step(f_sphere, "s", 1, 1)
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
+        work.step(false, "s", 1, 1)
         reset.score()
         work.gain("wa", 1)
         reset.recent()
@@ -575,28 +575,28 @@ local function _loss(option, cl1, cl2)
         end -- if
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work.step(f_sphere, "s", 1, cl1)
+        work.step(false, "s", 1, cl1)
         work.gain("wa", 1)
         reset.score()
-        work.step(f_sphere, "s", 1, cl2)
+        work.step(false, "s", 1, cl2)
         work.gain("wa", 1)
         reset.recent()
-        work.step(f_sphere, "s", 1, cl1 - 0.02)
+        work.step(false, "s", 1, cl1 - 0.02)
         work.gain("wa", 1)
         reset.recent()
     elseif option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
-        work.step(f_sphere, "s", 1, cl1)
-        work.step(f_sphere, "wa", 1, cl2)
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
         reset.score()
         work.gain("wa", 1)
         reset.recent()
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.step(f_sphere, "wa", 1, cl1)
+        work.step(false, "wa", 1, cl1)
         reset.score()
-        work.step(f_sphere, "wa", 1, 1)
-        work.step(f_sphere, "wa", 1, cl2)
+        work.step(false, "wa", 1, 1)
+        work.step(false, "wa", 1, cl2)
         work.gain("wa", 1)
         reset.recent()
     end -- if option
@@ -663,8 +663,6 @@ local function _segs(sphered, start, _end, more)
                     start = _start
                 end -- if > end
                 select.range(start, _end)
-            else
-                select.index(start)
             end
             list1 = get.sphere(start, 10)
             select.list(list1)
@@ -1064,45 +1062,51 @@ bonding =
 function snap()
     snapping = true
     snaps = sl.request()
+    cs = debug.score()
     c_snap = debug.score()
-    cs = c_snap
+    local s_1
+    local s_2
     sl.save(snaps)
     iii = get.snapcount(seg)
     p("Snapcount: ", iii, " - Segment ", seg)
-    if iii ~= 1 then
+    if iii > 1 then
         snapwork = sl.request()
-        ii = 1
+        ii = 0
         while ii < iii do
             sl.load(snaps)
             c_s = debug.score()
             c_s2 = debug.score()
             while c_s2 == c_s do
+                ii = ii + 1
                 p("Snap ", ii, "/ ", iii)
                 do_.snap(seg, ii)
                 c_s2 = debug.score()
                 p(c_s2 - c_s)
-                if ii >= iii then
+                if ii > iii then
                     break
                 end
-                ii = ii + 1
             end
-            if ii >= iii + 1 then
+            if ii > iii then
                 break
             end
+            if c_s - c_s2 > 1 then
             sl.save(snapwork)
             select.segs(false, seg)
             do_.freeze("s")
             fuze.start(snapwork)
             do_.unfreeze()
-            work.gain("wa", 1)
+            work.flow("wa")
+            sl.save(snapwork)
             if c_snap < debug.score() then
-            c_snap = debug.score()
+                c_snap = debug.score()
+            end
             end
         end
         sl.load(snapwork)
         sl.release(snapwork)
         if cs < c_snap then
             sl.save(snaps)
+            c_snap = debug.score()
         else
             sl.load(snaps)
         end
