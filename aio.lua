@@ -6,8 +6,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1109"
-Release     = true         -- if true this script is probably safe ;)
+Version     = "1110"
+Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -21,9 +21,9 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_snap          = false     -- false    should we snap every sidechain to different positions
+b_snap          = true     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -38,7 +38,7 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 10         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_predicted  = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
@@ -554,14 +554,18 @@ check =
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
+    local f_sphere = false
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
+    if snapping then
+        f_sphere = true
+    end
     if option == 1 then
         local qs1 = debug.score()
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 1, cl2)
-        work.step(false, "s", 1, 1)
+        work.step(f_sphere, "s", 1, cl1)
+        work.step(f_sphere, "wa", 1, cl2)
+        work.step(f_sphere, "s", 1, 1)
         reset.score()
         work.gain("wa", 1)
         reset.recent()
@@ -571,28 +575,28 @@ local function _loss(option, cl1, cl2)
         end -- if
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
-        work.step(false, "s", 1, cl1)
+        work.step(f_sphere, "s", 1, cl1)
         work.gain("wa", 1)
         reset.score()
-        work.step(false, "s", 1, cl2)
+        work.step(f_sphere, "s", 1, cl2)
         work.gain("wa", 1)
         reset.recent()
-        work.step(false, "s", 1, cl1 - 0.02)
+        work.step(f_sphere, "s", 1, cl1 - 0.02)
         work.gain("wa", 1)
         reset.recent()
     elseif option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
-        work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 1, cl2)
+        work.step(f_sphere, "s", 1, cl1)
+        work.step(f_sphere, "wa", 1, cl2)
         reset.score()
         work.gain("wa", 1)
         reset.recent()
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.step(false, "wa", 1, cl1)
+        work.step(f_sphere, "wa", 1, cl1)
         reset.score()
-        work.step(false, "wa", 1, 1)
-        work.step(false, "wa", 1, cl2)
+        work.step(f_sphere, "wa", 1, 1)
+        work.step(f_sphere, "wa", 1, cl2)
         work.gain("wa", 1)
         reset.recent()
     end -- if option
@@ -948,24 +952,24 @@ local function _p(locally, bandsp)
         for x = start, _end do
             if hydro[x] then
                 for y = i_pp_fix_start, i_pp_fix_end do
+                    math.randomseed(distances[x][y])
                     if hydro[y] and math.random() < bandsp * 4 then
                         band.add(x, y)
                     end
                 end
             end
         end
-    else
-        for x = start, _end - 2 do
-            if hydro[x] then
-                for y = x + 2, numsegs do
-                    math.randomseed(distances[x][y])
-                    if hydro[y] and math.random() < bandsp then
-                        band.add(x, y)
-                    end -- hydro y
-                end -- for y
-            end -- if hydro x
-        end -- for x
     end -- if b_pp_fixed
+    for x = start, _end - 2 do
+        if hydro[x] then
+            for y = x + 2, numsegs do
+                math.randomseed(distances[x][y])
+                if hydro[y] and math.random() < bandsp then
+                    band.add(x, y)
+                end -- hydro y
+            end -- for y
+        end -- if hydro x
+    end -- for x
 end -- function
 --Pull#
 
@@ -1067,7 +1071,8 @@ function snap()
     p("Snapcount: ", iii, " - Segment ", seg)
     if iii ~= 1 then
         snapwork = sl.request()
-        for ii = 1, iii do
+        ii = 1
+        while ii < iii do
             sl.load(snaps)
             c_s = debug.score()
             c_s2 = debug.score()
@@ -1076,10 +1081,17 @@ function snap()
                 do_.snap(seg, ii)
                 c_s2 = debug.score()
                 p(c_s2 - c_s)
+                if ii >= iii then
+                    break
+                end
+                ii = ii + 1
+            end
+            if ii >= iii then
+                break
             end
             sl.save(snapwork)
             select.segs(false, seg)
-            do_.freeze("b")
+            do_.freeze("s")
             fuze.start(snapwork)
             do_.unfreeze()
             work.gain("wa", 1)
