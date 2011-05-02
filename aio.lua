@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1108"
+Version     = "1109"
 Release     = true         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -15,15 +15,15 @@ numsegs     = get_segment_count()
 --#Working                  default     description
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
-i_end_seg       = numsegs   -- numsegs  the last segment to work with
+i_end_seg       = 37   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_snap          = true     -- false    should we snap every sidechain to different positions
+b_snap          = false     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -40,8 +40,11 @@ b_comp          = false     -- false    try a pull of the two segments which hav
 i_pp_trys       = 1         -- 1        how often should the pull start over?
 i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
-b_pp_predicted  = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_predicted  = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
+b_pp_fixed      = true      -- false
+i_pp_fix_start  = 38
+i_pp_fix_end    = 46
 b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
 --Pull
 
@@ -941,16 +944,28 @@ local function _p(locally, bandsp)
         _end = i_end_seg
     end -- if
     get.dists()
-    for x = start, _end - 2 do
-        if hydro[x] then
-            for y = x + 2, numsegs do
-                math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < bandsp then
-                    band.add(x, y)
-                end -- hydro y
-            end -- for y
-        end -- if hydro x
-    end -- for x
+    if b_pp_fixed then
+        for x = start, _end do
+            if hydro[x] then
+                for y = i_pp_fix_start, i_pp_fix_end do
+                    if hydro[y] and math.random() < bandsp * 4 then
+                        band.add(x, y)
+                    end
+                end
+            end
+        end
+    else
+        for x = start, _end - 2 do
+            if hydro[x] then
+                for y = x + 2, numsegs do
+                    math.randomseed(distances[x][y])
+                    if hydro[y] and math.random() < bandsp then
+                        band.add(x, y)
+                    end -- hydro y
+                end -- for y
+            end -- if hydro x
+        end -- for x
+    end -- if b_pp_fixed
 end -- function
 --Pull#
 
