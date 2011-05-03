@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1112"
+Version     = "1113"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -15,15 +15,15 @@ numsegs     = get_segment_count()
 --#Working                  default     description
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
-i_end_seg       = 37   -- numsegs  the last segment to work with
-i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
+i_end_seg       = numsegs   -- numsegs  the last segment to work with
+i_start_walk    = 3         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_snap          = true     -- false    should we snap every sidechain to different positions
+b_snap          = false     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -37,12 +37,12 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 10         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_trys       = 10         -- 1        how often should the pull start over?
+i_pp_loss       = 0.2         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
-b_pp_predicted  = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_predicted  = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
-b_pp_fixed      = true      -- false
+b_pp_fixed      = false      -- false
 i_pp_fix_start  = 38
 i_pp_fix_end    = 46
 b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
@@ -344,7 +344,9 @@ local function _floor(value, _n)
 end -- function
 
 local function _randomseed(x)
-    lngX = x
+    if x then
+        lngX = x
+    end
 end -- function
 
 local function _random(m,n)
@@ -807,8 +809,8 @@ function _quake(ii)
     if b_solo_quake then
         band.disable()
         band.enable(ii)
-        s3 = math.floor(s3 / bands, 4)
-        strength = strength * bands / 4
+        s3 = math.floor(s3 / bands * 10, 4)
+        strength = math.floor(strength * bands / 10,4)
     end -- if
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
@@ -1135,6 +1137,9 @@ function rebuild()
     sl_re = sl.request()
     local saved = false
     sl.load(overall)
+    select.segs()
+    replace_ss("L")
+    sl.save(overall)
     sl.save(sl_re)
     select.segs(false, seg, r)
     if r == seg then
