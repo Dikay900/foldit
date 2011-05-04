@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1114"
+Version     = "1116"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -563,13 +563,13 @@ check =
 local function _loss(option, cl1, cl2)
     p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
+    reset.score()
     if option == 1 then
         local qs1 = debug.score()
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
         work.step(false, "s", 1, 1)
-        reset.score()
         work.gain("wa", 1)
         reset.recent()
         local qs2 = debug.score()
@@ -586,23 +586,19 @@ local function _loss(option, cl1, cl2)
         reset.recent()
         work.step(false, "s", 1, cl1 - 0.02)
         work.gain("wa", 1)
-        reset.recent()
     elseif option == 3 then
         p("Pink Fuse cl1-s-cl2-wa")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
-        reset.score()
         work.gain("wa", 1)
-        reset.recent()
     elseif option == 4 then
         p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
         work.step(false, "wa", 1, cl1)
-        reset.score()
         work.step(false, "wa", 1, 1)
         work.step(false, "wa", 1, cl2)
         work.gain("wa", 1)
-        reset.recent()
     end -- if option
+    reset.recent()
 end -- function
 
 local function _part(option, cl1, cl2)
@@ -627,6 +623,9 @@ local function _start(slot)
         fuze.part(2, 0.05, 0.07)
     end -- if 
     fuze.part(3, 0.1, 0.7)
+    if not b_fast_fuze then
+        fuze.part(4, 0.6, 0.7)
+    end
     sl.load(sl_f)
     local s_f2 = debug.score()
     sl.release(sl_f)
@@ -859,15 +858,16 @@ local function _dist()
     select.segs()
     dist_score = debug.score()
     sl.save(overall)
+    dist = sl.request()
     local bandcount = get.band_count()
     if b_solo_quake then
         p("Solo quaking enabled")
         rebuilding = true
         for ii = 1, bandcount do
-            sl.save(overall)
+            sl.save(dist)
             work.quake(ii)
             band.delete(ii)
-            fuze.start(overall)
+            fuze.start(dist)
             if debug.score() > dist_score then
                 sl.save(overall)
                 dist_score = debug.score()
@@ -877,9 +877,10 @@ local function _dist()
         end -- for ii
         rebuilding = false
     else -- if b_solo_quake
+        sl.save(dist)
         work.quake()
         band.delete()
-        fuze.start(overall)
+        fuze.start(dist)
         if debug.score() > dist_score then
             sl.save(overall)
             dist_score = debug.score()
