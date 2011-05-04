@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1113"
+Version     = "1114"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -16,7 +16,7 @@ numsegs     = get_segment_count()
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 3         -- 0        with how many segs shall we work - Walker
+i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
@@ -37,15 +37,16 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 10         -- 1        how often should the pull start over?
-i_pp_loss       = 0.2         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_trys       = 1         -- 1        how often should the pull start over?
+i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
-b_pp_predicted  = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pull       = true      -- true     hydrophobic segs are pulled together
+b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_local  = true
+b_pp_pull       = false      -- true     hydrophobic segs are pulled together
 b_pp_fixed      = false      -- false
 i_pp_fix_start  = 38
 i_pp_fix_end    = 46
-b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
 --Pull
 
 --#Fuzing
@@ -265,9 +266,9 @@ end
 
 local function _calc()
     p("Calculating Scoring Matrix")
-    hci_table = {}
-    cci_table = {}
-    sci_table = {}
+    local hci_table = {}
+    local cci_table = {}
+    local sci_table = {}
     for i = 1, #amino_segs do
         hci_table[amino_segs[i]] = {}
         cci_table[amino_segs[i]] = {}
@@ -810,7 +811,10 @@ function _quake(ii)
         band.disable()
         band.enable(ii)
         s3 = math.floor(s3 / bands * 10, 4)
-        strength = math.floor(strength * bands / 10,4)
+        strength = math.floor(strength * bands / 10, 4)
+    elseif b_pp_pre_local then
+        s3 = math.floor(s3 / bands , 4)
+        strength = math.floor(strength * bands / 10, 4)
     end -- if
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
@@ -839,7 +843,7 @@ function _quake(ii)
         sl.load(quake)
         s2 = debug.score()
         strength = math.floor(strength * 2 - strength * 14 / 15, 4)
-        if b_solo_quake then
+        if b_solo_quake or b_pp_pre_local then
             strength = math.floor(strength * 2 - strength * 9 / 10, 4)
         end -- if b_solo
         if strength > 10 then
@@ -997,8 +1001,7 @@ local function _maxdist()
 end -- function
 --BandMaxDist#
 
-local function _matrix()
-    calc.run()
+local function _strong()
     get.dists()
     for i = 1, numsegs do
         local max_str = 0
@@ -1019,6 +1022,25 @@ local function _matrix()
                 band.add(i , ii)
             end -- if strength
         end -- for ii
+    end -- for i
+end -- function
+
+local function _one(_seg)
+    get.dists()
+    for i = 1, numsegs do
+        if _seg == i then
+        local max_str = 0
+        for ii = i + 2, numsegs - 2 do
+            if max_str <= strength[i][ii] then
+                max_str = strength[i][ii]
+            end -- if max_str <=
+        end -- for ii
+        for ii = i + 2, numsegs - 2 do
+            if strength[i][ii] == max_str then
+                band.add(i , ii)
+            end -- if strength
+        end -- for ii
+        end
     end -- for i
 end -- function
 
@@ -1055,7 +1077,10 @@ bonding =
     helix       = _helix,
     sheet       = _sheet,
     comp_sheet  = _comp_sheet,
-    matrix      = _matrix
+    matrix      =
+    {   strong  = _strong,
+        one     = _one
+    }
 }
 --Bonding#
 --Header#
@@ -1176,10 +1201,17 @@ function dists()
         work.dist()
     end -- if b_comp
     band.delete()
-    if b_pp_predicted then
-        bonding.matrix()
+    if b_pp_pre_strong then
+        bonding.matrix.strong()
         work.dist()
         band.delete()
+    end -- if b_pp_predicted
+    if b_pp_pre_local then
+        for i = 1, numsegs do
+            bonding.matrix.one(i)
+            work.dist()
+            band.delete()
+        end
     end -- if b_pp_predicted
     if b_pp_pull then
         bonding.pull(false, 0.03)
@@ -1368,17 +1400,6 @@ function struct_rebuild()
             wiggle.backbone(1)
             set.cl(0)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
-            seg = he[i][1] - 1
-            if seg < 1 then
-                seg = 1
-            end -- if seg
-            r = he[i][#he[i]] + 1
-            if r > numsegs then
-                r = numsegs
-            end -- if seg
-            deselect.all()
-            select.range(seg, r)
-            work.rebuild(i_str_re_max_re, i_str_re_re_str)
             set.cl(1)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
             seg = he[i][1] - 2
@@ -1464,6 +1485,9 @@ if b_str_re then
 end -- if b_str_re
 if b_pp then
     for i = 1, i_pp_trys do
+        if b_pp_pre_strong or b_pp_pre_local then
+            calc.run()
+        end
         dists()
     end -- for i
 end -- if b_pp
