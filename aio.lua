@@ -6,8 +6,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1121"
-Release     = false         -- if true this script is probably safe ;)
+Version     = "1122"
+Release     = true          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -23,7 +23,7 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_snap          = true     -- false    should we snap every sidechain to different positions
+b_snap          = false     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -31,8 +31,8 @@ b_explore       = false     -- false    if true then the overall score will be t
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01     -- 0.01    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01     -- 0.01    Score will get applied after the score changed this value
+i_score_step    = 0.01      -- 0.01    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01      -- 0.01    Score will get applied after the score changed this value
 --Scoring#
 
 --#Pull
@@ -44,7 +44,7 @@ b_pp_pre_local  = false
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
 b_pp_push       = true
 i_pp_bandperc   = 0.04
-b_pp_fixed      = false      -- false
+b_pp_fixed      = false     -- false
 i_pp_fix_start  = 38
 i_pp_fix_end    = 46
 b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
@@ -52,7 +52,7 @@ b_pp_centerpush = true
 --Pull
 
 --#Fuzing
-b_fast_fuze     = true     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
+b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 --Fuzing#
 
 --#Snapping
@@ -73,7 +73,7 @@ i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = false      -- true     should we fuze after one rebuild
+b_str_re_fuze   = true      -- true     should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
@@ -812,7 +812,7 @@ function _quake()
     local s2
     local s3 = debug.score()
     s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 4)
-    local strength = 0.01 + 0.08 * i_pp_loss
+    local strength = 0.01 + 0.1 * i_pp_loss
     local bands = get.band_count()
     local quake = sl.request()
     local quake2 = sl.request()
@@ -842,7 +842,7 @@ function _quake()
         end -- if >
         sl.load(quake)
         s2 = debug.score()
-        strength = math.floor(strength * 2 - strength * 9 / 10, 4)
+        strength = math.floor(strength * 2 - strength * 10 / 11, 4)
         if b_pp_pre_local then
             strength = math.floor(strength * 2 - strength * 6 / 7, 4)
         end -- if b_solo
@@ -1130,9 +1130,9 @@ function snap()
             sl.save(snapwork)
             select.segs(false, seg)
             do_.freeze("s")
-            work.step(false, "s", 1, 0.75)
-            do_.unfreeze()
             fuze.start(snapwork)
+            do_.unfreeze()
+            work.gain("wa")
             sl.save(snapwork)
             if c_snap < debug.score() then
                 c_snap = debug.score()
