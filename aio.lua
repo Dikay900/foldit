@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1116"
+Version     = "1118"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,10 +21,10 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -39,14 +39,15 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
 i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
-b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = true
-b_pp_pull       = false      -- true     hydrophobic segs are pulled together
+b_pp_pre_local  = false
+b_pp_pull       = true      -- true     hydrophobic segs are pulled together
+b_pp_push       = true
 b_pp_fixed      = false      -- false
 i_pp_fix_start  = 38
 i_pp_fix_end    = 46
-b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpush = true
 --Pull
 
 --#Fuzing
@@ -77,10 +78,10 @@ b_str_re_fuze   = false      -- true     should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-saveSlots       = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-rebuilding      = false
-snapping        = false
-sc_changed      = true
+sl          = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+rebuilding  = false
+snapping    = false
+sc_changed  = true
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -126,7 +127,7 @@ local function _freeze(f)
         do_freeze(true, false)
     elseif f == "s" then
         do_freeze(false, true)
-    else
+    else -- if
         do_freeze(true, true)
     end -- if
 end -- function
@@ -142,7 +143,8 @@ do_ =
 
 set =
 {   cl          = set_behavior_clash_importance,
-    ss          = replace_ss
+    ss          = replace_ss,
+    aa          = replace_aa
 }
 --Optimizing#
 
@@ -194,14 +196,8 @@ amino_table     = {
     ['t'] = {'Thr', 'Threonine',        false,      2.7,    'E',    119.12034,  5.60,   93      },
     ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00,   105     },
     ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89,   163     },
-    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141     },
---[[['b'] = {'Asx', 'Asparagine or Aspartic acid'},
-    ['j'] = {'Xle', 'Leucine or Isoleucine'},
-    ['o'] = {'Pyl', 'Pyrrolysine'},
-    ['u'] = {'Sec', 'Selenocysteine'},
-    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
-    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
-  ]]}
+    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141     }
+}
 
 local function _short(seg)
     return amino_table[aa[seg]][amino_part.short]
@@ -407,15 +403,10 @@ local function _center()
     local distance
     local indexCenter
     get.dists()
-    for i = 1, numsegs do
+    for i = 1, numsegs - 1 do
         distance = 0
-        for j = 1, numsegs do
-            if i ~= j then
-                local x = i
-                local y = j
-                if x > y then x, y = y, x end
-                distance = distance + distances[x][y]
-            end -- if i ~= j
+        for j = i + 1, numsegs do
+            distance = distance + distances[x][y]
         end -- for j
         if distance < minDistance then
             minDistance = distance
@@ -425,35 +416,64 @@ local function _center()
     return indexCenter
 end -- function
 
+local function _segs(_local)
+    if _local then
+        start = seg
+        _end = r
+    else -- if
+        start = i_start_seg
+        _end = i_end_seg
+    end -- if
+end -- function
+
+local function _increase(sc1, sc2, slot, step)
+    if step then
+        if sc2 - sc1 < step then
+            sl.load(slot)
+            return
+        end
+    end
+    if sc2 > sc1 then
+        sl.save(slot)
+        p("+", sc2 - sc1, "+")
+        local sc = debug.score()
+        p("==", sc, "==")
+    else -- if
+        sl.load(slot)
+    end -- if
+end
+
 get =
-{   dists           = _dists,
-    sphere          = _sphere,
-    center          = _center,
-    distance        = get_segment_distance,
-    score           = get_score,
-    ranked          = get_ranked_score,
-    expscore        = get_exploration_score,
-    seg_score       = get_segment_score,
-    seg_score_part  = get_segment_score_part,
-    ss              = get_ss,
-    aa              = get_aa,
-    seg_count       = get_segment_count,
-    band_count      = get_band_count,
-    hydrophobic     = is_hydrophobic,
-    snapcount       = get_sidechain_snap_count
+{   dists       = _dists,
+    sphere      = _sphere,
+    center      = _center,
+    distance    = get_segment_distance,
+    score       = get_score,
+    ranked      = get_ranked_score,
+    expscore    = get_exploration_score,
+    seg_score   = get_segment_score,
+    seg_part    = get_segment_score_part,
+    ss          = get_ss,
+    aa          = get_aa,
+    seg_count   = get_segment_count,
+    band_count  = get_band_count,
+    hydrophobic = is_hydrophobic,
+    snapcount   = get_sidechain_snap_count,
+    segs        = _segs,
+    increase    = _increase
 }
 --Getters#
 
 --#Saveslot manager
 local function _release(slot)
-    saveSlots[#saveSlots + 1] = slot
+    sl[#sl + 1] = slot
 end -- function
 
 local function _request()
-    debug.assert(#saveSlots > 0, "Out of save slots")
-    local saveSlot = saveSlots[#saveSlots]
-    saveSlots[#saveSlots] = nil
-    return saveSlot
+    debug.assert(#sl > 0, "Out of save slots")
+    local sl = sl[#sl]
+    sl[#sl] = nil
+    return sl
 end -- function
 
 sl =
@@ -605,16 +625,11 @@ local function _part(option, cl1, cl2)
     local s_f1 = debug.score()
     fuze.loss(option, cl1, cl2)
     local s_f2 = debug.score()
-    if s_f2 > s_f1 then
-        sl.save(sl_f)
-        p("+", s_f2 - s_f1, "+")
-    end -- if
-    sl.load(sl_f)
+    get.increase(s_f1, s_f2, sl_f)
 end -- function
 
 local function _start(slot)
     p("Started Fuzing")
-    select.segs()
     sl_f = sl.request()
     local s_f1 = debug.score()
     sl.save(sl_f)
@@ -629,13 +644,9 @@ local function _start(slot)
     sl.load(sl_f)
     local s_f2 = debug.score()
     sl.release(sl_f)
-    if s_f2 > s_f1 then
-        sl.save(slot)
-        p("++ Fuzing gained ", s_f2 - s_f1, "++")
-        p("==", s_f2, "==")
-    else -- if s_f2
-        sl.load(slot)
-    end -- if s_f2
+    get.increase(s_f1, s_f2, slot)
+    p("++ Fuzing gained ", s_f2 - s_f1, "++")
+    p("==", s_f2, "==")
     p("Fuzing ended")
 end -- function
 
@@ -754,6 +765,7 @@ local function _step(sphered, _g, iter, cl)
 end -- function
 
 local function _flow(g)
+    local ws_1 = debug.score()
     local iter = 0
     if rebuilding then
         slot = sl_re
@@ -784,19 +796,13 @@ local function _flow(g)
         s1 = s2
     end -- if <
     sl.release(work_sl)
-    local more = s1 - c_s
-    if more > i_score_gain then
+    get.increase(ws_1, s1, slot, i_score_gain)
+    if s1 - ws_1 > i_score_gain then
         sc_changed = true
-        p("+", more, "+")
-        p("++", s1, "++")
-        c_s = s1
-        sl.save(slot)
-    else -- if
-        sl.load(slot)
     end -- if
 end -- function
 
-function _quake(ii)
+function _quake()
     local s1
     local s2
     local s3 = debug.score()
@@ -806,12 +812,7 @@ function _quake(ii)
     local quake = sl.request()
     local quake2 = sl.request()
     select.segs()
-    if b_solo_quake then
-        band.disable()
-        band.enable(ii)
-        s3 = math.floor(s3 / bands * 10, 4)
-        strength = math.floor(strength * bands / 10, 4)
-    elseif b_pp_pre_local then
+    if b_pp_pre_local then
         s3 = math.floor(s3 / bands , 4)
         strength = math.floor(strength * bands / 10, 4)
     end -- if
@@ -821,13 +822,9 @@ function _quake(ii)
         sl.load(quake2)
         p("Band strength: ", strength)
         s1 = debug.score()
-        if b_solo_quake then
-            band.strength(ii, strength)
-        else -- if b_solo
-            for i = 1, bands do
-                band.strength(i, strength)
-            end -- for
-        end -- if b_solo
+        for i = 1, bands do
+            band.strength(i, strength)
+        end -- for
         reset.score()
         set.cl(0.7)
         wiggle.backbone(1)
@@ -837,12 +834,15 @@ function _quake(ii)
         if s2 > s1 then
             reset.recent()
             sl.save(quake2)
-            s1 = s2
+            sl.release(quake)
+            sl.release(quake2)
+            band.delete()
+            return work.quake()
         end -- if >
         sl.load(quake)
         s2 = debug.score()
         strength = math.floor(strength * 2 - strength * 14 / 15, 4)
-        if b_solo_quake or b_pp_pre_local then
+        if b_pp_pre_local then
             strength = math.floor(strength * 2 - strength * 9 / 10, 4)
         end -- if b_solo
         if strength > 10 then
@@ -856,38 +856,16 @@ end -- function
 local function _dist()
     p("Quaker")
     select.segs()
-    dist_score = debug.score()
+    local ps_1 = debug.score()
     sl.save(overall)
     dist = sl.request()
-    local bandcount = get.band_count()
-    if b_solo_quake then
-        p("Solo quaking enabled")
-        rebuilding = true
-        for ii = 1, bandcount do
-            sl.save(dist)
-            work.quake(ii)
-            band.delete(ii)
-            fuze.start(dist)
-            if debug.score() > dist_score then
-                sl.save(overall)
-                dist_score = debug.score()
-            else -- if score()
-                sl.load(overall)
-            end -- if score()
-        end -- for ii
-        rebuilding = false
-    else -- if b_solo_quake
-        sl.save(dist)
-        work.quake()
-        band.delete()
-        fuze.start(dist)
-        if debug.score() > dist_score then
-            sl.save(overall)
-            dist_score = debug.score()
-        else -- if score()
-            sl.load(overall)
-        end -- if score()
-    end -- if b_solo_quake
+    sl.save(dist)
+    work.quake()
+    band.delete()
+    fuze.start(dist)
+    ps_2 = debug.score()
+    get.increase(ps_1, ps_2, overall)
+    sl.release(dist)
 end -- function
 
 local function _rebuild(trys, str)
@@ -922,36 +900,65 @@ work =
 
 --#Bonding
 --#Center
-local function _cp(locally)
+local function _cpl(_local, expand)
     local indexCenter = get.center()
-    local start
-    local _end
-    if locally then
-        start = seg
-        _end = r
-    else -- if
-        start = i_start_seg
-        _end = i_end_seg
-    end -- if
+    get.segs(_local)
     for i = start, _end do
         if i ~= indexCenter then
+            local x = i
+            local y = indexCenter
+            if x > y then x, y = y, x end
             if hydro[i] then
-                band.add(i, indexCenter)
+                if distances[x][y] > expand then
+                    band.add(x, y)
+                    local band = get.bandcount()
+                    band.length(band, distances[x][y] - expand)
+                end
             end -- if hydro
         end -- if ~=
     end -- for
 end -- function
+
+local function _cps(_local, expand)
+    local indexCenter = get.center()
+    get.segs(_local)
+    for i = start, _end do
+        if i ~= indexCenter then
+            local x = i
+            local y = indexCenter
+            if x > y then x, y = y, x end
+            if not hydro[i] then
+                if distances[x][y] <= (20 - expand) then
+                    band.add(x, y)
+                    local band = get.bandcount()
+                    band.length(band, distances[x][y] + expand)
+                end
+            end -- if hydro
+        end -- if ~=
+    end -- for
+end -- function
+
+local function _ps(_local, bandsp, expand)
+    get.segs(_local)
+    for i = start, _end - 2 do
+        if not hydro[x] then
+            for y = x + 2, _end do
+                if not hydro[y] and math.random() <= bandsp then
+                    if distances[x][y] <= (20 - expand) then
+                        band.add(x, y)
+                        local band = get.bandcount()
+                        band.length(band, distances[x][y] + expand)
+                    end
+                end
+            end
+        end
+    end
+end
 --Center#
 
 --#Pull
-local function _p(locally, bandsp)
-    if locally then
-        start = seg
-        _end = r
-    else -- if
-        start = i_start_seg
-        _end = i_end_seg
-    end -- if
+local function _pl(_local, bandsp, expand)
+    get.segs(_local)
     get.dists()
     if b_pp_fixed then
         for x = start, _end do
@@ -970,7 +977,11 @@ local function _p(locally, bandsp)
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
                 if hydro[y] and math.random() < bandsp then
-                    band.add(x, y)
+                    if distances[x][y] > expand then
+                        band.add(x, y)
+                        local band = get.bandcount()
+                        band.length(band, distances[x][y] - expand)
+                    end
                 end -- hydro y
             end -- for y
         end -- if hydro x
@@ -1072,8 +1083,10 @@ local function _comp_sheets()
 end -- function
 
 bonding =
-{   centerpull  = _cp,
-    pull        = _p,
+{   centerpull  = _cpl,
+    centerpush  = _cps,
+    push        = _ps,
+    pull        = _pl,
     maxdist     = _maxdist,
     helix       = _helix,
     sheet       = _sheet,
@@ -1094,6 +1107,8 @@ function snap()
     c_snap = debug.score()
     local s_1
     local s_2
+    local c_s
+    local c_s2
     sl.save(snaps)
     iii = get.snapcount(seg)
     p("Snapcount: ", iii, " - Segment ", seg)
@@ -1161,7 +1176,6 @@ function rebuild()
     local iter = 1
     rebuilding = true
     sl_re = sl.request()
-    local saved = false
     sl.load(overall)
     select.segs()
     replace_ss("L")
@@ -1173,21 +1187,15 @@ function rebuild()
     else -- if r
         p("Rebuilding Segment ", seg, "-", r)
     end -- if r
-    cs0 = debug.score()
+    rs_0 = debug.score()
     work.rebuild(i_max_rebuilds, i_rebuild_str)
     set.cl(1)
-    p(debug.score() - cs0)
+    rs_1 = debug.score()
+    p(rs_1 - rs_0)
     fuze.start(sl_re)
-    c_s = debug.score()
-    sl.load(sl_re)
+    rs_2 = debug.score()
     sl.release(sl_re)
-    if c_s < cs0 then
-        p("No Gain")
-        sl.load(overall)
-    else -- if c_s
-        p("+", c_s - cs0, "+")
-        sl.save(overall)
-    end -- if c_s
+    get.increase(rs_0, rs_2, overall)
     rebuilding = false
 end -- function
 --Rebuilding#
@@ -1215,12 +1223,22 @@ function dists()
         end
     end -- if b_pp_predicted
     if b_pp_pull then
-        bonding.pull(false, 0.03)
+        bonding.pull(false, 0.08, 2)
         work.dist()
         band.delete()
     end -- if b_pp_pull
+    if b_pp_push then
+        bonding.push(false, 0.08, 2)
+        work.dist()
+        band.delete()
+    end -- if b_pp_push
     if b_pp_centerpull then
-        bonding.centerpull()
+        bonding.centerpull(false, 2)
+        work.dist()
+        band.delete()
+    end -- if b_pp_centerpull
+    if b_pp_centerpush then
+        bonding.centerpush(false, 2)
         work.dist()
         band.delete()
     end -- if b_pp_centerpull
@@ -1277,15 +1295,8 @@ local function _getdata()
                     if aa[i + 1] ~= "p" then
                         p_he[#p_he][#p_he[#p_he] + 1] = i + 1
                         if i + 2 < numsegs then
-                            if aa[i + 2] ~= "p" then
+                            if aa[i + 2] then
                                 p_he[#p_he][#p_he[#p_he] + 1] = i + 2
-                                if i + 3 < numsegs then
-                                    if aa[i + 3] ~= "p" then
-                                        p_he[#p_he][#p_he[#p_he] + 1] = i + 3
-                                        i = i + 1
-                                    end -- if aa i + 3
-                                end -- if i + 3
-                                i = i + 1
                             end -- if aa i + 2
                         end -- if i + 2
                         i = i + 1
@@ -1304,11 +1315,8 @@ local function _getdata()
                 if i + 2 < numsegs then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
                 end -- if i + 2
-                if i + 3 < numsegs then
-                    p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 3
-                end -- if i + 3
-                ui = i + 3
-                i = i + 4
+                ui = i + 2
+                i = i + 3
             end -- if loop
         end -- if sheet
         if b_predict_full then
@@ -1470,9 +1478,8 @@ function struct_rebuild()
 end
 
 s_0 = debug.score()
-c_s = s_0
 p("v", Version)
-p("Starting Score: ", c_s)
+p("Starting Score: ", s_0)
 overall = sl.request()
 sl.save(overall)
 check.aacid()
@@ -1497,7 +1504,6 @@ for i = i_start_seg, i_end_seg do
     if b_snap then
         snap()
     end
-    c_s = debug.score()
     for ii = i_start_walk, i_end_walk do
         r = i + ii
         if r > numsegs then
