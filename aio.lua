@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1118"
+Version     = "1119"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,10 +21,10 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -38,11 +38,12 @@ i_score_gain    = 0.01     -- 0.01    Score will get applied after the score cha
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
-b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
 b_pp_push       = true
+i_pp_bandperc   = 0.04
 b_pp_fixed      = false      -- false
 i_pp_fix_start  = 38
 i_pp_fix_end    = 46
@@ -78,7 +79,7 @@ b_str_re_fuze   = false      -- true     should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-sl          = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+sls         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 rebuilding  = false
 snapping    = false
 sc_changed  = true
@@ -403,10 +404,15 @@ local function _center()
     local distance
     local indexCenter
     get.dists()
-    for i = 1, numsegs - 1 do
+    for i = 1, numsegs do
         distance = 0
-        for j = i + 1, numsegs do
-            distance = distance + distances[x][y]
+        for j = 1, numsegs do
+        if i ~= j then
+            local x = i
+            local y = j
+            if x > y then x, y = y, x end
+                distance = distance + distances[x][y]
+            end -- if i ~= j
         end -- for j
         if distance < minDistance then
             minDistance = distance
@@ -466,14 +472,14 @@ get =
 
 --#Saveslot manager
 local function _release(slot)
-    sl[#sl + 1] = slot
+    sls[#sls + 1] = slot
 end -- function
 
 local function _request()
-    debug.assert(#sl > 0, "Out of save slots")
-    local sl = sl[#sl]
-    sl[#sl] = nil
-    return sl
+    debug.assert(#sls > 0, "Out of save slots")
+    local slot = sls[#sls]
+    sls[#sls] = nil
+    return slot
 end -- function
 
 sl =
@@ -807,14 +813,14 @@ function _quake()
     local s2
     local s3 = debug.score()
     s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 4)
-    local strength = 0.05 + 0.04 * i_pp_loss
+    local strength = 0.075 * i_pp_loss
     local bands = get.band_count()
     local quake = sl.request()
     local quake2 = sl.request()
     select.segs()
     if b_pp_pre_local then
         s3 = math.floor(s3 / bands , 4)
-        strength = math.floor(strength * bands / 10, 4)
+        strength = math.floor(strength * bands / 8, 4)
     end -- if
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
@@ -826,7 +832,7 @@ function _quake()
             band.strength(i, strength)
         end -- for
         reset.score()
-        set.cl(0.7)
+        set.cl(0.9)
         wiggle.backbone(1)
         sl.save(quake)
         reset.recent()
@@ -834,16 +840,12 @@ function _quake()
         if s2 > s1 then
             reset.recent()
             sl.save(quake2)
-            sl.release(quake)
-            sl.release(quake2)
-            band.delete()
-            return work.quake()
         end -- if >
         sl.load(quake)
         s2 = debug.score()
-        strength = math.floor(strength * 2 - strength * 14 / 15, 4)
+        strength = math.floor(strength * 2 - strength * 9 / 10, 4)
         if b_pp_pre_local then
-            strength = math.floor(strength * 2 - strength * 9 / 10, 4)
+            strength = math.floor(strength * 2 - strength * 6 / 7, 4)
         end -- if b_solo
         if strength > 10 then
             break
@@ -900,7 +902,7 @@ work =
 
 --#Bonding
 --#Center
-local function _cpl(_local, expand)
+local function _cpl(_local)
     local indexCenter = get.center()
     get.segs(_local)
     for i = start, _end do
@@ -909,11 +911,7 @@ local function _cpl(_local, expand)
             local y = indexCenter
             if x > y then x, y = y, x end
             if hydro[i] then
-                if distances[x][y] > expand then
-                    band.add(x, y)
-                    local band = get.bandcount()
-                    band.length(band, distances[x][y] - expand)
-                end
+                band.add(x, y)
             end -- if hydro
         end -- if ~=
     end -- for
@@ -930,8 +928,8 @@ local function _cps(_local, expand)
             if not hydro[i] then
                 if distances[x][y] <= (20 - expand) then
                     band.add(x, y)
-                    local band = get.bandcount()
-                    band.length(band, distances[x][y] + expand)
+                    local cband = get.band_count()
+                    band.length(cband, distances[x][y] + expand)
                 end
             end -- if hydro
         end -- if ~=
@@ -940,14 +938,15 @@ end -- function
 
 local function _ps(_local, bandsp, expand)
     get.segs(_local)
-    for i = start, _end - 2 do
+    for x = start, _end - 2 do
         if not hydro[x] then
             for y = x + 2, _end do
+                math.randomseed(distances[x][y])
                 if not hydro[y] and math.random() <= bandsp then
                     if distances[x][y] <= (20 - expand) then
                         band.add(x, y)
-                        local band = get.bandcount()
-                        band.length(band, distances[x][y] + expand)
+                        local cband = get.band_count()
+                        band.length(cband, distances[x][y] + expand)
                     end
                 end
             end
@@ -957,7 +956,7 @@ end
 --Center#
 
 --#Pull
-local function _pl(_local, bandsp, expand)
+local function _pl(_local, bandsp)
     get.segs(_local)
     get.dists()
     if b_pp_fixed then
@@ -977,11 +976,7 @@ local function _pl(_local, bandsp, expand)
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
                 if hydro[y] and math.random() < bandsp then
-                    if distances[x][y] > expand then
-                        band.add(x, y)
-                        local band = get.bandcount()
-                        band.length(band, distances[x][y] - expand)
-                    end
+                    band.add(x, y)
                 end -- hydro y
             end -- for y
         end -- if hydro x
@@ -1223,17 +1218,17 @@ function dists()
         end
     end -- if b_pp_predicted
     if b_pp_pull then
-        bonding.pull(false, 0.08, 2)
+        bonding.pull(false, i_pp_bandperc)
         work.dist()
         band.delete()
     end -- if b_pp_pull
     if b_pp_push then
-        bonding.push(false, 0.08, 2)
+        bonding.push(false, i_pp_bandperc * 2, 2)
         work.dist()
         band.delete()
     end -- if b_pp_push
     if b_pp_centerpull then
-        bonding.centerpull(false, 2)
+        bonding.centerpull(false)
         work.dist()
         band.delete()
     end -- if b_pp_centerpull
