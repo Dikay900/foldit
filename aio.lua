@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1120"
+Version     = "1121"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -21,9 +21,9 @@ i_end_walk      = 3         -- 3        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_snap          = false     -- false    should we snap every sidechain to different positions
+b_snap          = true     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -52,11 +52,10 @@ b_pp_centerpush = true
 --Pull
 
 --#Fuzing
-b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
+b_fast_fuze     = true     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 --Fuzing#
 
 --#Snapping
-b_snap_fast     = true
 --Snapping#
 
 --#Rebuilding
@@ -618,9 +617,11 @@ local function _loss(option, cl1, cl2)
         work.step(false, "wa", 1, cl2)
         work.gain("wa", 1)
     elseif option == 4 then
-        p("Pink Fuse cl1-wa-cl=1-wa-cl2-wa")
-        work.step(false, "wa", 1, cl1)
-        work.step(false, "wa", 1, 1)
+        p("Wiggle Out cl1-wa-cl=1-wa-s-cl1-wa")
+        work.step(false, "s", 1, cl1)
+        work.step(false, "wa", 1, cl2)
+        work.step(false, "wa", 2, 1)
+        work.step(false, "s", 1, 1)
         work.step(false, "wa", 1, cl2)
         work.gain("wa", 1)
     end -- if option
@@ -642,11 +643,9 @@ local function _start(slot)
     if not b_fast_fuze then
         fuze.part(1, 0.1, 0.4)
         fuze.part(2, 0.05, 0.07)
-    end -- if 
-    fuze.part(3, 0.1, 0.7)
-    if not b_fast_fuze then
-        fuze.part(4, 0.6, 0.7)
+        fuze.part(3, 0.1, 0.7)
     end
+    fuze.part(4, 0.1, 0.6)
     sl.load(sl_f)
     local s_f2 = debug.score()
     sl.release(sl_f)
@@ -1131,9 +1130,9 @@ function snap()
             sl.save(snapwork)
             select.segs(false, seg)
             do_.freeze("s")
-            fuze.start(snapwork)
+            work.step(false, "s", 1, 0.75)
             do_.unfreeze()
-            work.flow("wa")
+            fuze.start(snapwork)
             sl.save(snapwork)
             if c_snap < debug.score() then
                 c_snap = debug.score()
