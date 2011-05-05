@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1119"
+Version     = "1120"
 Release     = false         -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -813,7 +813,7 @@ function _quake()
     local s2
     local s3 = debug.score()
     s3 = math.floor(math.abs(s3 / 100 * i_pp_loss), 4)
-    local strength = 0.075 * i_pp_loss
+    local strength = 0.01 + 0.08 * i_pp_loss
     local bands = get.band_count()
     local quake = sl.request()
     local quake2 = sl.request()
