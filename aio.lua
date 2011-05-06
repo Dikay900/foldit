@@ -6,8 +6,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1122"
-Release     = true          -- if true this script is probably safe ;)
+Version     = "1123"
+Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
@@ -69,6 +69,9 @@ b_predict_full  = false     -- try to detect the secondary structure between eve
 --Predicting#
 
 --#Structed rebuilding      default     description
+b_cu            = true
+b_cu_sh         = true
+b_cu_he         = true
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
@@ -816,11 +819,18 @@ function _quake()
     local bands = get.band_count()
     local quake = sl.request()
     local quake2 = sl.request()
-    select.segs()
+    if seg or r then
+        select.segs(false, seg, r)
+    else
+        select.segs()
+    end
     if b_pp_pre_local then
-        s3 = math.floor(s3 / bands , 4)
+        s3 = math.floor(s3 / bands, 4)
         strength = math.floor(strength * bands / 8, 4)
     end -- if
+    if b_cu then
+        s3 = math.floor(s3 / 10, 4)
+    end
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
     repeat
@@ -843,7 +853,7 @@ function _quake()
         sl.load(quake)
         s2 = debug.score()
         strength = math.floor(strength * 2 - strength * 10 / 11, 4)
-        if b_pp_pre_local then
+        if b_pp_pre_local or b_cu then
             strength = math.floor(strength * 2 - strength * 6 / 7, 4)
         end -- if b_solo
         if strength > 10 then
@@ -1050,16 +1060,26 @@ local function _one(_seg)
     end -- for i
 end -- function
 
-local function _helix()
-    for i = 1, #he do
+local function _helix(_he)
+    if _he then
+        _end = _he
+    else
+        _end = #he
+    end
+    for i = 1, _end do
         for ii = he[i][1], he[i][#he[i]] - 4 do
             band.add(ii, ii + 4)
         end -- for ii
     end -- for i
 end -- function
 
-local function _sheet()
-    for i = 1, #sh do
+local function _sheet(_sh)
+    if _sh then
+        _end = _sh
+    else
+        _end = #sh
+    end
+    for i = 1, _end do
         for ii = 1, #sh[i] - 2 do
             band.add(sh[i][ii], sh[i][ii] + 2)
             local bands = get.band_count()
@@ -1372,13 +1392,53 @@ predict =
 }
 --predictss#
 
+function struct_curler()
+    str_re_best = sl.request()
+    check.struct()
+    p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
+    if b_cu_he then
+        for i = 1, #he do
+            p("Working on Helix ", i)
+            seg = he[i][1]
+            r = he[i][#he[i]]
+            deselect.all()
+            select.segs(false, seg, r)
+            bonding.helix(i)
+            work.quake()
+            band.delete()
+            sl.save(str_re_best)
+            rebuilding = true
+            fuze.start(str_re_best)
+            sl.load(str_re_best)
+            rebuilding = false
+        end -- for i
+    end -- if b_cu_he
+    if b_cu_sh then
+        for i = 1, #sh do
+            p("Working on Sheet ", i)
+            seg = sh[i][1]
+            r = sh[i][#sh[i]]
+            bonding.sheet(i)
+            select.segs(false, seg, r)
+            work.quake()
+            band.delete()
+            sl.save(str_re_best)
+            rebuilding = true
+            fuze.start(str_re_best)
+            sl.load(str_re_best)
+            rebuilding = false
+        end -- for i
+    end -- if b_cu_sh
+    sl.release(str_re_best)
+    sl.save(overall)   
+end
+
 function struct_rebuild()
     local str_rs
     local str_rs2
     str_re_best = sl.request()
     check.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
-    local iter = 1
     if b_re_he then
         for i = 1, #sh do
             deselect.all()
@@ -1469,6 +1529,7 @@ function struct_rebuild()
         end -- for i
     end -- if b_re_sh
     sl.save(overall)
+    sl.release(str_re_best)
 end
 
 s_0 = debug.score()
@@ -1485,6 +1546,9 @@ end -- if b_predict
 if b_str_re then
     struct_rebuild()
 end -- if b_str_re
+if b_cu then
+    struct_curler()
+end
 if b_pp then
     for i = 1, i_pp_trys do
         if b_pp_pre_strong or b_pp_pre_local then
