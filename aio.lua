@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1123"
+Version     = "1124"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -14,20 +14,21 @@ numsegs     = get_segment_count()
 --#Settings: default
 --#Working                  default     description
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
-i_start_seg     = 1         -- 1        the first segment to work with
-i_end_seg       = numsegs   -- numsegs  the last segment to work with
-i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
-i_end_walk      = 3         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_seg     = 44         -- 1        the first segment to work with
+i_end_seg       = 58   -- numsegs  the last segment to work with
+i_start_walk    = 1         -- 0        with how many segs shall we work - Walker
+i_end_walk      = 1         -- 3        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -35,20 +36,26 @@ i_score_step    = 0.01      -- 0.01    an action tries to get this score, then i
 i_score_gain    = 0.01      -- 0.01    Score will get applied after the score changed this value
 --Scoring#
 
+--#Mutating
+b_m_new         = false     -- false    Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
+b_m_fuze        = true      -- true     fuze a change or just wiggling out (could get some more points but recipe needs longer)
+--Mutating#
+
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
-b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = false
-b_pp_pull       = true      -- true     hydrophobic segs are pulled together
-b_pp_push       = true
-i_pp_bandperc   = 0.04
+i_pp_loss       = 0.5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+b_pp_local      = false
+b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_local  = true
+b_pp_pull       = false      -- true     hydrophobic segs are pulled together
+b_pp_push       = false
+i_pp_bandperc   = 0.1
 b_pp_fixed      = false     -- false
-i_pp_fix_start  = 38
-i_pp_fix_end    = 46
-b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
-b_pp_centerpush = true
+i_pp_fix_start  = 0
+i_pp_fix_end    = 0
+b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpush = false
 --Pull
 
 --#Fuzing
@@ -84,6 +91,7 @@ b_str_re_fuze   = true      -- true     should we fuze after one rebuild
 sls         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 rebuilding  = false
 snapping    = false
+mutating    = false
 sc_changed  = true
 --Constants | Game vars#
 
@@ -508,6 +516,9 @@ end -- function
 local function _ligand()
     if get.ss(numsegs) == 'M' then
         numsegs = numsegs - 1
+        if i_end_seg == numsegs + 1 then
+            i_end_seg = numsegs
+        end
     end -- if get.ss
 end -- function
 --Ligand Check#
@@ -994,11 +1005,12 @@ end -- function
 --Pull#
 
 --#BandMaxDist
-local function _maxdist()
+local function _maxdist(_local)
+    get.segs(_local)
     get.dists()
     local maxdistance = 0
-    for i = i_start_seg, i_end_seg do
-        for j = i_start_seg, i_end_seg do
+    for i = start, _end do
+        for j = start, _end do
             if i ~= j then
                 local x = i
                 local y = j
@@ -1017,9 +1029,10 @@ local function _maxdist()
 end -- function
 --BandMaxDist#
 
-local function _strong()
+local function _strong(_local)
     get.dists()
-    for i = 1, numsegs do
+    get.segs(_local)
+    for i = start, _end do
         local max_str = 0
         local min_dist = 999
         for ii = i + 2, numsegs - 2 do
@@ -1230,7 +1243,7 @@ function dists()
         band.delete()
     end -- if b_pp_predicted
     if b_pp_pre_local then
-        for i = 1, numsegs do
+        for i = i_start_seg, i_end_seg do
             bonding.matrix.one(i)
             work.dist()
             band.delete()
@@ -1532,13 +1545,154 @@ function struct_rebuild()
     sl.release(str_re_best)
 end
 
+--#Compressor
+function compress()
+    p("Compressing Segment ", seg)
+    sphere = {}
+    range = 0
+    repeat
+        count = 0
+        range = range + 2
+        sphere = GetSphere(seg, range)
+        for n = 1, #sphere - 1 do
+            if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
+                count = count + 1
+            end
+        end
+    until count > 4
+    for n = 1, #sphere - 1 do
+        if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
+            band_add_segment_segment(seg, sphere[n])
+            local length = get_segment_distance(seg, sphere[n])
+            repeat
+                length = length * 7 / 8
+            until length <= 5
+            band_set_length(get_band_count(), length)
+            band_set_strength(get_band_count(), length / 5)
+        end
+    end
+    do_global_wiggle_backbone(1)
+    band_delete()
+    p("Compressing Segment ", seg, "-", r)
+    sphere1 = {}
+    sphere2 = {}
+    range = 0
+end
+--Compressor#
+
+--#Mutate function
+function mutate()
+    mutating = true
+    if b_mutate then
+        if b_m_new then
+            select(mutable)
+            for i = 1, #amino do
+                p("Mutating segment ", seg)
+                sl_mut = RequestSaveSlot()
+                quicksave(sl_mut)
+                replace_aa(amino[i][1])
+                fgain("wa")
+                repeat
+                    repeat
+                        local mut_1 = PuzzleScore(b_explore)
+                        do_mutate(1)
+                    until PuzzleScore(b_explore) - mut_1 < 0.01
+                    mut_1 = PuzzleScore(b_explore)
+                    fgain("wa")
+                until PuzzleScore(b_explore) - mut_1 < 0.01
+                if PuzzleScore(b_explore) > c_s then
+                    c_s = PuzzleScore(b_explore)
+                    quicksave(overall)
+                end
+                quickload(sl_mut)
+                ReleaseSaveSlot(sl_mut)
+            end
+        end
+        b_mutating = false
+        for l = 1, #mutable do
+            if seg == mutable[l] then
+                b_mutating = true
+            end
+        end
+        if b_mutating then
+            p("Mutating segment ", seg)
+            sl_mut = RequestSaveSlot()
+            quicksave(sl_mut)
+            for j = 1, #amino do
+                if get_aa(seg) ~= amino[j][1] then
+                    select()
+                    replace_aa(amino[j][1])
+                    s_mut = PuzzleScore(b_explore)
+                    p("Mutated: ", seg, " to ", amino[j][2], " - " , amino[j][3])
+                    p(#amino - j, " mutations left...")
+                    p(s_mut - c_s)
+                    if b_m_fuze then
+                        fuze(sl_mut)
+                    else
+                        set_behavior_clash_importance(0.1)
+                        do_shake(1)
+                        fgain("wa")
+                    end
+                    s_mut2 = PuzzleScore(b_explore)
+                    if s_mut2 > s_mut then
+                        p("+", s_mut2 - s_mut, "+")
+                    else
+                        p(s_mut2 - s_mut)
+                    end
+                    p("~~~~~~~~~~~~~~~~")
+                    if s_mut2 > c_s then
+                        c_s = s_mut2
+                        quicksave(overall)
+                    end
+                    quickload(sl_mut)
+                    s_mut2 = PuzzleScore(b_explore)
+                end
+            end
+            ReleaseSaveSlot(sl_mut)
+            quickload(overall)
+        end
+    end
+    mutating = false
+end
+--Mutate#
+
+function FindMutable()
+    p("Finding mutable segments -- programm will get stuck a bit")
+    local mut = RequestSaveSlot()
+    quicksave(mut)
+    local mutable = {}
+    local isG = {}
+    local i
+    select_all()
+    replace_aa("g")                 -- all mutable segments are set to "g"
+    for i = 1, numsegs do
+        if get_aa(i) == "g" then    -- find the "g" segments
+            isG[#isG + 1] = i
+        end -- if get_aa
+    end -- for i
+    replace_aa("q")                 -- all mutable segments are set to "q"
+    for j = 1, #isG do
+        i = isG[j]
+        if get_aa(i) == "q" then    -- this segment is mutable
+            mutable[#mutable + 1] = i
+        end -- if get_aa
+    end -- for j
+    p(#mutable, " mutables found")
+    quickload(mut)
+    ReleaseSaveSlot(mut)
+    deselect_all()
+    return mutable
+end -- function
+
+
+
 s_0 = debug.score()
 p("v", Version)
 p("Starting Score: ", s_0)
 overall = sl.request()
 sl.save(overall)
-check.aacid()
 check.ligand()
+check.aacid()
 check.hydro()
 if b_predict then
     predict.getdata()
