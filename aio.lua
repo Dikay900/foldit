@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1124"
+Version     = "1125"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -28,7 +28,7 @@ b_predict       = false     -- false    reset and predict then the secondary str
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
-b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = true     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -96,24 +96,27 @@ sc_changed  = true
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
-assert          = nil
-error           = nil
-debug           = nil
-math            = nil
+assert  = nil
+error   = nil
+debug   = nil
+math    = nil
+table   = nil
 --Securing#
 
 --#Optimizing
-p               = print
+p   = print
 
 reset =
-{   best    = restore_abs_best,
+{   -- renaming
+    best    = restore_abs_best,
     score   = reset_recent_best,
     recent  = restore_recent_best,
     puzzle  = reset_puzzle
 }
 
 band =
-{   add         = band_add_segment_segment,
+{   -- renaming
+    add         = band_add_segment_segment,
     length      = band_set_length,
     strength    = band_set_strength,
     disable     = band_disable,
@@ -122,14 +125,16 @@ band =
 }
 
 wiggle =
-{   _local      = do_local_wiggle,
+{   -- renaming
+    _local      = do_local_wiggle,
     all         = do_global_wiggle_all,
     sidechains  = do_global_wiggle_sidechains,
     backbone    = do_global_wiggle_backbone
 }
 
 deselect =
-{   index   = deselect_index,
+{   -- renaming
+    index   = deselect_index,
     all     = deselect_all
 }
 
@@ -144,16 +149,18 @@ local function _freeze(f)
 end -- function
 
 do_ =
-{   shake       = do_shake,
+{   freeze      = _freeze,
+    -- renaming
+    shake       = do_shake,
     rebuild     = do_local_rebuild,
     mutate      = do_mutate,
     snap        = do_sidechain_snap,
-    freeze      = _freeze,
     unfreeze    = do_unfreeze_all
 }
 
 set =
-{   cl          = set_behavior_clash_importance,
+{   -- renaming
+    cl          = set_behavior_clash_importance,
     ss          = replace_ss,
     aa          = replace_aa
 }
@@ -184,9 +191,9 @@ debug =
 --Debug#
 
 --#Amino
-amino_segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
-amino_part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7, vdw_vol = 8}
-amino_table     = {
+local _segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
+local _part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7, vdw_vol = 8}
+local _table     = {
   -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw vol }
     ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67      },
     ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05,   86      },
@@ -208,42 +215,49 @@ amino_table     = {
     ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00,   105     },
     ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89,   163     },
     ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141     }
+--[[['b'] = {'Asx', 'Asparagine or Aspartic acid'},
+    ['j'] = {'Xle', 'Leucine or Isoleucine'},
+    ['o'] = {'Pyl', 'Pyrrolysine'},
+    ['u'] = {'Sec', 'Selenocysteine'},
+    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
+    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
+  ]]
 }
 
 local function _short(seg)
-    return amino_table[aa[seg]][amino_part.short]
+    return amino.table[aa[seg]][amino.part.short]
 end
 
 local function _abbrev(seg)
-    return amino_table[aa[seg]][amino_part.abbrev]
+    return amino.table[aa[seg]][amino.part.abbrev]
 end
 
 local function _long(seg)
-    return amino_table[aa[seg]][amino_part.longname]
+    return amino.table[aa[seg]][amino.part.longname]
 end
 
 local function _h(seg)
-    return amino_table[aa[seg]][amino_part.hydro]
+    return amino.table[aa[seg]][amino.part.hydro]
 end
 
 local function _hscale(seg)
-    return amino_table[aa[seg]][amino_part.scale]
+    return amino.table[aa[seg]][amino.part.scale]
 end
 
 local function _pref(seg)
-    return amino_table[aa[seg]][amino_part.pref]
+    return amino.table[aa[seg]][amino.part.pref]
 end
 
 local function _mol(seg)
-    return amino_table[aa[seg]][amino_part.mol]
+    return amino.table[aa[seg]][amino.part.mol]
 end
 
 local function _pl(seg)
-    return amino_table[aa[seg]][amino_part.pl]
+    return amino.table[aa[seg]][amino.part.pl]
 end
 
 local function _vdw_radius(seg)
-    return ((amino_table[aa[seg]][amino_part.vdw_vol] * 3 / 4) / 3.14159) ^ (1 / 3)
+    return ((amino.table[aa[seg]][amino.part.vdw_vol] * 3 / 4) / 3.14159) ^ (1 / 3)
 end
 
 amino =
@@ -255,7 +269,10 @@ amino =
     preffered   = _pref,
     size        = _mol,
     charge      = _pl,
-    vdw_radius  = _vdw_radius
+    vdw_radius  = _vdw_radius,
+    part        = _part,
+    seg         = _segs,
+    table       = _table
 }
 
 --#Calculations
@@ -459,10 +476,40 @@ local function _increase(sc1, sc2, slot, step)
     end -- if
 end
 
+local function _mutable()
+    reset.score()
+    local mutable = {}
+    local isG = {}
+    local i
+    local j
+    select.all()
+    set.aa("g")
+    for i = 1, numsegs do
+        if aa[i] == "g" then
+            isG[#isG + 1] = i
+        end -- if aa
+    end -- for i
+    set.aa("q")
+    for j = 1, #isG do
+        i = isG[j]
+        if aa[i] == "q" then
+            mutable[#mutable + 1] = i
+        end -- if aa
+    end -- for j
+    p(#mutable, " mutables found")
+    reset.recent()
+    deselect.all()
+    return mutable
+end -- function
+
 get =
 {   dists       = _dists,
     sphere      = _sphere,
     center      = _center,
+    segs        = _segs,
+    increase    = _increase,
+    mutable     = _mutable,
+    -- renaming
     distance    = get_segment_distance,
     score       = get_score,
     ranked      = get_ranked_score,
@@ -474,9 +521,7 @@ get =
     seg_count   = get_segment_count,
     band_count  = get_band_count,
     hydrophobic = is_hydrophobic,
-    snapcount   = get_sidechain_snap_count,
-    segs        = _segs,
-    increase    = _increase
+    snapcount   = get_sidechain_snap_count
 }
 --Getters#
 
@@ -495,6 +540,7 @@ end -- function
 sl =
 {   release = _release,
     request = _request,
+    -- renaming
     save    = quicksave,
     load    = quickload
 }
@@ -600,7 +646,6 @@ check =
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
-    p("Fuzing Method ", option)
     p("cl1 ", cl1, ", cl2 ", cl2)
     reset.score()
     if option == 1 then
@@ -612,8 +657,8 @@ local function _loss(option, cl1, cl2)
         work.gain("wa", 1)
         reset.recent()
         local qs2 = debug.score()
-        if qs2 > qs1 then
-            fuze.loss(1, cl1, cl2)
+        if qs2 - qs1 > i_score_step then
+            return fuze.loss(1, cl1, cl2)
         end -- if
     elseif option == 2 then
         p("Blue Fuse cl1-s; cl2-s;")
@@ -654,12 +699,12 @@ local function _start(slot)
     sl_f = sl.request()
     local s_f1 = debug.score()
     sl.save(sl_f)
+    fuze.part(4, 0.1, 0.6)
     if not b_fast_fuze then
         fuze.part(1, 0.1, 0.4)
         fuze.part(2, 0.05, 0.07)
         fuze.part(3, 0.1, 0.7)
     end
-    fuze.part(4, 0.1, 0.6)
     sl.load(sl_f)
     local s_f2 = debug.score()
     sl.release(sl_f)
@@ -1656,36 +1701,6 @@ function mutate()
 end
 --Mutate#
 
-function FindMutable()
-    p("Finding mutable segments -- programm will get stuck a bit")
-    local mut = RequestSaveSlot()
-    quicksave(mut)
-    local mutable = {}
-    local isG = {}
-    local i
-    select_all()
-    replace_aa("g")                 -- all mutable segments are set to "g"
-    for i = 1, numsegs do
-        if get_aa(i) == "g" then    -- find the "g" segments
-            isG[#isG + 1] = i
-        end -- if get_aa
-    end -- for i
-    replace_aa("q")                 -- all mutable segments are set to "q"
-    for j = 1, #isG do
-        i = isG[j]
-        if get_aa(i) == "q" then    -- this segment is mutable
-            mutable[#mutable + 1] = i
-        end -- if get_aa
-    end -- for j
-    p(#mutable, " mutables found")
-    quickload(mut)
-    ReleaseSaveSlot(mut)
-    deselect_all()
-    return mutable
-end -- function
-
-
-
 s_0 = debug.score()
 p("v", Version)
 p("Starting Score: ", s_0)
@@ -1715,6 +1730,9 @@ for i = i_start_seg, i_end_seg do
     seg = i
     if b_snap then
         snap()
+    end
+    if b_mutate then
+        mutate()
     end
     for ii = i_start_walk, i_end_walk do
         r = i + ii
