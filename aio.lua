@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1125"
+Version     = "1126"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -28,7 +28,8 @@ b_predict       = false     -- false    reset and predict then the secondary str
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
-b_mutate        = true     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_cu            = false
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -44,18 +45,19 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 0.5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.2         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false
-b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = true
-b_pp_pull       = false      -- true     hydrophobic segs are pulled together
-b_pp_push       = false
+b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
+b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_local  = false
+b_pp_pull       = true      -- true     hydrophobic segs are pulled together
+b_pp_push       = true
 i_pp_bandperc   = 0.1
 b_pp_fixed      = false     -- false
 i_pp_fix_start  = 0
 i_pp_fix_end    = 0
-b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
-b_pp_centerpush = false
+b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpush = true
 --Pull
 
 --#Fuzing
@@ -76,7 +78,6 @@ b_predict_full  = false     -- try to detect the secondary structure between eve
 --Predicting#
 
 --#Structed rebuilding      default     description
-b_cu            = true
 b_cu_sh         = true
 b_cu_he         = true
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
@@ -271,7 +272,7 @@ amino =
     charge      = _pl,
     vdw_radius  = _vdw_radius,
     part        = _part,
-    seg         = _segs,
+    segs        = _segs,
     table       = _table
 }
 
@@ -293,14 +294,14 @@ local function _calc()
     local hci_table = {}
     local cci_table = {}
     local sci_table = {}
-    for i = 1, #amino_segs do
-        hci_table[amino_segs[i]] = {}
-        cci_table[amino_segs[i]] = {}
-        sci_table[amino_segs[i]] = {}
-        for ii = 1, #amino_segs do
-            hci_table[amino_segs[i]][amino_segs[ii]] = calc.hci(i, ii)
-            cci_table[amino_segs[i]][amino_segs[ii]] = calc.cci(i, ii)
-            sci_table[amino_segs[i]][amino_segs[ii]] = calc.sci(i, ii)
+    for i = 1, #amino.segs do
+        hci_table[amino.segs[i]] = {}
+        cci_table[amino.segs[i]] = {}
+        sci_table[amino.segs[i]] = {}
+        for ii = 1, #amino.segs do
+            hci_table[amino.segs[i]][amino.segs[ii]] = calc.hci(i, ii)
+            cci_table[amino.segs[i]][amino.segs[ii]] = calc.cci(i, ii)
+            sci_table[amino.segs[i]][amino.segs[ii]] = calc.sci(i, ii)
         end -- for ii
     end -- for i
     p("Getting Segment Score out of the Matrix")
@@ -308,7 +309,7 @@ local function _calc()
     for i = 1, numsegs do
         strength[i] = {}
         for ii = i + 2, numsegs - 2 do
-            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]] * 2)
+            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
         end  -- for ii
     end -- for i
 end -- function
@@ -866,7 +867,7 @@ local function _flow(g)
     end -- if
 end -- function
 
-function _quake()
+function _quake(ii)
     local s1
     local s2
     local s3 = debug.score()
@@ -880,7 +881,12 @@ function _quake()
     else
         select.segs()
     end
-    if b_pp_pre_local then
+    if b_solo_quake then
+        band.disable()
+        band.enable(ii)
+        s3 = math.floor(s3 / bands * 10, 4)
+        strength = math.floor(strength * bands / 10, 4)
+    elseif b_pp_pre_local then
         s3 = math.floor(s3 / bands, 4)
         strength = math.floor(strength * bands / 8, 4)
     end -- if
@@ -893,9 +899,13 @@ function _quake()
         sl.load(quake2)
         p("Band strength: ", strength)
         s1 = debug.score()
-        for i = 1, bands do
-            band.strength(i, strength)
-        end -- for
+        if b_solo_quake then
+            band.strength(ii, strength)
+        else -- if b_solo
+            for i = 1, bands do
+                band.strength(i, strength)
+            end -- for
+        end -- if b_solo
         reset.score()
         set.cl(0.9)
         wiggle.backbone(1)
@@ -909,7 +919,7 @@ function _quake()
         sl.load(quake)
         s2 = debug.score()
         strength = math.floor(strength * 2 - strength * 10 / 11, 4)
-        if b_pp_pre_local or b_cu then
+        if b_pp_pre_local or b_cu or b_solo_quake then
             strength = math.floor(strength * 2 - strength * 6 / 7, 4)
         end -- if b_solo
         if strength > 10 then
@@ -926,12 +936,27 @@ local function _dist()
     local ps_1 = debug.score()
     sl.save(overall)
     dist = sl.request()
-    sl.save(dist)
-    work.quake()
-    band.delete()
-    fuze.start(dist)
-    ps_2 = debug.score()
-    get.increase(ps_1, ps_2, overall)
+    local bandcount = get.band_count()
+    if b_solo_quake then
+        p("Solo quaking enabled")
+        rebuilding = true
+        for ii = 1, bandcount do
+            ps_1 = debug.score()
+            sl.save(dist)
+            work.quake(ii)
+            band.delete(ii)
+            ps_2 = debug.score()
+            get.increase(ps_1, ps_2, overall)
+        end -- for ii
+        rebuilding = false
+    else -- if b_solo_quake
+        sl.save(dist)
+        work.quake()
+        band.delete()
+        fuze.start(dist)
+        ps_2 = debug.score()
+        get.increase(ps_1, ps_2, overall)
+    end -- if b_solo_quake
     sl.release(dist)
 end -- function
 
