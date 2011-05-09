@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1126"
+Version     = "1127"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -45,11 +45,11 @@ b_m_fuze        = true      -- true     fuze a change or just wiggling out (coul
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 0.2         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
-b_pp_local      = false
-b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
+i_pp_loss       = 0.25         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+b_pp_local      = true
+b_solo_quake    = true     -- false    just one band is used on every method and all bands are tested
 b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = false
+b_pp_pre_local  = true
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
 b_pp_push       = true
 i_pp_bandperc   = 0.1
