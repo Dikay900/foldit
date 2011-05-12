@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1129"
+Version     = "1130"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -85,7 +85,7 @@ b_cu_sh         = true      -- true
 b_cu_he         = true      -- true
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
-b_re_he         = true      -- true     should we rebuild helices
+b_re_he         = false      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
 b_str_re_fuze   = false      -- true     should we fuze after one rebuild
 --Structed rebuilding#
@@ -1602,9 +1602,8 @@ function struct_rebuild()
             select.range(seg, r)
             set.cl(0.4)
             wiggle.backbone(1)
+            band.delete()
             set.cl(0)
-            work.rebuild(i_str_re_max_re, i_str_re_re_str)
-            set.cl(1)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
             band.delete()
             if b_str_re_fuze then
@@ -1619,6 +1618,7 @@ function struct_rebuild()
             select.list(he[i])
             set.ss("H")
         end -- for i
+        bonding.comp_sheet()
     end -- if b_re_sh
     sl.save(overall)
     sl.release(str_re_best)
