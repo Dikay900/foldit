@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1130"
+Version     = "1131"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -25,7 +25,7 @@ b_pp            = false     -- false    pull hydrophobic amino acids in differen
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
-b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -1181,10 +1181,14 @@ local function _sheet(_sh)
     end -- for i
 end -- function
 
-local function _comp_sheets()
+local function _comp_sheet()
     for i = 1, #sh - 1 do
-        band.add(sh[i][1], sh[i + 1][1])
-        band.add(sh[i][#sh[i]], sh[i + 1][#sh[i + 1]])
+        band.add(sh[i][1], sh[i + 1][#sh[i + 1]])
+        local bands = get.band_count()
+        band.strength(bands, 2)
+        band.add(sh[i][#sh[i]], sh[i + 1][1])
+        local bands = get.band_count()
+        band.strength(bands, 2)
     end -- for i
 end -- function
 
