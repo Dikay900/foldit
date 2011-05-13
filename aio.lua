@@ -6,25 +6,25 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1133"
+Version     = "1134"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
-i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
-i_start_seg     = 1         -- 1        the first segment to work with
-i_end_seg       = numsegs   -- numsegs  the last segment to work with
+i_maxiter       = 10         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
+i_start_seg     = 44         -- 1        the first segment to work with
+i_end_seg       = 58   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -33,8 +33,8 @@ b_cu            = false     -- false    Do bond the structures and curl it, try 
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01      -- 0.01    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01      -- 0.01    Score will get applied after the score changed this value
+i_score_step    = 0.005      -- 0.01    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.005      -- 0.01    Score will get applied after the score changed this value
 --Scoring#
 
 --#Mutating
@@ -49,6 +49,7 @@ b_comp          = false     -- false    try a pull of the two segments which hav
 i_pp_trys       = 1         -- 1        how often should the pull start over?
 i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
+b_pp_mutate     = true
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = true     -- false
@@ -75,6 +76,7 @@ b_fuze_bf       = true      -- false    Bluefuse only!!! Only recommended at mut
 --b_worst_rebuild = false     -- false    rebuild worst scored parts of the protein | NOT READY YET
 i_max_rebuilds  = 2         -- 2        max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1         -- 1        the iterations a rebuild will do at default, automatically increased if no change in score
+b_re_mutate     = true
 --Rebuilding#
 
 --#Predicting
@@ -953,6 +955,9 @@ local function _dist()
             ps_1 = get.score()
             sl.save(dist)
             work.quake(ii)
+            if b_pp_mutate then
+                do_.mutate(1)
+            end
             band.delete(ii)
             fuze.start(dist)
             ps_2 = get.score()
@@ -1302,6 +1307,9 @@ function rebuild()
     work.rebuild(i_max_rebuilds, i_rebuild_str)
     set.cl(1)
     rs_1 = get.score()
+    if b_re_mutate then
+        do_.mutate(1)
+    end
     p(rs_1 - rs_0)
     fuze.start(sl_re)
     rs_2 = get.score()
