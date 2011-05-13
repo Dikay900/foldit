@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1134"
+Version     = "1135"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -19,9 +19,9 @@ i_end_seg       = 58   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = false     -- false    rebuild | see #Rebuilding
+b_rebuild       = true     -- false    rebuild | see #Rebuilding
 --
-b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
@@ -956,6 +956,7 @@ local function _dist()
             sl.save(dist)
             work.quake(ii)
             if b_pp_mutate then
+                select.all()
                 do_.mutate(1)
             end
             band.delete(ii)
@@ -1308,6 +1309,7 @@ function rebuild()
     set.cl(1)
     rs_1 = get.score()
     if b_re_mutate then
+        select.all()
         do_.mutate(1)
     end
     p(rs_1 - rs_0)
