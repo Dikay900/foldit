@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1132"
+Version     = "1133"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -24,11 +24,11 @@ b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
-b_mutate        = true     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 --Working#
 
@@ -46,21 +46,21 @@ b_m_through     = true
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 3         -- 1        how often should the pull start over?
-i_pp_loss       = 2         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_trys       = 1         -- 1        how often should the pull start over?
+i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = false     -- false
-b_pp_pull       = true      -- true     hydrophobic segs are pulled together
-b_pp_push       = true      -- true
+b_pp_pre_local  = true     -- false
+b_pp_pull       = false      -- true     hydrophobic segs are pulled together
+b_pp_push       = false      -- true
 i_pp_bandperc   = 0.04      -- 0.04
 i_pp_expand     = 4         -- 3
 b_pp_fixed      = false     -- false
 i_pp_fix_start  = 0         -- 0
 i_pp_fix_end    = 0         -- 0
-b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
-b_pp_centerpush = true      -- true
+b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpush = false      -- true
 --Pull
 
 --#Fuzing
@@ -1360,7 +1360,6 @@ end -- function
 local function _getdata()
     local p_he = {}
     local p_sh = {}
-    local p_lo = {}
     local helix
     local sheet
     local loop
@@ -1371,11 +1370,14 @@ local function _getdata()
         loop = false
         if hydro[i] then
             if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if not helix then
+                if aa[i] ~= "p" then
+                    if not helix then
                     helix = true
                     p_he[#p_he + 1] = {}
-                elseif aa[i] ~= "p" then
+                    end
+                else
                     loop = true
+                    helix = false
                 end -- if helix
             elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
                 if not sheet then
@@ -1387,9 +1389,14 @@ local function _getdata()
             end -- hydro i +
         elseif not hydro[i] then
             if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
-                if not helix and aa[i] ~= "p" then
+                if aa[i] ~= "p" then
+                    if not helix then
                     helix = true
                     p_he[#p_he + 1] = {}
+                    end
+                else
+                    loop = true
+                    helix = false
                 end -- if helix
             elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
                 if not sheet then
