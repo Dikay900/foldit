@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1135"
+Version     = "1136"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -14,17 +14,17 @@ numsegs     = get_segment_count()
 --#Settings: default
 --#Working                  default     description
 i_maxiter       = 10         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
-i_start_seg     = 44         -- 1        the first segment to work with
-i_end_seg       = 58   -- numsegs  the last segment to work with
+i_start_seg     = 1         -- 1        the first segment to work with
+i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
-b_rebuild       = true     -- false    rebuild | see #Rebuilding
+b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -33,8 +33,8 @@ b_cu            = false     -- false    Do bond the structures and curl it, try 
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.005      -- 0.01    an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.005      -- 0.01    Score will get applied after the score changed this value
+i_score_step    = 0.01      -- 0.01    an action tries to get this score, then it will repeat itself
+i_score_gain    = 0.01      -- 0.01    Score will get applied after the score changed this value
 --Scoring#
 
 --#Mutating
@@ -49,24 +49,25 @@ b_comp          = false     -- false    try a pull of the two segments which hav
 i_pp_trys       = 1         -- 1        how often should the pull start over?
 i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
-b_pp_mutate     = true
+b_pp_mutate     = false
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
 b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = true     -- false
-b_pp_pull       = false      -- true     hydrophobic segs are pulled together
-b_pp_push       = false      -- true
+b_pp_pre_local  = false     -- false
+b_pp_pull       = true      -- true     hydrophobic segs are pulled together
+b_pp_push       = true      -- true
 i_pp_bandperc   = 0.04      -- 0.04
 i_pp_expand     = 4         -- 3
 b_pp_fixed      = false     -- false
 i_pp_fix_start  = 0         -- 0
 i_pp_fix_end    = 0         -- 0
-b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
-b_pp_centerpush = false      -- true
+b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpush = true      -- true
 --Pull
 
 --#Fuzing
 b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
-b_fuze_bf       = true      -- false    Bluefuse only!!! Only recommended at mutating puzzles
+b_fuze_bf       = false     -- false    Bluefuse only!!! Only recommended at mutating puzzles
+b_work_mut      = true
 --Fuzing#
 
 --#Snapping
@@ -88,7 +89,7 @@ b_cu_sh         = true      -- true
 b_cu_he         = true      -- true
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
-b_re_he         = false      -- true     should we rebuild helices
+b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
 b_str_re_fuze   = false      -- true     should we fuze after one rebuild
 --Structed rebuilding#
@@ -744,7 +745,7 @@ local function _segs(sphered, start, _end, more)
         if sphered then
             if _end then
                 if start ~= _end then
-                    list1 = get.sphere(_end, 10)
+                    list1 = get.sphere(_end, 12)
                     select.list(list1)
                 end -- if ~= end
                 if  start > _end then
@@ -803,6 +804,10 @@ local function _gain(g, cl)
         until s2_f - s1_f < i_score_step
         local s3_f = get.score()
         work.step(false, "s")
+        if b_work_mut then
+            select.all()
+            do_.mutate(1)
+        end
         local s4_f = get.score()
     until s4_f - s3_f < i_score_step
 end
@@ -1812,6 +1817,7 @@ sl.save(overall)
 check.ligand()
 check.aacid()
 check.hydro()
+get.mutated()
 if b_predict then
     predict.getdata()
 end -- if b_predict
@@ -1829,9 +1835,6 @@ if b_pp then
         dists()
     end -- for i
 end -- if b_pp
-if b_mutate then
-    get.mutated()
-end
 for i = i_start_seg, i_end_seg do
     seg = i
     if b_snap then
