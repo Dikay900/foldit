@@ -6,14 +6,14 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1137"
+Version     = "1138"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
-i_maxiter       = 10         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
+i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
 i_end_seg       = numsegs   -- numsegs  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
@@ -21,10 +21,10 @@ i_end_walk      = 4         -- 4        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 --
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -46,7 +46,7 @@ b_m_through     = true
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 1         -- 1        how often should the pull start over?
+i_pp_trys       = 2         -- 1        how often should the pull start over?
 i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_pp_mutate     = false
@@ -55,7 +55,7 @@ b_pp_pre_strong = false      -- true     bands are created which pull segs toget
 b_pp_pre_local  = false     -- false
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
 b_pp_push       = true      -- true
-i_pp_bandperc   = 0.4      -- 0.04
+i_pp_bandperc   = 0.05      -- 0.04
 i_pp_expand     = 1         -- 3
 b_pp_fixed      = false     -- false
 i_pp_fix_start  = 36         -- 0
@@ -613,6 +613,44 @@ local function _struct()
         end -- if loop
     end -- for
 end -- function
+
+local function _same(a, b)
+    get.struct()
+    local bool
+    local a_s
+    local b_s
+    for i = 1, #he do
+        for ii = he[i][1], he[i][#he[i]] do
+            if a == ii then
+                a_s = he[i][1]
+            end
+            if b == ii then
+                b_s = he[i][1]
+            end
+            if a_s == b_s then
+                p(a_s, b_s)
+                p("true")
+                return true
+            end
+        end
+    end
+    if not a_s and not b_s then
+        for i = 1, #sh do
+            for ii = sh[i][1], sh[i][#sh[i]] do
+                if a == ii then
+                    a_s = sh[i][1]
+                end
+                if b == ii then
+                    b_s = sh[i][1]
+                end
+                if b_s == a_s then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end -- function
 --Structurecheck#
 
 get =
@@ -628,6 +666,7 @@ get =
     ligand      = _ligand,
     hydro       = _hydro,
     struct      = _struct,
+    same_struct = _same,
     -- renaming
     distance    = get_segment_distance,
     ss          = get_ss,
@@ -1109,7 +1148,8 @@ local function _pl(_local, bandsp)
         if hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < bandsp then
+                same = get.same_struct(x, y)
+                if hydro[y] and math.random() < bandsp and not same then
                     band.add(x, y)
                 end -- hydro y
             end -- for y
