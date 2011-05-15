@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1136"
+Version     = "1137"
 Release     = false          -- if true this script is probably safe ;)
 numsegs     = get_segment_count()
 --Game vars#
@@ -47,7 +47,7 @@ b_m_through     = true
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_pp_mutate     = false
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
@@ -55,11 +55,11 @@ b_pp_pre_strong = false      -- true     bands are created which pull segs toget
 b_pp_pre_local  = false     -- false
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
 b_pp_push       = true      -- true
-i_pp_bandperc   = 0.04      -- 0.04
-i_pp_expand     = 4         -- 3
+i_pp_bandperc   = 0.4      -- 0.04
+i_pp_expand     = 1         -- 3
 b_pp_fixed      = false     -- false
-i_pp_fix_start  = 0         -- 0
-i_pp_fix_end    = 0         -- 0
+i_pp_fix_start  = 36         -- 0
+i_pp_fix_end    = 44         -- 0
 b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
 b_pp_centerpush = true      -- true
 --Pull
@@ -67,7 +67,7 @@ b_pp_centerpush = true      -- true
 --#Fuzing
 b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 b_fuze_bf       = false     -- false    Bluefuse only!!! Only recommended at mutating puzzles
-b_work_mut      = true
+b_work_mut      = false
 --Fuzing#
 
 --#Snapping
@@ -146,31 +146,20 @@ deselect =
     all     = deselect_all
 }
 
-local function _freeze(f)
-    if f == "b" then
-        do_freeze(true, false)
-    elseif f == "s" then
-        do_freeze(false, true)
-    else -- if
-        do_freeze(true, true)
-    end -- if
-end -- function
-
-do_ =
-{   freeze      = _freeze,
-    -- renaming
-    shake       = do_shake,
-    rebuild     = do_local_rebuild,
-    mutate      = do_mutate,
-    snap        = do_sidechain_snap,
-    unfreeze    = do_unfreeze_all
-}
-
 set =
 {   -- renaming
-    cl          = set_behavior_clash_importance,
-    ss          = replace_ss,
-    aa          = replace_aa
+    cl  = set_behavior_clash_importance,
+    ss  = replace_ss,
+    aa  = replace_aa
+}
+
+score =
+{   -- renaming
+    stab    = get_score,
+    rank    = get_ranked_score,
+    expl    = get_exploration_score,
+    seg     = get_segment_score,
+    segp    = get_segment_score_part
 }
 --Optimizing#
 
@@ -191,34 +180,27 @@ debug =
 local _segs      = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
 local _part      = { short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7, vdw_vol = 8}
 local _table     = {
-  -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw vol }
-    ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67      },
-    ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05,   86      },
-    ['d'] = {'Asp', 'Aspartic acid',    false,      6.7,    'L',    133.10384,  2.85,   91      },
-    ['e'] = {'Glu', 'Glutamic acid',    false,      8.1,    'H',    147.13074,  3.15,   109     },
-    ['f'] = {'Phe', 'Phenylalanine',    true,       -6.3,   'E',    165.19184,  5.49,   135     },
-    ['g'] = {'Gly', 'Glycine',          true,       1.7,    'L',    75.06714,   6.06,   48      },
-    ['h'] = {'His', 'Histidine',        false,      -5.6,   nil,    155.15634,  7.60,   118     },
-    ['i'] = {'Ile', 'Isoleucine',       true,       -2.4,   'E',    131.17464,  6.05,   124     },
-    ['k'] = {'Lys', 'Lysine',           false,      6.5,    'H',    146.18934,  9.60,   135     },
-    ['l'] = {'Leu', 'Leucine',          true,       1,      'H',    131.17464,  6.01,   124     },
-    ['m'] = {'Met', 'Methionine',       true,       3.4,    'H',    149.20784,  5.74,   124     },
-    ['n'] = {'Asn', 'Asparagine',       false,      8.9,    'L',    132.11904,  5.41,   96      },
-    ['p'] = {'Pro', 'Proline',          true,       -0.2,   'L',    115.13194,  6.30,   90      },
-    ['q'] = {'Gln', 'Glutamine',        false,      9.7,    'H',    146.14594,  5.65,   114     },
-    ['r'] = {'Arg', 'Arginine',         false,      9.8,    'H',    174.20274,  10.76,  148     },
-    ['s'] = {'Ser', 'Serine',           false,      3.7,    'L',    105.09344,  5.68,   73      },
-    ['t'] = {'Thr', 'Threonine',        false,      2.7,    'E',    119.12034,  5.60,   93      },
-    ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00,   105     },
-    ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89,   163     },
-    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141     }
---[[['b'] = {'Asx', 'Asparagine or Aspartic acid'},
-    ['j'] = {'Xle', 'Leucine or Isoleucine'},
-    ['o'] = {'Pyl', 'Pyrrolysine'},
-    ['u'] = {'Sec', 'Selenocysteine'},
-    ['x'] = {'Xaa', 'Unspecified or unknown amino acid'},
-    ['z'] = {'Glx', 'Glutamine or glutamic acid'}
-  ]]
+  -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw }
+    ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67  },
+    ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05,   86  },
+    ['d'] = {'Asp', 'Aspartic acid',    false,      6.7,    'L',    133.10384,  2.85,   91  },
+    ['e'] = {'Glu', 'Glutamic acid',    false,      8.1,    'H',    147.13074,  3.15,   109 },
+    ['f'] = {'Phe', 'Phenylalanine',    true,       -6.3,   'E',    165.19184,  5.49,   135 },
+    ['g'] = {'Gly', 'Glycine',          true,       1.7,    'L',    75.06714,   6.06,   48  },
+    ['h'] = {'His', 'Histidine',        false,      -5.6,   nil,    155.15634,  7.60,   118 },
+    ['i'] = {'Ile', 'Isoleucine',       true,       -2.4,   'E',    131.17464,  6.05,   124 },
+    ['k'] = {'Lys', 'Lysine',           false,      6.5,    'H',    146.18934,  9.60,   135 },
+    ['l'] = {'Leu', 'Leucine',          true,       1,      'H',    131.17464,  6.01,   124 },
+    ['m'] = {'Met', 'Methionine',       true,       3.4,    'H',    149.20784,  5.74,   124 },
+    ['n'] = {'Asn', 'Asparagine',       false,      8.9,    'L',    132.11904,  5.41,   96  },
+    ['p'] = {'Pro', 'Proline',          true,       -0.2,   'L',    115.13194,  6.30,   90  },
+    ['q'] = {'Gln', 'Glutamine',        false,      9.7,    'H',    146.14594,  5.65,   114 },
+    ['r'] = {'Arg', 'Arginine',         false,      9.8,    'H',    174.20274,  10.76,  148 },
+    ['s'] = {'Ser', 'Serine',           false,      3.7,    'L',    105.09344,  5.68,   73  },
+    ['t'] = {'Thr', 'Threonine',        false,      2.7,    'E',    119.12034,  5.60,   93  },
+    ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00,   105 },
+    ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89,   163 },
+    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141 }
 }
 
 local function _short(seg)
@@ -254,7 +236,7 @@ local function _pl(seg)
 end
 
 local function _vdw_radius(seg)
-    return ((amino.table[aa[seg]][amino.part.vdw_vol] * 3 / 4) / 3.14159) ^ (1 / 3)
+    return (amino.table[aa[seg]][amino.part.vdw_vol] * 3 / 4 / 3.14159) ^ (1 / 3)
 end
 
 amino =
@@ -273,16 +255,16 @@ amino =
 }
 
 --#Calculations
-local function _HCI(seg_a, seg_b) -- hydropathy
-    return 20 - math.abs((amino.hydroscale(seg_a) - amino.hydroscale(seg_b)) * 19/10.6)
+local function _HCI(a, b) -- hydropathy
+    return 20 - math.abs((amino.hydroscale(a) - amino.hydroscale(b)) * 19 / 10.6)
 end
 
-local function _SCI(seg_a, seg_b) -- size
-    return 20 - math.abs((amino.size(seg_a) + amino.size(seg_b) - 123) * 19/135)
+local function _SCI(a, b) -- size
+    return 20 - math.abs((amino.size(a) + amino.size(b) - 123) * 19 / 135)
 end
 
-local function _CCI(seg_a, seg_b) -- charge
-    return 11 - (amino.charge(seg_a) - 7) * (amino.charge(seg_b) - 7) * 19/33.8
+local function _CCI(a, b) -- charge
+    return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
 end
 
 local function _calc()
@@ -368,7 +350,7 @@ end -- function
 local function _randomseed(x)
     if x then
         lngX = x
-    end
+    end -- if
 end -- function
 
 local function _random(m, n)
@@ -402,6 +384,29 @@ math =
 }
 --Math library#
 
+--#Saveslot manager
+local function _release(slot)
+    sls[#sls + 1] = slot
+end -- function
+
+local function _request()
+    debug.assert(#sls > 0, "Out of save slots")
+    local slot = sls[#sls]
+    sls[#sls] = nil
+    return slot
+end -- function
+
+sl =
+{   release = _release,
+    request = _request,
+    -- renaming
+    save    = quicksave,
+    load    = quickload
+}
+--Saveslot manager#
+--External functions#
+
+--#Internal functions
 --#Getters
 local function _dists()
     distances = {}
@@ -481,14 +486,14 @@ local function _mutable()
     local j
     select.all()
     set.aa("a")
-    check.aacid()
+    get.aacid()
     for i = 1, numsegs do
         if aa[i] == "a" then
             isA[#isA + 1] = i
         end -- if aa
     end -- for i
     set.aa("g")
-    check.aacid()
+    get.aacid()
     for j = 1, #isA do
         i = isA[j]
         if aa[i] == "g" then
@@ -496,75 +501,36 @@ local function _mutable()
         end -- if aa
     end -- for j
     p(#mutable, " mutables found")
+    if #mutable == 0 then
+        b_mutables  = false
+    else
+        b_mutables = true
+    end
     reset.recent()
-    check.aacid()
+    get.aacid()
     deselect.all()
 end -- function
 
 local function _score()
     local s = 0
     if b_explore then
-        s = get.ranked(true)
+        s = score.rank(true)
     else -- if
-        s = get.stability(true)
+        s = score.stab(true)
     end -- if
     return s
 end -- function
 
-get =
-{   dists       = _dists,
-    sphere      = _sphere,
-    center      = _center,
-    segs        = _segs,
-    increase    = _increase,
-    mutated     = _mutable,
-    score       = _score,
-    -- renaming
-    distance    = get_segment_distance,
-    stability   = get_score,
-    ranked      = get_ranked_score,
-    expscore    = get_exploration_score,
-    seg_score   = get_segment_score,
-    seg_part    = get_segment_score_part,
-    ss          = get_ss,
-    aa          = get_aa,
-    seg_count   = get_segment_count,
-    band_count  = get_band_count,
-    hydrophobic = is_hydrophobic,
-    snapcount   = get_sidechain_snap_count
-}
---Getters#
-
---#Saveslot manager
-local function _release(slot)
-    sls[#sls + 1] = slot
-end -- function
-
-local function _request()
-    debug.assert(#sls > 0, "Out of save slots")
-    local slot = sls[#sls]
-    sls[#sls] = nil
-    return slot
-end -- function
-
-sl =
-{   release = _release,
-    request = _request,
-    -- renaming
-    save    = quicksave,
-    load    = quickload
-}
---Saveslot manager#
---External functions#
-
---#Internal functions
---#Checks
 --#Hydrocheck
-local function _hydro()
-    hydro = {}
-    for i = 1, numsegs do
-        hydro[i] = get.hydrophobic(i)
-    end -- for i
+local function _hydro(s)
+    if s then
+        hydro[s] = get.hydrophobic(s)
+    else -- if
+        hydro = {}
+        for i = 1, numsegs do
+            hydro[i] = get.hydrophobic(i)
+        end -- for i
+    end -- if
 end -- function
 --Hydrocheck#
 
@@ -574,7 +540,7 @@ local function _ligand()
         numsegs = numsegs - 1
         if i_end_seg == numsegs + 1 then
             i_end_seg = numsegs
-        end
+        end -- if i_end_seg
     end -- if get.ss
 end -- function
 --Ligand Check#
@@ -587,15 +553,19 @@ local function _ss()
     end -- for i
 end -- function
 
-local function _aa()
-    aa = {}
-    for i = 1, numsegs do
-        aa[i] = get.aa(i)
-    end -- for i
+local function _aa(s)
+    if s then
+        aa[s] = get.aa(s)
+    else -- if
+        aa = {}
+        for i = 1, numsegs do
+            aa[i] = get.aa(i)
+        end -- for i
+    end -- if
 end -- function
 
 local function _struct()
-    check.secstr()
+    get.secstr()
     p("Detecting structures of the protein")
     local helix
     local sheet
@@ -645,14 +615,67 @@ local function _struct()
 end -- function
 --Structurecheck#
 
-check =
-{   secstr = _ss,
-    aacid   = _aa,
-    ligand  = _ligand,
-    hydro   = _hydro,
-    struct  = _struct
+get =
+{   dists       = _dists,
+    sphere      = _sphere,
+    center      = _center,
+    segs        = _segs,
+    increase    = _increase,
+    mutated     = _mutable,
+    score       = _score,
+    secstr      = _ss,
+    aacid       = _aa,
+    ligand      = _ligand,
+    hydro       = _hydro,
+    struct      = _struct,
+    -- renaming
+    distance    = get_segment_distance,
+    ss          = get_ss,
+    aa          = get_aa,
+    segcount    = get_segment_count,
+    bandcount   = get_band_count,
+    hydrophobic = is_hydrophobic,
+    snapcount   = get_sidechain_snap_count
 }
---Checks#
+--Getters#
+
+--#Doers
+local function _freeze(f)
+    if f == "b" then
+        do_freeze(true, false)
+    elseif f == "s" then
+        do_freeze(false, true)
+    else -- if
+        do_freeze(true, true)
+    end -- if
+end -- function
+
+local function _mutate(mut, aa)
+    local sc_mut1 = get.score()
+    select.segs(false, mutable[mut])
+    set.aa(amino.segs[aa])
+    get.aacid()
+    p(#amino.segs - aa, " Mutations left")
+    p("Mutating seg ", mutable[mut], " to ", amino.long(mutable[mut]))
+    if b_m_fuze then
+        fuze.start(sl_mut)
+    else
+        fuze.start(sl_mut, true)
+    end
+    local sc_mut2 = get.score()
+    get.increase(sc_mut1, sc_mut2, overall)
+end -- function
+
+do_ =
+{   freeze      = _freeze,
+    mutate      = _mutate,
+    -- renaming
+    shake       = do_shake,
+    rebuild     = do_local_rebuild,
+    snap        = do_sidechain_snap,
+    unfreeze    = do_unfreeze_all
+}
+--Doers#
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
@@ -806,7 +829,7 @@ local function _gain(g, cl)
         work.step(false, "s")
         if b_work_mut then
             select.all()
-            do_.mutate(1)
+            do_mutate(1)
         end
         local s4_f = get.score()
     until s4_f - s3_f < i_score_step
@@ -887,9 +910,9 @@ end -- function
 function _quake(ii)
     local s1
     local s2
-    local s3 = math.floor(math.abs(get.score() / 100 * i_pp_loss), 4)
+    local s3 = math.floor(math.abs(get.score() / 50 * i_pp_loss), 4)
     local strength = 0.075 + 0.125 * i_pp_loss
-    local bands = get.band_count()
+    local bands = get.bandcount()
     local quake = sl.request()
     local quake2 = sl.request()
     if seg or r then
@@ -901,7 +924,7 @@ function _quake(ii)
         band.disable()
         band.enable(ii)
         s3 = math.floor(s3 / bands * 10, 4)
-        strength = math.floor(strength * bands / 10, 4)
+        strength = math.floor(strength * bands / 5, 4)
     elseif b_pp_pre_local then
         s3 = math.floor(s3 / bands, 4)
         strength = math.floor(strength * bands / 8, 4)
@@ -952,7 +975,7 @@ local function _dist()
     local ps_1 = get.score()
     sl.save(overall)
     dist = sl.request()
-    local bandcount = get.band_count()
+    local bandcount = get.bandcount()
     if b_solo_quake then
         p("Solo quaking enabled")
         rebuilding = true
@@ -962,7 +985,7 @@ local function _dist()
             work.quake(ii)
             if b_pp_mutate then
                 select.all()
-                do_.mutate(1)
+                do_mutate(1)
             end
             band.delete(ii)
             fuze.start(dist)
@@ -1039,7 +1062,7 @@ local function _cps(_local)
             if not hydro[i] then
                 if distances[x][y] <= (20 - i_pp_expand) then
                     band.add(x, y)
-                    local cband = get.band_count()
+                    local cband = get.bandcount()
                     band.length(cband, distances[x][y] + i_pp_expand)
                 end
             end -- if hydro
@@ -1056,7 +1079,7 @@ local function _ps(_local, bandsp)
                 if not hydro[y] and math.random() <= bandsp then
                     if distances[x][y] <= (20 - i_pp_expand) then
                         band.add(x, y)
-                        local cband = get.band_count()
+                        local cband = get.bandcount()
                         band.length(cband, distances[x][y] + i_pp_expand)
                     end
                 end
@@ -1186,7 +1209,7 @@ local function _sheet(_sh)
     for i = 1, _end do
         for ii = 1, #sh[i] - 2 do
             band.add(sh[i][ii], sh[i][ii] + 2)
-            local bands = get.band_count()
+            local bands = get.bandcount()
             band.strength(bands, 2)
             band.length(bands, 15)
         end -- for ii
@@ -1196,10 +1219,10 @@ end -- function
 local function _comp_sheet()
     for i = 1, #sh - 1 do
         band.add(sh[i][1], sh[i + 1][#sh[i + 1]])
-        local bands = get.band_count()
+        local bands = get.bandcount()
         band.strength(bands, 2)
         band.add(sh[i][#sh[i]], sh[i + 1][1])
-        local bands = get.band_count()
+        local bands = get.bandcount()
         band.strength(bands, 2)
     end -- for i
 end -- function
@@ -1315,7 +1338,7 @@ function rebuild()
     rs_1 = get.score()
     if b_re_mutate then
         select.all()
-        do_.mutate(1)
+        do_mutate(1)
     end
     p(rs_1 - rs_0)
     fuze.start(sl_re)
@@ -1478,7 +1501,7 @@ local function _getdata()
 end
 
 local function _combine()
-    check.struct()
+    get.struct()
     for i = 1, numsegs do
         if ss[i] == "L" then
             if aa[i] ~= "p" then
@@ -1513,7 +1536,7 @@ predict =
 
 function struct_curler()
     str_re_best = sl.request()
-    check.struct()
+    get.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     if b_cu_he then
         for i = 1, #he do
@@ -1556,7 +1579,7 @@ function struct_rebuild()
     local str_rs
     local str_rs2
     str_re_best = sl.request()
-    check.struct()
+    get.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     if b_re_he then
         for i = 1, #sh do
@@ -1699,14 +1722,14 @@ function mutate()
             sl_mut = sl.request()
             sl.save(sl_mut)
             set.aa(amino.segs[i])
-            check.aacid()
+            get.aacid()
             p(#amino.segs - i, " Mutations left")
             p("Mutating all segments to ", amino.long(mutable[1]))
             fuze.start(sl_mut, true)
             repeat
                 repeat
                     mut_1 = get.score()
-                    do_.mutate(1)
+                    do_mutate(1)
                 until get.score() - mut_1 < 0.01
                 mut_1 = get.score()
                 fuze.start(sl_mut, true)
@@ -1725,36 +1748,12 @@ function mutate()
         for i = 15, #mutable do
             for ii = 1, #amino.segs do
                 sl.load(sl_mut)
-                sc_mut1 = get.score()
-                select.segs(false, mutable[i])
-                set.aa(amino.segs[ii])
-                check.aacid()
-                p(#amino.segs - ii, " Mutations left")
-                p("Mutating seg ", mutable[i], " to ", amino.long(mutable[i]))
-                if b_m_fuze then
-                    fuze.start(sl_mut)
-                else
-                    fuze.start(sl_mut, true)
-                end
-                sc_mut2 = get_score()
-                get.increase(sc_mut1, sc_mut2, overall)
+                do_.mutate(i, ii)
                 for iii = 1, #mutable do
                     if iii ~= i then
-                    for iiii = 1, #amino.segs do
-                        sc_mut1 = get.score()
-                        select.segs(false, mutable[iii])
-                        set.aa(amino.segs[iiii])
-                        check.aacid()
-                        p(#amino.segs - iiii, " Mutations left")
-                        p("Mutating seg ", mutable[iii], " to ", amino.long(mutable[iii]))
-                        if b_m_fuze then
-                            fuze.start(sl_mut)
-                        else
-                            fuze.start(sl_mut, true)
+                        for iiii = 1, #amino.segs do
+                        do_.mutate(iii, iiii)
                         end
-                        sc_mut2 = get_score()
-                        get.increase(sc_mut1, sc_mut2, overall)
-                    end
                     end
                 end
             end
@@ -1776,7 +1775,7 @@ function mutate()
             if get.aa(seg) ~= amino.segs[i] then
                 select.segs(false, seg)
                 set.aa(amino.segs[i])
-                check.aacid()
+                get.aacid()
                 s_mut = get.score()
                 p("Mutated: ", seg, " to ", amino.abbrev(seg), " - " , amino.long(seg))
                 p(#amino.segs - i, " mutations left...")
@@ -1814,9 +1813,9 @@ p("v", Version)
 p("Starting Score: ", s_0)
 overall = sl.request()
 sl.save(overall)
-check.ligand()
-check.aacid()
-check.hydro()
+get.ligand()
+get.aacid()
+get.hydro()
 get.mutated()
 if b_predict then
     predict.getdata()
