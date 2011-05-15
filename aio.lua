@@ -6,9 +6,9 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version     = "1138"
-Release     = false          -- if true this script is probably safe ;)
-numsegs     = get_segment_count()
+Version = "1139"
+Release = false             -- if true this script is probably safe ;)
+numsegs = get_segment_count()
 --Game vars#
 
 --#Settings: default
@@ -20,16 +20,15 @@ i_start_walk    = 0         -- 0        with how many segs shall we work - Walke
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
---
-b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
-b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_snap          = false     -- false    should we snap every sidechain to different positions
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
+b_snap          = false     -- false    should we snap every sidechain to different positions
+b_fuze          = false     -- false    should we fuze | see #Fuzing
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
-b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -51,15 +50,15 @@ i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the gener
 b_pp_local      = false     -- false
 b_pp_mutate     = false
 b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
-b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false     -- false
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
 b_pp_push       = true      -- true
-i_pp_bandperc   = 0.05      -- 0.04
-i_pp_expand     = 1         -- 3
+i_pp_bandperc   = 0.04      -- 0.04
+i_pp_expand     = 2         -- 2
 b_pp_fixed      = false     -- false
-i_pp_fix_start  = 36         -- 0
-i_pp_fix_end    = 44         -- 0
+i_pp_fix_start  = 0         -- 0
+i_pp_fix_end    = 0         -- 0
 b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
 b_pp_centerpush = true      -- true
 --Pull
@@ -67,7 +66,7 @@ b_pp_centerpush = true      -- true
 --#Fuzing
 b_fast_fuze     = false     -- false    not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 b_fuze_bf       = false     -- false    Bluefuse only!!! Only recommended at mutating puzzles
-b_work_mut      = false
+b_fuze_mut      = false
 --Fuzing#
 
 --#Snapping
@@ -84,9 +83,12 @@ b_re_mutate     = true
 b_predict_full  = false     -- try to detect the secondary structure between every segment, there can be less loops but the protein become impossible to rebuild
 --Predicting#
 
---#Structed rebuilding      default     description
+--#Curler
 b_cu_sh         = true      -- true
 b_cu_he         = true      -- true
+--Curler#
+
+--#Structed rebuilding      default     description
 i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
@@ -101,6 +103,7 @@ rebuilding  = false
 snapping    = false
 mutating    = false
 sc_changed  = true
+b_mutable   = false
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -866,7 +869,7 @@ local function _gain(g, cl)
         until s2_f - s1_f < i_score_step
         local s3_f = get.score()
         work.step(false, "s")
-        if b_work_mut then
+        if b_fuze_mut then
             select.all()
             do_mutate(1)
         end
