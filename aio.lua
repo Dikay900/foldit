@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1140"
+Version = "1141"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -730,17 +730,12 @@ local function _loss(option, cl1, cl2)
         work.step(false, "wa", 1, cl2)
         work.gain("wa", 1)
     elseif option == 2 then
-        local qs1 = get.score()
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
         work.step(false, "s", 1, 1)
         work.gain("wa", 1)
         reset.recent()
-        local qs2 = get.score()
-        if qs2 - qs1 > i_score_step then
-            return fuze.loss(2, cl1, cl2)
-        end -- if
     else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
         work.step(false, "s", 1, cl1)
@@ -763,26 +758,32 @@ local function _part(option, cl1, cl2)
 end -- function
 
 local function _start(slot, fast)
-    p("Started Fuzing")
+    p("Fuzing")
     sl_f = sl.request()
     local s_f1 = get.score()
     sl.save(sl_f)
     if b_fuze_bf then
-        fuze.part(3, 0.05, 0.07)
+        repeat
+            local qs1 = get.score()
+            fuze.part(3, 0.05, 0.07)
+            local qs2 = get.score()
+        until qs2 - qs1 < i_score_step
     else
         fuze.part(1, 0.1, 0.6)
         if not b_fast_fuze and not fast then
-            fuze.part(3, 0.05, 0.07)
-            fuze.part(2, 0.1, 0.4)
+            repeat
+                local qs1 = get.score()
+                fuze.part(3, 0.05, 0.07)
+                fuze.part(2, 0.1, 0.4)
+                local qs2 = get.score()
+            until qs2 - qs1 < i_score_step
         end
     end
     sl.load(sl_f)
     local s_f2 = get.score()
     sl.release(sl_f)
+    p("++ Fuzing gained ++")
     get.increase(s_f1, s_f2, slot)
-    p("++ Fuzing gained ", s_f2 - s_f1, "++")
-    p("==", s_f2, "==")
-    p("Fuzing ended")
 end -- function
 
 fuze =
@@ -794,21 +795,19 @@ fuze =
 
 --#Universal select
 local function _segs(sphered, start, _end, more)
-    local list1
     if not more then
         deselect.all()
     end -- if more
     if start then
         if sphered then
+            local list1
             if _end then
                 if start ~= _end then
                     list1 = get.sphere(_end, 12)
                     select.list(list1)
                 end -- if ~= end
                 if  start > _end then
-                    local _start = _end
-                    _end = start
-                    start = _start
+                    start, _end = _end, start
                 end -- if > end
                 select.range(start, _end)
             end
@@ -816,9 +815,7 @@ local function _segs(sphered, start, _end, more)
             select.list(list1)
         elseif _end and start ~= _end then
             if start > _end then
-                local _start = _end
-                _end = start
-                start = _start
+                start, _end = _end, start
             end -- if > end
             select.range(start, _end)
         else -- if sphered
@@ -875,7 +872,7 @@ local function _step(sphered, _g, iter, cl)
     end -- if
     if rebuilding and _g == "s" or snapping and _g == "s" or sphered then
         select.segs(true, seg, r)
-    else -- if rebuiling
+    else -- if rebuilding
         select.segs()
     end -- if rebuilding
     if _g == "wa" then
@@ -942,9 +939,13 @@ local function _flow(g)
 end -- function
 
 function _quake(ii)
-    local s1
-    local s2
-    local s3 = math.floor(math.abs(get.score() / 50 * i_pp_loss), 4)
+    local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
+    if s3 < 0 then
+        band.disable()
+        fuze.start()
+        band.enable()
+        local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
+    end
     local strength = 0.075 + 0.125 * i_pp_loss
     local bands = get.bandcount()
     local quake = sl.request()
@@ -958,7 +959,7 @@ function _quake(ii)
         band.disable()
         band.enable(ii)
         s3 = math.floor(s3 / bands * 10, 4)
-        strength = math.floor(strength * bands / 5, 4)
+        strength = math.floor(strength * bands / 4, 4)
     elseif b_pp_pre_local then
         s3 = math.floor(s3 / bands, 4)
         strength = math.floor(strength * bands / 8, 4)
@@ -971,7 +972,7 @@ function _quake(ii)
     repeat
         sl.load(quake2)
         p("Band strength: ", strength)
-        s1 = get.score()
+        local s1 = get.score()
         if b_solo_quake then
             band.strength(ii, strength)
         else -- if b_solo
@@ -984,13 +985,13 @@ function _quake(ii)
         wiggle.backbone(1)
         sl.save(quake)
         reset.recent()
-        s2 = get.score()
+        local s2 = get.score()
         if s2 > s1 then
             reset.recent()
             sl.save(quake2)
         end -- if >
         sl.load(quake)
-        s2 = get.score()
+        local s2 = get.score()
         strength = math.floor(strength * 2 - strength * 10 / 11, 4)
         if b_pp_pre_local or b_cu or b_solo_quake then
             strength = math.floor(strength * 2 - strength * 6 / 7, 4)
@@ -1039,13 +1040,11 @@ local function _dist()
 end -- function
 
 local function _rebuild(trys, str)
-    local re1
-    local re2
     local iter = 1
     for i = 1, trys do
         p("Try ", i, "/", trys)
-        re1 = get.score()
-        re2 = re1
+        local re1 = get.score()
+        local re2 = re1
         while re1 == re2 do
             do_.rebuild(iter * str)
             iter = iter + 1
