@@ -1,12 +1,12 @@
 --[[#Header
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
 Thanks and Credits for external functions and ideas goes to Rav3n_pl, Tlaloc and Gary Forbis
-Special thanks goes to Seagat2011
+Special thanks goes to Seagat
 see http://www.github.com/Darkknight900/foldit/ for latest version of this script
 ]]
 
 --#Game vars
-Version = "1139"
+Version = "1140"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -45,11 +45,11 @@ b_m_through     = true
 
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
-i_pp_trys       = 2         -- 1        how often should the pull start over?
-i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_trys       = 1         -- 1        how often should the pull start over?
+i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_pp_mutate     = false
-b_solo_quake    = false     -- false    just one band is used on every method and all bands are tested
+b_solo_quake    = false     -- false    just one seg is used on every method and all segs are tested
 b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false     -- false
 b_pp_pull       = true      -- true     hydrophobic segs are pulled together
@@ -93,7 +93,7 @@ i_str_re_max_re = 2         -- 2        same as i_max_rebuilds at #Rebuilding
 i_str_re_re_str = 1         -- 1        same as i_rebuild_str at #Rebuilding
 b_re_he         = true      -- true     should we rebuild helices
 b_re_sh         = true      -- true     should we rebuild sheets
-b_str_re_fuze   = false      -- true     should we fuze after one rebuild
+b_str_re_fuze   = false     -- false    should we fuze after one rebuild
 --Structed rebuilding#
 --Settings#
 
@@ -504,10 +504,8 @@ local function _mutable()
         end -- if aa
     end -- for j
     p(#mutable, " mutables found")
-    if #mutable == 0 then
-        b_mutables  = false
-    else
-        b_mutables = true
+    if #mutable > 0 then
+        b_mutable  = true
     end
     reset.recent()
     get.aacid()
@@ -743,7 +741,7 @@ local function _loss(option, cl1, cl2)
         if qs2 - qs1 > i_score_step then
             return fuze.loss(2, cl1, cl2)
         end -- if
-    elseif option == 3 then
+    else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
         work.step(false, "s", 1, cl1)
         work.gain("wa", 1)
@@ -752,11 +750,6 @@ local function _loss(option, cl1, cl2)
         work.gain("wa", 1)
         reset.recent()
         work.step(false, "s", 1, cl1 - 0.02)
-        work.gain("wa", 1)
-    elseif option == 4 then
-        p("Pink Fuse cl1-s-cl2-wa")
-        work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 1, cl2)
         work.gain("wa", 1)
     end -- if option
     reset.recent()
@@ -781,7 +774,6 @@ local function _start(slot, fast)
         if not b_fast_fuze and not fast then
             fuze.part(3, 0.05, 0.07)
             fuze.part(2, 0.1, 0.4)
-            fuze.part(4, 0.1, 0.7)
         end
     end
     sl.load(sl_f)
@@ -820,7 +812,7 @@ local function _segs(sphered, start, _end, more)
                 end -- if > end
                 select.range(start, _end)
             end
-            list1 = get.sphere(start, 10)
+            list1 = get.sphere(start, 12)
             select.list(list1)
         elseif _end and start ~= _end then
             if start > _end then
@@ -1096,6 +1088,7 @@ end -- function
 local function _cps(_local)
     local indexCenter = get.center()
     get.segs(_local)
+    get.dists()
     for i = start, _end do
         if i ~= indexCenter then
             local x = i
@@ -1114,6 +1107,7 @@ end -- function
 
 local function _ps(_local, bandsp)
     get.segs(_local)
+    get.dists()
     for x = start, _end - 2 do
         if not hydro[x] then
             for y = x + 2, _end do
@@ -1151,8 +1145,7 @@ local function _pl(_local, bandsp)
         if hydro[x] then
             for y = x + 2, numsegs do
                 math.randomseed(distances[x][y])
-                same = get.same_struct(x, y)
-                if hydro[y] and math.random() < bandsp and not same then
+                if hydro[y] and math.random() < bandsp then
                     band.add(x, y)
                 end -- hydro y
             end -- for y
@@ -1716,41 +1709,6 @@ function struct_rebuild()
     sl.save(overall)
     sl.release(str_re_best)
 end
-
---#Compressor
-function compress()
-    p("Compressing Segment ", seg)
-    sphere = {}
-    range = 0
-    repeat
-        count = 0
-        range = range + 2
-        sphere = GetSphere(seg, range)
-        for n = 1, #sphere - 1 do
-            if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
-                count = count + 1
-            end
-        end
-    until count > 4
-    for n = 1, #sphere - 1 do
-        if sphere[n] > seg + range / 4 and sphere[n] + 1 ~= sphere[n + 1] or sphere[n] < seg - range / 4 and sphere[n] + 1 ~= sphere[n + 1] then
-            band_add_segment_segment(seg, sphere[n])
-            local length = get_segment_distance(seg, sphere[n])
-            repeat
-                length = length * 7 / 8
-            until length <= 5
-            band_set_length(get_band_count(), length)
-            band_set_strength(get_band_count(), length / 5)
-        end
-    end
-    do_global_wiggle_backbone(1)
-    band_delete()
-    p("Compressing Segment ", seg, "-", r)
-    sphere1 = {}
-    sphere2 = {}
-    range = 0
-end
---Compressor#
 
 --#Mutate function
 function mutate()
