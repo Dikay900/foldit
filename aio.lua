@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1143"
+Version = "1144"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -21,7 +21,7 @@ i_end_walk      = 4         -- 4        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
-b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- false    should we fuze | see #Fuzing
@@ -46,7 +46,7 @@ b_m_through     = true
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 10         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_pp_mutate     = false
 b_solo_quake    = false     -- false    just one seg is used on every method and all segs are tested
@@ -81,6 +81,8 @@ b_re_mutate     = true
 
 --#Predicting
 b_predict_full  = false     -- try to detect the secondary structure between every segment, there can be less loops but the protein become impossible to rebuild
+b_pre_add_pref  = true
+b_pre_combine_structs = false
 --Predicting#
 
 --#Curler
@@ -885,11 +887,9 @@ local function _step(sphered, _g, iter, cl)
         for i = iter, iter + 5 do
             local s_s1 = get.score()
             wiggle._local(i)
-            reset.recent()
             local s_s2 = get.score()
-            if s_s2 > s_s1 then
-                reset.score()
-            else -- if >
+            if s_s2 < s_s1 then
+                reset.recent()
                 break
             end -- if >
         end -- for
@@ -1043,10 +1043,11 @@ local function _rebuild(trys, str)
         local re2 = re1
         while re1 == re2 do
             do_.rebuild(iter * str)
-            iter = iter + 1
             if iter > i_maxiter then
                 iter = i_maxiter
+                return
             end -- if iter
+            iter = iter + 1
             re2 = get.score()
         end -- while
         iter = 1
@@ -1493,7 +1494,7 @@ local function _getdata()
                     end -- if aa i + 1
                 end -- if i + 1
                 ui = i
-                i = i + 1
+                i = i + 2
             end -- if loop | sheet
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
@@ -1506,7 +1507,7 @@ local function _getdata()
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
                 end -- if i + 2
                 ui = i + 2
-                i = i + 3
+                i = i + 4
             end -- if loop
         end -- if sheet
         if b_predict_full then
@@ -1529,32 +1530,59 @@ local function _getdata()
     end -- for
     set.ss("E")
     sl.save(overall)
+    predict.combine()
 end
 
 local function _combine()
     get.struct()
-    for i = 1, numsegs do
+    for i = 1, numsegs-1 do
         if ss[i] == "L" then
             if aa[i] ~= "p" then
                 for ii = 1, #he - 1 do
-                    for iii = he[ii][1], he[ii][#he[ii]] do
-                        if iii + 1 == i and he[ii + 1][1] == i + 1 then
+                    if b_pre_combine_structs then
+                        for iii = he[ii][1], he[ii][#he[ii]] do
+                            if iii + 1 == i and he[ii + 1][1] == i + 1 then
+                                deselect.all()
+                                select.index(i)
+                                set.ss("H")
+                            end -- if iii
+                        end -- for iii
+                    end -- if b_pre
+                end
+                for ii = 1, #he do
+                    if b_pre_add_pref then
+                        for iii = he[ii][1] - 1, he[ii][#he[ii]] + 1, he[ii][#he[ii]] - he[ii][1] + 1 do
+                            if amino.preffered(iii) == "H" then
+                                deselect.all()
+                                select.index(iii)
+                                set.ss("H")
+                            end -- if iii
+                        end -- for iii
+                    end -- if b_pre
+                end -- for ii
+            end -- if aa
+            if b_pre_combine_structs then
+                for ii = 1, #sh - 1 do
+                    for iii = sh[ii][1], sh[ii][#sh[ii]] do
+                        if iii + 1 == i and sh[ii + 1][1] == i + 1 then
                             deselect.all()
                             select.index(i)
-                            set.ss("H")
+                            set.ss("E")
                         end -- if iii
                     end -- for iii
                 end -- for ii
-            end -- if aa
-            for ii = 1, #sh - 1 do
-                for iii = sh[ii][1], sh[ii][#sh[ii]] do
-                    if iii + 1 == i and sh[ii + 1][1] == i + 1 then
-                        deselect.all()
-                        select.index(i)
-                        set.ss("E")
-                    end -- if iii
-                end -- for iii
-            end -- for ii
+            end -- if b_pre
+            if b_pre_add_pref then
+                for ii = 1, #sh do
+                    for iii = sh[ii][1] - 1, sh[ii][#sh[ii]] + 1, sh[ii][#sh[ii]] - sh[ii][1] + 1 do
+                        if amino.preffered(iii) == "E" then
+                            deselect.all()
+                            select.index(iii)
+                            set.ss("E")
+                        end -- if iii
+                    end -- for iii
+                end -- for ii
+            end -- if b_pre
         end -- if ss
     end -- for i
 end
@@ -1634,6 +1662,15 @@ function struct_rebuild()
             select.range(seg, r)
             set.cl(0.4)
             wiggle.backbone(1)
+            seg = he[i][1] - 2
+            if seg < 1 then
+                seg = 1
+            end -- if seg
+            r = he[i][#he[i]] + 2
+            if r > numsegs then
+                r = numsegs
+            end -- if r
+            select.range(seg, r)
             set.cl(0)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
             set.cl(1)
@@ -1678,14 +1715,11 @@ function struct_rebuild()
             if r > numsegs then
                 r = numsegs
             end -- if r
-            bonding.sheet()
+            bonding.sheet(i)
             deselect.all()
             select.range(seg, r)
             set.cl(0.4)
             wiggle.backbone(1)
-            band.delete()
-            set.cl(0)
-            work.rebuild(i_str_re_max_re, i_str_re_re_str)
             band.delete()
             if b_str_re_fuze then
                 rebuilding = true

@@ -25,7 +25,7 @@ i_end_walk      = 4         -- 4        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
-b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- false    should we fuze | see #Fuzing
@@ -50,7 +50,7 @@ b_m_through     = true
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 10         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_pp_mutate     = false
 b_solo_quake    = false     -- false    just one seg is used on every method and all segs are tested
@@ -85,6 +85,8 @@ b_re_mutate     = true
 
 --#Predicting
 b_predict_full  = false     -- try to detect the secondary structure between every segment, there can be less loops but the protein become impossible to rebuild
+b_pre_add_pref  = true
+b_pre_combine_structs = false
 --Predicting#
 
 --#Curler
