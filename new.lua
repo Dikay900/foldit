@@ -96,80 +96,6 @@ function UseList_Remove(UseList,value)
  return UseList2
 end -- function
 
-
-function CreateBand()
-    local start  = RandomInt(segCnt)
-    local finish = RandomInt(segCnt)
-    if  start~=finish and --not make band to same place
-        math.abs(start-finish)>= minDist and --do not band if too close
-        CanBeUsed(start,finish) and --at least one need to be in place
-        get_segment_distance(start,finish) <= maxBandDist --not band if too far away
-    then
-        band_add_segment_segment(start, finish)
-        local range    = Band.maxStrength - Band.minStrength
-        local strength = (RandomFloat() * range) + Band.minStrength
-        local n = get_band_count()
-        if n > 0 then band_set_strength(n, strength) end
-        
-        local length = 3+ (RandomFloat() * (Band.maxLength-3)) --min len is 3
-        
-        if compressor then
-            length = get_segment_distance(start,finish)-compressFrac --compressing
-        else
-            if push then
-                local dist = get_segment_distance(start,finish)
-                if dist >2 and dist <18 then length=dist*1.5 end
-            end
-            
-            if hydroPull then
-                if is_hydrophobic(start) and is_hydrophobic(finish)  then 
-                    length=3 --always pull hydrophobic pair
-                end
-            end
-        end
-        if length >20 then length=20 end
-        if length <0 then length=0 end
-        if n > 0 then band_set_length(n, length) end                
-    else
-        CreateBand()
-    end
-end
-
-function mkBand(a) --make band if found void in area of that segment
-	p("Banding segment ", a)
-	getDist()
-	local t={}--there we store possible sehments
-	for b=1,segCnt do --test all segments
-		local ab=dist(a,b) --distance between segments
-		if ab>minLenght then --no voind if less
-			--p(a," ",b," ",ab)
-			local void=true
-			for c=1,segCnt do --searhing that is any segment between them				
-				local ac=dist(a,c)
-				local bc=dist(b,c)
-				if ac~=0 and bc~=0 and ac<ab and bc<ab and ac>4 and bc>4 then
-					if ac+bc<ab+1.5
-						then void=false break --no void there for sure
-					end
-				end
-			end
-			if void==true then 
-				if math.abs(a-b)>=minDist then
-					t[#t+1]={a,b}
-				end
-			end
-		end
-	end
-	if #t>0 then
-		p("Found ",#t," possible bands across voids")
-		for i=1,#t do
-			band_add_segment_segment(t[i][1],t[i][2])
-		end
-	else
-		p("No voids found")
-	end
-end
-
  "_recipe_13547" : "{
  \"desc\" : \"This is a variant of step_walker by Datstandin. It backs up and re-irons the protein if a local wiggle increases points. Very good for end game point grinding.\"
  \"hidden\" : \"0\"
@@ -299,112 +225,112 @@ step_wiggle(1,g_segments,wiggle_params)
 
 
 function sidechain_tweak()
-	P("Pass 1 of 3: Sidechain tweak")
-	for i=1, g_segments do
-		if usableAA(i) then
-			deselect_all()  
-			select_index(i)
-			local ss=Score()
-			g_total_score = Score()
-			set_behavior_clash_importance(0)
-			do_shake(2)
-			set_behavior_clash_importance(1.)
-			if(Score() > g_total_score -1.) then
-				restore_recent_best()  
-			else 
-				P("Try sgmnt ", i)
-				if(Score() > g_total_score - 30) then
-					SelectSphere(i, 10)
-					wiggle_out()  
-				else
-					SelectSphere(i, 10)
-					deselect_index(i)
-					set_behavior_clash_importance(.75)
-					do_shake(2)
-					select_index(i)
-					wiggle_out()
-				end
-				Gain(ss)
-			end
-		end
-	end
+    P("Pass 1 of 3: Sidechain tweak")
+    for i=1, g_segments do
+        if usableAA(i) then
+            deselect_all()  
+            select_index(i)
+            local ss=Score()
+            g_total_score = Score()
+            set_behavior_clash_importance(0)
+            do_shake(2)
+            set_behavior_clash_importance(1.)
+            if(Score() > g_total_score -1.) then
+                restore_recent_best()  
+            else 
+                P("Try sgmnt ", i)
+                if(Score() > g_total_score - 30) then
+                    SelectSphere(i, 10)
+                    wiggle_out()  
+                else
+                    SelectSphere(i, 10)
+                    deselect_index(i)
+                    set_behavior_clash_importance(.75)
+                    do_shake(2)
+                    select_index(i)
+                    wiggle_out()
+                end
+                Gain(ss)
+            end
+        end
+    end
 end
 
 function sidechain_tweak_around()
-	P("Pass 2 of 3: Sidechain tweak around")
-	for i=1, g_segments do
-		if usableAA(i) then
-			deselect_all()
-			for n=1, g_segments do
-				g_score[n] = get_segment_score(n)
-			end
-			select_index(i)
-			local ss=Score()
-			g_total_score = Score()
-			set_behavior_clash_importance(0)
-			do_shake(2)
-			set_behavior_clash_importance(1. )
-			if(Score() > g_total_score -1.) then
-				restore_recent_best()  
-			else 
-				P("Try sgmnt ", i)
-				if(Score() > g_total_score - 30) then
-					SelectSphere(i,10)
-					wiggle_out()  
-				else
-					deselect_all()
-					for n=1, g_segments do
-						if(get_segment_score(n) < g_score[n] - 1) then
-							select_index(n)
-						end
-					end
-					deselect_index(i)
-					set_behavior_clash_importance(0.1)
-					do_shake(2)
-					SelectSphere(i,10,true)
-					wiggle_out()
-				end
-				Gain(ss)
-			end
-		end
-	end
+    P("Pass 2 of 3: Sidechain tweak around")
+    for i=1, g_segments do
+        if usableAA(i) then
+            deselect_all()
+            for n=1, g_segments do
+                g_score[n] = get_segment_score(n)
+            end
+            select_index(i)
+            local ss=Score()
+            g_total_score = Score()
+            set_behavior_clash_importance(0)
+            do_shake(2)
+            set_behavior_clash_importance(1. )
+            if(Score() > g_total_score -1.) then
+                restore_recent_best()  
+            else 
+                P("Try sgmnt ", i)
+                if(Score() > g_total_score - 30) then
+                    SelectSphere(i,10)
+                    wiggle_out()  
+                else
+                    deselect_all()
+                    for n=1, g_segments do
+                        if(get_segment_score(n) < g_score[n] - 1) then
+                            select_index(n)
+                        end
+                    end
+                    deselect_index(i)
+                    set_behavior_clash_importance(0.1)
+                    do_shake(2)
+                    SelectSphere(i,10,true)
+                    wiggle_out()
+                end
+                Gain(ss)
+            end
+        end
+    end
 end
 
 function sidechain_manipulate()
-	P("Last pass: Brute force sidechain manipulator")
-	for i=1, g_segments do
-		if usableAA(i) then
-			deselect_all()
-			rotamers = get_sidechain_snap_count(i)
-			quicksave(4)
-			if(rotamers > 1) then
-				local ss=Score()
-				P("Sgmnt: ", i," positions: ",rotamers)
-				for x=1, rotamers do
-				quickload(4)
-				g_total_score = Score()
-				do_sidechain_snap(i, x)
-				set_behavior_clash_importance(1.)
-					if(Score() > g_total_score -1.) then
-						restore_recent_best()  
-					else 
-						if(Score() > g_total_score - 30) then
-							SelectSphere(i,10)
-							wiggle_out()  
-						else
-							SelectSphere(i,10)
-							deselect_index(i)
-							set_behavior_clash_importance(.75)
-							do_shake(2)
-							select_index(i)
-							wiggle_out()
-						end
-					end  
-				end
-				Gain(ss)
-			end
-		end
-	end
+    P("Last pass: Brute force sidechain manipulator")
+    for i=1, g_segments do
+        if usableAA(i) then
+            deselect_all()
+            rotamers = get_sidechain_snap_count(i)
+            quicksave(4)
+            if(rotamers > 1) then
+                local ss=Score()
+                P("Sgmnt: ", i," positions: ",rotamers)
+                for x=1, rotamers do
+                quickload(4)
+                g_total_score = Score()
+                do_sidechain_snap(i, x)
+                set_behavior_clash_importance(1.)
+                    if(Score() > g_total_score -1.) then
+                        restore_recent_best()  
+                    else 
+                        if(Score() > g_total_score - 30) then
+                            SelectSphere(i,10)
+                            wiggle_out()  
+                        else
+                            SelectSphere(i,10)
+                            deselect_index(i)
+                            set_behavior_clash_importance(.75)
+                            do_shake(2)
+                            select_index(i)
+                            wiggle_out()
+                        end
+                    end  
+                end
+                Gain(ss)
+            end
+        end
+    end
 end
 
  "_recipe_19718" : "{
@@ -430,74 +356,74 @@ print("Starting Total LWS...")
 P=print --"quicker" print ;]
 
 local function score() --score of puzzle
-	return get_score(true)
+    return get_score(true)
 end
 
 function AllLoop()
-	select_all()
-	replace_ss("L")
+    select_all()
+    replace_ss("L")
 end
 
 function freeze(start, len)
-	do_unfreeze_all()
-	deselect_all()
-	for f=start, maxs, len+1 do
-		if f<= maxs then select_index(f) end
-	end
-	do_freeze(true, false)
+    do_unfreeze_all()
+    deselect_all()
+    for f=start, maxs, len+1 do
+        if f<= maxs then select_index(f) end
+    end
+    do_freeze(true, false)
 end
 
 function lw(minppi)
-	local gain=true
-	while gain do
-		local ss=score()
-		do_local_wiggle(2)
-		local g=score()-ss
-		if g<minppi then gain=false end
-		if g<0 then restore_recent_best() end
-	end
+    local gain=true
+    while gain do
+        local ss=score()
+        do_local_wiggle(2)
+        local g=score()-ss
+        if g<minppi then gain=false end
+        if g<0 then restore_recent_best() end
+    end
 end
 
 function wiggle(start, len,minppi)
-	if start>1 then
-		deselect_all()
-		select_index_range(1,start-1)
-		lw(minppi)
-	end
-	for i=start, maxs, len+1 do
-		deselect_all()
-		local ss = i+1
-		local es=i+len
-		if ss >= maxs then ss=maxs end
-		if es >= maxs then es=maxs end
-		select_index_range(ss,es)
-		lw(minppi)
-	end
+    if start>1 then
+        deselect_all()
+        select_index_range(1,start-1)
+        lw(minppi)
+    end
+    for i=start, maxs, len+1 do
+        deselect_all()
+        local ss = i+1
+        local es=i+len
+        if ss >= maxs then ss=maxs end
+        if es >= maxs then es=maxs end
+        select_index_range(ss,es)
+        lw(minppi)
+    end
 end
 
 function totalLws(minlen,maxlen, minppi)
-	do_unfreeze_all()
-	deselect_all()
-	set_behavior_clash_importance(1)
-	save_structure()
-	AllLoop()
-	maxs=get_segment_count()
-	local ssc=score()
-	P("Starting Total LWS: ",ssc)
-	P("Lenght: ",minlen," to ",maxlen," ;minimum ppi: ",minppi)
-	for l=minlen, maxlen do
-		for s=1, l+1 do
-			P("Len: ",l," ,start point: ",s)
-			local sp=score()
-			freeze(s,l)
-			reset_recent_best()
-			wiggle(s,l,minppi)
-			P("Gained: ",score()-sp)
-			quicksave(3)
-		end
-	end
-	P("Finished! Total gain: ",score()-ssc)
-	load_structure()
+    do_unfreeze_all()
+    deselect_all()
+    set_behavior_clash_importance(1)
+    save_structure()
+    AllLoop()
+    maxs=get_segment_count()
+    local ssc=score()
+    P("Starting Total LWS: ",ssc)
+    P("Lenght: ",minlen," to ",maxlen," ;minimum ppi: ",minppi)
+    for l=minlen, maxlen do
+        for s=1, l+1 do
+            P("Len: ",l," ,start point: ",s)
+            local sp=score()
+            freeze(s,l)
+            reset_recent_best()
+            wiggle(s,l,minppi)
+            P("Gained: ",score()-sp)
+            quicksave(3)
+        end
+    end
+    P("Finished! Total gain: ",score()-ssc)
+    load_structure()
 end
 
 --totalLws(minlen,maxlen, minpp)
@@ -712,59 +638,59 @@ p=print --"quicker" print ;]
 segCount=get_segment_count()
 
 local function Score() --Score of puzzle
-	return get_score(true)
+    return get_score(true)
 end
 function round(x)
-	return x-x%0.001
+    return x-x%0.001
 end
 
 function AllLoop()
-	local ok=false
-	for i=1, segCount do
-		local ss=get_ss(i)
-		if ss~="L" then 
-			save_structure()
-			ok=true
-			break
-		end
-	end
-	if ok then
-		select_all()
-		replace_ss("L")
-	end
+    local ok=false
+    for i=1, segCount do
+        local ss=get_ss(i)
+        if ss~="L" then 
+            save_structure()
+            ok=true
+            break
+        end
+    end
+    if ok then
+        select_all()
+        replace_ss("L")
+    end
 end
 function lw(minppi)
-	local gain=true
-	while gain do
-		local ss=Score()
-		do_local_wiggle(2)
-		local g=Score()-ss
-		if g<minppi then gain=false end
-		if g<0 then restore_recent_best() end
-	end
+    local gain=true
+    while gain do
+        local ss=Score()
+        do_local_wiggle(2)
+        local g=Score()-ss
+        if g<minppi then gain=false end
+        if g<0 then restore_recent_best() end
+    end
 end
 
 function Worm()
-	if sEnd==nil then sEnd=segCount end
-	AllLoop()
-	reset_recent_best()
-	quicksave(3)
-	local ss=Score()
-	for w=1,#pattern do
-		len=pattern[w]
-		local sw=Score()
-		p("Starting Worm of len ",len,", score: ",round(Score()))
-		for s=sStart,sEnd-len+1 do
-			deselect_all()
-			select_index_range(s,s+len-1)
-			lw(minppi)
-		end
-		p("Pattern gain: ",round(Score()-sw))
-		quicksave(3)
-	end
-	deselect_all()
-	load_structure()
-	p("Total Worm gain: ",round(Score()-ss))
+    if sEnd==nil then sEnd=segCount end
+    AllLoop()
+    reset_recent_best()
+    quicksave(3)
+    local ss=Score()
+    for w=1,#pattern do
+        len=pattern[w]
+        local sw=Score()
+        p("Starting Worm of len ",len,", score: ",round(Score()))
+        for s=sStart,sEnd-len+1 do
+            deselect_all()
+            select_index_range(s,s+len-1)
+            lw(minppi)
+        end
+        p("Pattern gain: ",round(Score()-sw))
+        quicksave(3)
+    end
+    deselect_all()
+    load_structure()
+    p("Total Worm gain: ",round(Score()-ss))
 end
 
 pattern={5,2,11,3,13,7,1} --how many segments at once to LWS
@@ -955,83 +881,83 @@ function reset_protein()
 end
 
 function get_protein_score(segment_count)
-	return get_score(true)
+    return get_score(true)
 end
 
 function wiggle_it_out(wiggle_params)
-	deselect_all()
-	select_all()
-	do_global_wiggle_sidechains(wiggle_params.sideChain_count)
-	do_shake(wiggle_params.shake)
-	do_global_wiggle_all(wiggle_params.all_count)
-	restore_recent_best()
+    deselect_all()
+    select_all()
+    do_global_wiggle_sidechains(wiggle_params.sideChain_count)
+    do_shake(wiggle_params.shake)
+    do_global_wiggle_all(wiggle_params.all_count)
+    restore_recent_best()
 end
 
 function do_the_local_wiggle_campon(first,last,wiggle_params)
     deselect_all()
-	if last > g_segments then
-		last = g_segments
-	end
-	select_index_range(first,last)
-	local end_score = get_protein_score()
-	local points_increased = false
-	local beginning_score = end_score
-	repeat
-	    start_score = end_score
-	    do_local_wiggle(wiggle_params.local_wiggle)
-		restore_recent_best()
-		end_score = get_protein_score()
-		print("    start ",start_score," end ", end_score)
-	until end_score < start_score + wiggle_params.local_tolerance
-	if beginning_score + wiggle_params.local_tolerance < end_score then
-	    points_increased = true
-	end
-	--restore_recent_best()
-	return points_increased
+    if last > g_segments then
+        last = g_segments
+    end
+    select_index_range(first,last)
+    local end_score = get_protein_score()
+    local points_increased = false
+    local beginning_score = end_score
+    repeat
+        start_score = end_score
+        do_local_wiggle(wiggle_params.local_wiggle)
+        restore_recent_best()
+        end_score = get_protein_score()
+        print("    start ",start_score," end ", end_score)
+    until end_score < start_score + wiggle_params.local_tolerance
+    if beginning_score + wiggle_params.local_tolerance < end_score then
+        points_increased = true
+    end
+    --restore_recent_best()
+    return points_increased
 end
 
 function step_wiggle(start,finish,wiggle_params)
     local i
-	local reset
-	local rewiggle_increment = 1 -- points
-	local rewiggle_score = get_protein_score() + rewiggle_increment
-	i = start
-	while i <= finish do
-	     local j
-		 local saved_changed
-		 local points_changed = false
-		 for j = 1,3 do
-		     print("seg:",i," of ",finish," wiggle Length: ",j)
-			 saved_changed = do_the_local_wiggle_campon(i,i+j-1,wiggle_params)
-			 if saved_changed then
-			     points_changed = true
-			 end
-		 end
-		 if points_changed then
-		     reset = i - 1 -- we want to go back to the previous segment
-			 if reset < start then
-			     reset = start
-			 end
-			 for j=1,3 do
- 		        print("retry seg:",reset," of ",finish," wiggle Length: ",j)
-			    do_the_local_wiggle_campon(reset,reset+j-1,wiggle_params)
-			 end
-			 reset = reset + 1
-			 if reset <= i then
-				-- let's not get ahead of ourselves. Only really an issue when we are retrying 1
-				for j=1,3 do
-					print("retry seg:",reset," of ",finish," wiggle Length: ",j)
-					do_the_local_wiggle_campon(reset,reset+j-1,wiggle_params)
-				end
-			end
-		 end
-		 local new_score = get_protein_score()
-		 if new_score > rewiggle_score then
-			wiggle_it_out(wiggle_params)
-			rewiggle_score = new_score + rewiggle_increment
-		 end
-		 i = i + 1
-	end
+    local reset
+    local rewiggle_increment = 1 -- points
+    local rewiggle_score = get_protein_score() + rewiggle_increment
+    i = start
+    while i <= finish do
+         local j
+         local saved_changed
+         local points_changed = false
+         for j = 1,3 do
+             print("seg:",i," of ",finish," wiggle Length: ",j)
+             saved_changed = do_the_local_wiggle_campon(i,i+j-1,wiggle_params)
+             if saved_changed then
+                 points_changed = true
+             end
+         end
+         if points_changed then
+             reset = i - 1 -- we want to go back to the previous segment
+             if reset < start then
+                 reset = start
+             end
+             for j=1,3 do
+                 print("retry seg:",reset," of ",finish," wiggle Length: ",j)
+                do_the_local_wiggle_campon(reset,reset+j-1,wiggle_params)
+             end
+             reset = reset + 1
+             if reset <= i then
+                -- let's not get ahead of ourselves. Only really an issue when we are retrying 1
+                for j=1,3 do
+                    print("retry seg:",reset," of ",finish," wiggle Length: ",j)
+                    do_the_local_wiggle_campon(reset,reset+j-1,wiggle_params)
+                end
+            end
+         end
+         local new_score = get_protein_score()
+         if new_score > rewiggle_score then
+            wiggle_it_out(wiggle_params)
+            rewiggle_score = new_score + rewiggle_increment
+         end
+         i = i + 1
+    end
 end
 
 reset_protein()

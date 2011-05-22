@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1144"
+Version = "1145"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -652,6 +652,41 @@ local function _same(a, b)
 end -- function
 --Structurecheck#
 
+local function _void(a)
+    p("Banding segment ", a)
+    getDist()
+    local t={}--there we store possible sehments
+    for b=1,segCnt do --test all segments
+        local ab=dist(a,b) --distance between segments
+        if ab>minLenght then --no voind if less
+            --p(a," ",b," ",ab)
+            local void=true
+            for c=1,segCnt do --searhing that is any segment between them                
+                local ac=dist(a,c)
+                local bc=dist(b,c)
+                if ac~=0 and bc~=0 and ac<ab and bc<ab and ac>4 and bc>4 then
+                    if ac+bc<ab+1.5
+                        then void=false break --no void there for sure
+                    end
+                end
+            end
+            if void==true then 
+                if math.abs(a-b)>=minDist then
+                    t[#t+1]={a,b}
+                end
+            end
+        end
+    end
+    if #t>0 then
+        p("Found ",#t," possible bands across voids")
+        for i=1,#t do
+            band_add_segment_segment(t[i][1],t[i][2])
+        end
+    else
+        p("No voids found")
+    end
+end
+
 get =
 {   dists       = _dists,
     sphere      = _sphere,
@@ -666,6 +701,7 @@ get =
     hydro       = _hydro,
     struct      = _struct,
     same_struct = _same,
+    voids       = _void,
     -- renaming
     distance    = get_segment_distance,
     ss          = get_ss,
@@ -1259,6 +1295,44 @@ local function _comp_sheet()
     end -- for i
 end -- function
 
+local function _rndband()
+    local start  = RandomInt(segCnt)
+    local finish = RandomInt(segCnt)
+    if  start~=finish and --not make band to same place
+        math.abs(start-finish)>= minDist and --do not band if too close
+        CanBeUsed(start,finish) and --at least one need to be in place
+        get_segment_distance(start,finish) <= maxBandDist --not band if too far away
+    then
+        band_add_segment_segment(start, finish)
+        local range    = Band.maxStrength - Band.minStrength
+        local strength = (RandomFloat() * range) + Band.minStrength
+        local n = get_band_count()
+        if n > 0 then band_set_strength(n, strength) end
+        
+        local length = 3+ (RandomFloat() * (Band.maxLength-3)) --min len is 3
+        
+        if compressor then
+            length = get_segment_distance(start,finish)-compressFrac --compressing
+        else
+            if push then
+                local dist = get_segment_distance(start,finish)
+                if dist >2 and dist <18 then length=dist*1.5 end
+            end
+            
+            if hydroPull then
+                if is_hydrophobic(start) and is_hydrophobic(finish)  then 
+                    length=3 --always pull hydrophobic pair
+                end
+            end
+        end
+        if length >20 then length=20 end
+        if length <0 then length=0 end
+        if n > 0 then band_set_length(n, length) end                
+    else
+        CreateBand()
+    end
+end
+
 bonding =
 {   centerpull  = _cpl,
     centerpush  = _cps,
@@ -1268,6 +1342,7 @@ bonding =
     helix       = _helix,
     sheet       = _sheet,
     comp_sheet  = _comp_sheet,
+    rnd         = _rndband,
     matrix      =
     {   strong  = _strong,
         one     = _one
