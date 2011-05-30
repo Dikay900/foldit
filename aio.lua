@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1145"
+Version = "1147"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -734,7 +734,9 @@ local function _mutate(mut, aa)
     if b_m_fuze then
         fuze.start(sl_mut)
     else
-        fuze.start(sl_mut, true)
+        if b_m_wiggle then
+            work.gain("wa", 1)
+        end
     end
     local sc_mut2 = get.score()
     get.increase(sc_mut1, sc_mut2, overall)
@@ -912,7 +914,7 @@ local function _step(sphered, _g, iter, cl)
     if _g == "wa" then
         wiggle.all(iter)
     elseif _g == "s" then
-        do_.shake(1)
+        do_.shake(2)
     elseif _g == "wb" then
         wiggle.backbone(iter)
     elseif _g == "ws" then
@@ -1850,7 +1852,7 @@ function mutate()
     if b_m_through then
         sl_mut = sl.request()
         sl.save(sl_mut)
-        for i = 15, #mutable do
+        for i = 1, #mutable do
             for ii = 1, #amino.segs do
                 sl.load(sl_mut)
                 do_.mutate(i, ii)
@@ -1868,7 +1870,7 @@ function mutate()
     b_mutating = false
     for i = 1, #mutable do
         if seg == mutable[i] then
-            b_mutating = true
+            --b_mutating = true
         end
     end
     if b_mutating then
