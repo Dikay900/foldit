@@ -21,10 +21,10 @@ i_end_walk      = 4         -- 4        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
-b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
-b_fuze          = false     -- false    should we fuze | see #Fuzing
+b_fuze          = true     -- false    should we fuze | see #Fuzing
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
@@ -1278,8 +1278,8 @@ local function _sheet(_sh)
         for ii = 1, #sh[i] - 2 do
             band.add(sh[i][ii], sh[i][ii] + 2)
             local bands = get.bandcount()
-            band.strength(bands, 2)
-            band.length(bands, 15)
+            band.strength(bands, 10)
+            band.length(bands, 20)
         end -- for ii
     end -- for i
 end -- function
@@ -1288,10 +1288,10 @@ local function _comp_sheet()
     for i = 1, #sh - 1 do
         band.add(sh[i][1], sh[i + 1][#sh[i + 1]])
         local bands = get.bandcount()
-        band.strength(bands, 2)
+        band.strength(bands, 10)
         band.add(sh[i][#sh[i]], sh[i + 1][1])
         local bands = get.bandcount()
-        band.strength(bands, 2)
+        band.strength(bands, 10)
     end -- for i
 end -- function
 
@@ -1609,8 +1609,8 @@ local function _getdata()
 end
 
 local function _combine()
-    get.struct()
-    for i = 1, numsegs-1 do
+    for i = 1, numsegs - 1 do
+        get.struct()
         if ss[i] == "L" then
             if aa[i] ~= "p" then
                 for ii = 1, #he - 1 do

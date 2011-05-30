@@ -1660,3 +1660,514 @@ Genetic_Fuse()    -- Launch script with parameters\"
  \"uses\" : \"11\"
  \"ver\" : \"0.3\"
 }
+
+
+-- ST - mini rosetta energy model v1.0.0.0.
+-- Quickly scores a fold based on compactness, hiding, clashing, and disulfide bridges. recommended for Puzzles ( Exploration, Design, Multi-start, Freestyle ) + combinations, thereof. Rosetta 3 is a library based object-oriented software suite which provides a robust system for predicting and designing protein structures, protein folding mechanisms, and protein-protein interactions. The library contains the various tools that Rosetta uses, such as Atom, ResidueType, Residue, Conformation, Pose, ScoreFunction, ScoreType, and so forth. These components provide the data and services Rosetta uses to carry out its computations.[1]
+
+REFERENCES
+1. Rosetta 3.0 User-guide - http://www.rosettacommons.org/manuals/rosetta3_user_guide/index.html
+
+Copyright (C) 2011 Seagat2011 <http://fold.it/port/user/1992490>
+Copyright (C) 2011 thom001 <http://fold.it/port/user/172510>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+$Id$
+
+------------------------------------------------------------------------------------------------]]--
+
+--#Global functions
+local function _abs (x)
+    if x < 0 then
+        x = -x
+    end 
+    return x
+end -- function _abs
+
+local function _factorial (n)
+
+    local t
+    t = n
+
+    for i = n,2,-1 do
+    t = t * (i-1)
+    end
+
+    return t
+
+end -- function _factorial 
+
+-- For cosine (), we will use a non-converging Talyor series approximation ( n = 15 terms ) - http://en.wikipedia.org/wiki/Taylor_series
+-- cosine (x) = sum [ ((-1 ^ n) / _factorial (2 * n))  *  x ^ (2* n) ]
+local function _cosine (x)
+
+    local nterms
+    nterms = 15
+
+    -- calculate first term
+    x =  ((-1 ^ 0) / _factorial (2 * 0)) * ( x ^ (2 * 0) ) -- i.e. equals one (1)
+    -- calculate other terms..
+    for n = 1,nterms do
+    x = x + ((-1 ^ n) / _factorial (2 * n)) * ( x ^ (2 * n) )
+    end
+
+    return x
+
+end -- function _cosine 
+
+local function _floor ( n,r )
+	return n - n%r
+end -- function _floor
+
+local math = {
+    abs = _abs,
+    cosine = _cosine,
+    factorial =  _factorial,
+    floor = _floor,
+}
+--Math library#
+
+local function math_floor ( n )
+	return math.floor ( n,1e-4)
+end -- function math_floor 
+
+--#Game vars
+local numsegs = get_segment_count ()
+
+-- Amino Acid library
+local amino_segs
+local amino_part 
+local amino_table
+
+amino_segs     = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'}
+amino_part      = { short = 1, abbrev = 2, longname = 3, hydro = 4, scale = 5, pref = 6, mol = 7, pl = 8, vdw_vol = 9 }
+amino_table     = {
+                  --  {short, abbrev, 	longname, 	hydro, 	scale, 	pref, 	mol wt, 	     isoelectric point (pl), 	van der waals volume}
+                    ['a'] = {'a', 'Ala', 	'Alanine',       	'phobic',	-1.6,   	'H',    	89.09404,    6.01, 			67    },
+                    ['c'] = {'c', 'Cys', 	'Cysteine',         	'phobic', 	-17,    	'E',    	121.15404,  5.05, 	 		86    },
+                    ['d'] = {'d', 'Asp', 	'Aspartic acid',   	'philic',   	 6.7,    	'L',    	133.10384,  2.85,  			91    },
+                    ['e'] = {'e', 'Glu', 	'Glutamic acid',    	'philic',   	 8.1,    	'H',    	147.13074,  3.15,  			109  },
+                    ['f'] = {'f', 'Phe', 	'Phenylalanine',    	'phobic',  -6.3,   	'E',    	165.19184,  5.49,  			135  },
+                    ['g'] = {'g', 'Gly', 	'Glycine',          	'phobic', 	 1.7,    	'L',    	75.06714,    6.06,  			48    },
+                    ['h'] = {'h', 'His', 	'Histidine',        	'philic',   	-5.6,   	'L',    	155.15634,  7.60,  			118  },--Note: Histidine has no conformational 'pref'
+                    ['i'] = {'i', 'Ile', 	'Isoleucine',       	'phobic',  -2.4,   	'E',    	131.17464,  6.05,  			124  },
+                    ['k'] = {'k', 'Lys', 	'Lysine',           	'philic',   	 6.5,    	'H',    	146.18934,  9.60,  			135  },
+                    ['l'] = {'l', 'Leu', 	'Leucine',          	'phobic',   1,      	'H',    	131.17464,  6.01,  			124  },
+                    ['m'] = {'m', 'Met',	'Methionine',       	'phobic',   3.4,    	'H',    	149.20784,  5.74,  			124  },
+                    ['n'] = {'n', 'Asn', 	'Asparagine',       	'philic',     8.9,    	'L',    	132.11904,  5.41,  			96    },
+                    ['p'] = {'p', 'Pro', 	'Proline',          	'phobic',  -0.2,   	'L',    	115.13194,  6.30,  			90    },
+                    ['q'] = {'q', 'Gln', 	'Glutamine',        	'philic',     9.7,    	'H',    	146.14594,  5.65,  			114  },
+                    ['r'] = {'r', 'Arg', 	'Arginine',         	'philic',     9.8,    	'H',    	174.20274,  10.76,  			148  },
+                    ['s'] = {'s', 'Ser', 	'Serine',           	'philic',     3.7,    	'L',    	105.09344,  5.68,  			73    },
+                    ['t'] = {'t', 'Thr', 	'Threonine',        	'philic',     2.7,    	'E',    	119.12034,  5.60,  			93    },
+                    ['v'] = {'v', 'Val', 	'Valine',           	'phobic',   -2.9,   	'E',    	117.14784,  6.00,  			105  },
+                    ['w'] = {'w', 'Trp', 	'Tryptophan',       	'phobic',   -9.1,   	'E',    	204.22844,  5.89,  			163  },
+                    ['y'] = {'y', 'Tyr', 	'Tyrosine',         	'phobic',   -5.1,   	'E',    	181.19124,  5.64,  			141  },
+              --[[ ['b'] = {'b', 'Asx', 	'Asparagine or Aspartic acid'},
+                    ['j'] = {'j', 'Xle', 	'Leucine or Isoleucine'},
+                    ['o'] = {'o', 'Pyl', 	'Pyrrolysine'},
+                    ['u'] = {'u', 'Sec', 	'Selenocysteine'},
+                    ['x'] = {'x', 'Xaa', 	'Unspecified or unknown amino acid'},
+                    ['z'] = {'z', 'Glx', 	'Glutamine or glutamic acid'},
+                ]]--
+
+}
+
+--[[
+Amino Acid		Abbrev.		Remarks
+------------------------------------------------------------------------------
+Alanine			A	Ala	Very abundant, very versatile. More stiff than glycine, but small enough to pose only small steric limits for the protein conformation. It behaves fairly neutrally, and can be located in both hydrophilic regions on the protein outside and the hydrophobic areas inside.
+Asparagine or aspartic acid	B	Asx	A placeholder when either amino acid may occupy a position.
+Cysteine			C	Cys	The sulfur atom bonds readily to heavy metal ions. Under oxidizing conditions, two cysteines can join together in a disulfide bond to form the amino acid cystine. When cystines are part of a protein, insulin for example, the tertiary structure is stabilized, which makes the protein more resistant to denaturation; therefore, disulfide bonds are common in proteins that have to function in harsh environments including digestive enzymes (e.g., pepsin and chymotrypsin) and structural proteins (e.g., keratin). Disulfides are also found in peptides too small to hold a stable shape on their own (eg. insulin).
+Aspartic acid		D	Asp	Behaves similarly to glutamic acid. Carries a hydrophilic acidic group with strong negative charge. Usually is located on the outer surface of the protein, making it water-soluble. Binds to positively-charged molecules and ions, often used in enzymes to fix the metal ion. When located inside of the protein, aspartate and glutamate are usually paired with arginine and lysine.
+Glutamic acid		E	Glu	Behaves similar to aspartic acid. Has longer, slightly more flexible side chain.
+Phenylalanine		F	Phe	Essential for humans. Phenylalanine, tyrosine, and tryptophan contain large rigid aromatic group on the side-chain. These are the biggest amino acids. Like isoleucine, leucine and valine, these are hydrophobic and tend to orient towards the interior of the folded protein molecule. Phenylalanine can be converted into Tyrosine.
+Glycine			G	Gly	Because of the two hydrogen atoms at the alpha carbon, glycine is not optically active. It is the smallest amino acid, rotates easily, adds flexibility to the protein chain. It is able to fit into the tightest spaces, e.g., the triple helix of collagen. As too much flexibility is usually not desired, as a structural component it is less common than alanine.
+Histidine			H	His	In even slightly acidic conditions protonation of the nitrogen occurs, changing the properties of histidine and the polypeptide as a whole. It is used by many proteins as a regulatory mechanism, changing the conformation and behavior of the polypeptide in acidic regions such as the late endosome or lysosome, enforcing conformation change in enzymes. However only a few histidines are needed for this, so it is comparatively scarce.
+Isoleucine		I	Ile	Essential for humans. Isoleucine, leucine and valine have large aliphatic hydrophobic side chains. Their molecules are rigid, and their mutual hydrophobic interactions are important for the correct folding of proteins, as these chains tend to be located inside of the protein molecule.
+Leucine or isoleucine	J	Xle	A placeholder when either amino acid may occupy a position
+Lysine			K	Lys	Essential for humans. Behaves similarly to arginine. Contains a long flexible side-chain with a positively-charged end. The flexibility of the chain makes lysine and arginine suitable for binding to molecules with many negative charges on their surfaces. E.g., DNA-binding proteins have their active regions rich with arginine and lysine. The strong charge makes these two amino acids prone to be located on the outer hydrophilic surfaces of the proteins; when they are found inside, they are usually paired with a corresponding negatively-charged amino acid, e.g., aspartate or glutamate.
+Leucine			L	Leu	Essential for humans. Behaves similar to isoleucine and valine. See isoleucine.
+Methionine		M	Met	Essential for humans. Always the first amino acid to be incorporated into a protein; sometimes removed after translation. Like cysteine, contains sulfur, but with a methyl group instead of hydrogen. This methyl group can be activated, and is used in many reactions where a new carbon atom is being added to another molecule.
+Asparagine		N	Asn	Similar to aspartic acid. Asn contains an amide group where Asp has a carboxyl.
+Pyrrolysine		O	Pyl	Similar to lysine, with a pyrroline ring attached.
+Proline			P	Pro	Contains an unusual ring to the N-end amine group, which forces the CO-NH amide sequence into a fixed conformation. Can disrupt protein folding structures like alpha helix or beta sheet, forcing the desired kink in the protein chain. Common in collagen, where it often undergoes a posttranslational modification to hydroxyproline.
+Glutamine			Q	Gln	Similar to glutamic acid. Gln contains an amide group where Glu has a carboxyl. Used in proteins and as a storage for ammonia. The most abundant Amino Acid in the body.
+Arginine			R	Arg	Functionally similar to lysine.
+Serine			S	Ser	Serine and threonine have a short group ended with a hydroxyl group. Its hydrogen is easy to remove, so serine and threonine often act as hydrogen donors in enzymes. Both are very hydrophilic, therefore the outer regions of soluble proteins tend to be rich with them.
+Threonine		T	Thr	Essential for humans. Behaves similarly to serine.
+Selenocysteine		U	Sec	Selenated form of cysteine, which replaces sulfur.
+Valine			V	Val	Essential for humans. Behaves similarly to isoleucine and leucine. See isoleucine.
+Tryptophan		W	Trp	Essential for humans. Behaves similarly to phenylalanine and tyrosine (see phenylalanine). Precursor of serotonin. Naturally fluorescent.
+Unknown			X	Xaa	Placeholder when the amino acid is unknown or unimportant.
+Tyrosine			Y	Tyr	Behaves similarly to phenylalanine (precursor to Tyrosine) and tryptophan (see phenylalanine). Precursor of melanin, epinephrine, and thyroid hormones. Naturally fluorescent, although fluorescence is usually quenched by energy transfer to tryptophans.
+Glutamic acid or glutamine	Z	Glx	A placeholder when either amino acid may occupy a position.
+]]--
+
+local function _hscale(seg)
+    return amino_table[seg][amino_part.scale]
+end -- function _hscale
+
+local function _mol(seg)
+    return amino_table[seg][amino_part.mol]
+end -- function _mol
+
+local function _pl(seg)
+    return amino_table[seg][amino_part.pl]
+end -- function _pl
+
+local amino = 
+{   
+    abbrev_to_short       	= _abbrev_to_short,
+    longname_to_short 	= _longname_to_short,
+    abbrev      		= _abbrev,
+    longname    		= _long,
+    hydro       		= _h,
+    hydroscale  		= _hscale,
+    preffered   		= _pref,
+    size        		= _mol,
+    charge      		= _pl,
+    vdw_radius 		= _vdw_radius,
+} -- object amino
+
+local function is_ligand ( seg,seg2 )
+
+	local val = false
+
+	if ((get_ss(seg) == 'M') and (get_ss(seg2) == 'M')) then
+		val = true
+	end
+
+	return val
+
+end -- function is_ligand 
+
+--#Calculations
+local function _HCI(seg_a, seg_b) -- hydropathy
+    return 20 - math.abs((amino.hydroscale(seg_a) - amino.hydroscale(seg_b)) * 19/10.6)
+end -- function _HCI
+
+local function _SCI(seg_a, seg_b) -- size
+    return 20 - math.abs((amino.size(seg_a) + amino.size(seg_b) - 123) * 19/135)
+end -- function _SCI
+
+local function _CCI(seg_a, seg_b) -- charge
+    return 11 - (amino.charge(seg_a) - 7) * (amino.charge(seg_b) - 7) * 19/33.8
+end -- function _CCI
+
+local function _DCI( r,idx,idx2 ) -- disulfides
+
+	-- test for ligand to prevent crash
+	if ( is_ligand (idx,idx2) == false ) then
+
+		local seg
+		local seg2
+
+		seg = get_aa (idx)
+		seg2 = get_aa (idx2)
+
+		-- disulfide linkages - cysteine/methionine/selenocysteine
+		if ((( seg == 'c' ) or ( seg == 'm' ) or ( seg == 'u' )) and ( get_segment_score_part ( "disulfides",idx ) ~= 0 )) then
+
+			r.num_disulfide_contacts = r.num_disulfide_contacts + 1
+
+			if ((( seg2 == 'c' ) or ( seg2 == 'm' ) or ( seg2 == 'u' )) and ( get_segment_score_part ( "disulfides",idx2 ) ~= 0 )) then
+
+				r.num_disulfide_contacts_made = r.num_disulfide_contacts_made + 1 -- (forming cystine)
+
+			end
+
+		elseif ((( seg2 == 'c' ) or ( seg2 == 'm' ) or ( seg2 == 'u' )) and ( get_segment_score_part ( "disulfides",idx2 ) ~= 0 )) then
+
+			-- at this point, we know that only half the disulfide linkage was found
+			r.num_disulfide_contacts = r.num_disulfide_contacts + 1
+
+		end -- disulfide linkages 
+
+	end -- test for ligand
+
+	return r
+
+end -- function _DCI
+
+local function _CLCI ( r,seg,seg2 ) -- clashing
+
+	local val
+	local val2
+	local ct
+
+	ct 	= r.clashing_tolerance
+	val	= get_segment_score_part ( "clashing", seg )
+	val2	= get_segment_score_part ( "clashing", seg2 )
+
+	if ( val > ct ) then
+		val = 1
+	else
+		val = 0
+	end
+
+	if ( val2 > ct ) then
+		val2 = 1
+	else
+		val2 = 0
+	end
+
+	return val + val2
+
+end -- function _CLCI 
+
+local function _HDCI ( r,seg,seg2 ) -- hiding
+
+	local val
+	local val2
+
+	-- test for ligand to prevent crash
+	if ( is_ligand (seg,seg2) == false ) then
+
+		val   = -get_segment_score_part ( "hiding", seg ) 
+		val2 = -get_segment_score_part ( "hiding", seg2 )
+
+	else
+
+		val = 0
+		val2 = 0
+
+	end
+
+	return val + val2
+
+end -- function _HDCI 
+
+local calc =
+{   
+	hci = _HCI, 	-- hydropathy
+	sci = _SCI, 	-- size 
+	cci = _CCI, 	-- charge
+	dci = _DCI, 	-- disulfides
+	clci = _CLCI, 	-- clashing
+	hdci = _HDCI,	-- hiding
+}
+
+local function find_contacts ( r )
+
+	local k
+	local mindist
+
+	k 	= r.k
+	mindist 	= r.mindist
+
+	-- locate contacts
+	for j = 1,k do
+
+		local b
+		local seg
+		local seg2
+
+		b 	= 1e2
+		seg 	= j
+		seg2 	= 1
+
+		for i = 1,k do
+
+			local a
+
+			a = get_segment_distance ( i,j )
+
+			if ((a < b) and ((i > j + mindist) or (i < j - mindist))) then -- get shortest distance, but dont form contacts with self
+
+				b = a
+				seg2 = i
+
+			end
+
+		end
+
+		if (r.contact_matrix [ seg ] ~= seg2) and (r.contact_matrix [ seg2 ] ~= seg) then -- no (L to R), (R to L) duplicate contacts
+
+			-- include a distance bonus ?
+			if ( math.abs ( b ) <= r.segment_distance ) then
+			r.distance_bonus = r.distance_bonus + 1
+			end
+
+			-- note new contacts
+			r.num_contacts = r.num_contacts + 1
+
+			-- save location
+			r.contact_matrix [ seg ] = seg2
+			r.contact_matrix [ seg2 ] = seg
+
+			if ( is_ligand ( seg,seg2 ) == false ) then
+
+				local aa
+				local aa2
+
+				aa = get_aa ( seg )	
+				aa2 = get_aa ( seg2 )
+
+				-- score compatibility index terms
+				r.max_hci = r.max_hci + calc.hci ( aa,aa2 ) 
+				r.max_sci = r.max_sci + calc.sci ( aa,aa2 ) 
+				r.max_cci = r.max_cci + calc.cci ( aa,aa2 ) 
+
+				-- note disulfide linkages - cysteine/methionine/selenocysteine
+				r = calc.dci ( r,seg,seg2 ) 
+
+				-- score clashing terms
+				r.max_clashing  = r.max_clashing + calc.clci ( r,seg,seg2 ) 
+
+				-- score hiding terms 
+				r.max_hiding = r.max_hiding + calc.hdci ( r,seg,seg2 ) 
+
+				-- show contacting segments ?
+				if ( r.show_contacting_segments == true ) then
+				band_add_segment_segment ( seg,seg2 ) 
+				end
+
+			end -- test for ligand
+
+		end
+
+	end -- for j = 1,k do
+
+	if ( r.show_contacting_segments == true ) then
+	band_disable () -- bands are for aesthetic purpose only. they indicate contacting segments
+	end
+
+	-- score packing terms
+	r.max_packing = r.distance_bonus * r.theoretical_multiplier
+
+	-- score disulfide linkages - cysteine/methionine/selenocysteine
+	r.max_disulfides = r.num_disulfide_contacts_made * r.theoretical_multiplier 
+
+	return r
+
+end -- function find_contacts
+
+local function _score_contacts ( r )
+
+	local _hci
+	local _sci
+	local _cci
+	local _clashing
+	local _hiding
+	local _packing
+	local _disulfides
+
+	local _score
+	local _theoretical_score
+	local _grade
+
+	print ( "ST - mini rosetta energy model" )
+
+	if ( r.show_contacting_segments == true ) then
+	print ( "Step 1: Using bands to indicate contacting segments.. " )	
+	else
+	print ( "Step 1: Locating contacting segments.. " )	
+	end
+
+	r = find_contacts ( r )
+
+	print ( "Step 2: Tabulating score.. " )
+
+	r.theoretical_max_score_term 		= r.num_contacts * r.theoretical_multiplier
+	r.theoretical_max_clashing_score_term 	= r.num_contacts * r.theoretical_multiplier 
+	r.theoretical_max_hiding_score_term 	= r.num_contacts * r.theoretical_hiding_multiplier  
+	r.theoretical_max_packing_score_term 	= (r.num_contacts * r.packing_factor) * r.theoretical_multiplier -- Top score should have atleast 75% (1- 0.25) of segments with some form of contacting
+	r.theoretical_max_disulfide_score_term 	= (r.num_disulfide_contacts % 2) * r.theoretical_multiplier 
+
+	_hci 	= math_floor (r.max_hci / r.theoretical_max_score_term) * 100
+	_sci 	= math_floor (r.max_sci / r.theoretical_max_score_term) * r.sci_weight * 100
+	_cci 	= math_floor (r.max_cci / r.theoretical_max_score_term) * 100
+	_clashing  = math_floor (r.max_clashing / r.theoretical_max_clashing_score_term) * 100
+	_hiding 	= math_floor (r.max_hiding / r.theoretical_max_hiding_score_term) * 500 
+	_packing 	= math_floor (r.max_packing / r.theoretical_max_packing_score_term) * 100
+
+	if ( r.theoretical_max_disulfide_score_term <= 0 ) then -- do not penalize if available disulfides < 2
+		_disulfides = 100 
+	else
+		_disulfides = math_floor (r.max_disulfides / r.theoretical_max_disulfide_score_term) * 100
+	end
+
+	_score = _hci + (_sci * r.sci_weight * 7.5) + _cci + (_clashing * r.clashing_weight ) + (_hiding * r.hiding_weight )  + (_packing * r.packing_weight ) + ( _disulfides * r.disulfide_weight )
+	_theoretical_score = (r.theoretical_max_score_term * (r.num_terms)) + r.theoretical_max_clashing_score_term + r.theoretical_max_hiding_score_term + r.theoretical_max_packing_score_term + r.theoretical_max_disulfide_score_term -- add new terms as needed.
+
+	_grade = math_floor ( _score/_theoretical_score ) * 100
+
+	print ( "Correct Hydropathy matching: ", _hci, "%" )
+	print ( "Size matching: ", _sci, "%" )
+	print ( "Charge matching: ", _cci, "%" )
+	print ( "Clash avoidance: ", _clashing, "%" )
+	print ( "Hiding: ", _hiding, "%" )
+	print ( "Packing: ", _packing, "%" )
+	print ( "Conserved disulfide bridges: ", _disulfides, "%n" )
+	print ( "Score: ",  _score, " / ",  _theoretical_score, " (", _grade, "%)" )
+
+	print ( "done." )
+
+end -- function _score_contacts ( r )
+
+-- Main
+do 
+
+	local r
+
+	r = {
+	
+		mindist 	= 1,
+		maxdist 	= 0,
+		max_hci 	= 0,
+		max_sci 	= 0,
+		max_cci 	= 0,
+		max_clashing 	= 0,
+		max_hiding 	= 0,
+		max_packing 	= 0,
+		max_disulfides 	= 0,	
+		theoretical_multiplier 	= 20,	-- highest possible score per term
+		theoretical_max_score_term 	= 0,
+		theoretical_hiding_multiplier  	= 200,	-- ideal hiding value for each residue ( multiplier )
+		theoretical_max_clashing_score_term 	= 0,
+		theoretical_max_hiding_score_term 	= 0,
+		theoretical_max_packing_score_term 	= 0,
+		theoretical_max_disulfide_score_term 	= 0,
+		segment_distance 	= get_segment_distance (1,2) * 1.15,
+		score_helices 	= true,
+		score_loops 	= true,
+		score_sheets 	= true,
+		contact_matrix 	= {},
+		num_terms 	= 3,	-- #num of (xCI) score terms : hci, sci, cci
+		num_contacts 	= 0,
+		num_disulfide_contacts 	= 0,
+		num_disulfide_contacts_made 	= 0,
+		show_contacting_segments 	= true,	-- use bands to indicate contacting segments
+		clashing_tolerance = -1e3,	-- minimum allowed clashing acceptance (comparative)
+		hiding_tolerance = 0,	-- minimum allowed hiding threshold (comparative)
+		hci_weight = 1,		-- default value: 1
+		sci_weight = 10,		-- default value: 1
+		cci_weight = 1,		-- default value: 1
+		clashing_weight = 1,		-- default value: 1
+		hiding_weight = 75,		-- default value: 75 -- give the greatest magnitude, because we believe this is an important value
+		packing_weight = 1,		-- default value: 1
+		disulfide_weight = 1,	-- default value: 1
+		distance_bonus = 0,	
+		packing_factor = 3,		-- minimum allowed packing density (multiplier)		
+		precision = 1e-4,		-- rounding precision
+		k = numsegs,
+
+	}
+
+	_score_contacts ( r )
+
+end -- do
+"
