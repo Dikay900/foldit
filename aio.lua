@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1149"
+Version = "1150"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -44,6 +44,8 @@ b_m_through     = false
 b_m_wiggle      = true
 b_m_testall     = false
 b_m_after       = true
+i_m_cl_mut      = 1
+i_m_cl_wig      = 0.7
 --Mutating#
 
 --#Pull
@@ -758,7 +760,9 @@ local function _mutate(mut, aa, more)
                 end
             end
         end
+        set.cl(i_m_cl_mut)
         do_mutate(1)
+        set.cl(1)
         select_index(mutable[mut])
         do_shake(2)
     end
@@ -766,6 +770,13 @@ local function _mutate(mut, aa, more)
     if b_m_fuze then
         fuze.start(sl_mut)
     elseif b_m_wiggle then
+        set.cl(i_m_cl_wig)
+        work.flow("wb", true)
+        work.flow("ws", true)
+        work.flow("wa", true)
+        set.cl(1)
+        work.flow("wb", true)
+        work.flow("ws", true)
         work.flow("wa", true)
     end
     local sc_mut2 = get.score()
