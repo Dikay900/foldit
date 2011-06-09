@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1148"
+Version = "1149"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -20,12 +20,12 @@ i_start_walk    = 0         -- 0        with how many segs shall we work - Walke
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
-b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = true     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -108,9 +108,8 @@ b_str_re_fuze   = false     -- false    should we fuze after one rebuild
 sls         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 rebuilding  = false
 snapping    = false
-mutating    = false
+b_mutating  = false
 sc_changed  = true
-b_mutable   = false
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -745,12 +744,13 @@ local function _mutate(mut, aa, more)
         select.list(mutable)
         deselect_index(mutable[mut])
         for i = 1, #mutable do
+            local temp = false
             if i ~= mut then
-                if distances[i][mut] then
-                    if distances[i][mut] > 10 then
+                if distances[mutable[i]][mutable[mut]] then
+                    if distances[mutable[i]][mutable[mut]] > 10 then
                         temp = true
                     end
-                elseif distances[mut][i] > 10 then
+                elseif distances[mutable[mut]][mutable[i]] > 10 then
                     temp = true
                 end
                 if temp then
@@ -759,7 +759,10 @@ local function _mutate(mut, aa, more)
             end
         end
         do_mutate(1)
+        select_index(mutable[mut])
+        do_shake(2)
     end
+    select.segs()
     if b_m_fuze then
         fuze.start(sl_mut)
     elseif b_m_wiggle then
@@ -1890,6 +1893,7 @@ end
 
 --#Mutate function
 function mutate()
+    b_mutating = true
     local mut_1
     local i
     local ii
@@ -1960,7 +1964,7 @@ function mutate()
         end
         sl.load(overall)
     end
-    mutating = false
+    b_mutating = false
 end
 --Mutate#
 
