@@ -21,11 +21,11 @@ i_end_walk      = 4         -- 4        starting at the current seg + i_start_wa
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
-b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- false    should we fuze | see #Fuzing
-b_mutate        = true     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -1699,15 +1699,14 @@ end
 local function _combine()
     for i = 1, numsegs - 1 do
         get.struct()
+        deselect.all()
         if ss[i] == "L" then
             if aa[i] ~= "p" then
                 for ii = 1, #he - 1 do
                     if b_pre_combine_structs then
                         for iii = he[ii][1], he[ii][#he[ii]] do
                             if iii + 1 == i and he[ii + 1][1] == i + 1 then
-                                deselect.all()
                                 select.index(i)
-                                set.ss("H")
                             end -- if iii
                         end -- for iii
                     end -- if b_pre
@@ -1716,21 +1715,19 @@ local function _combine()
                     if b_pre_add_pref then
                         for iii = he[ii][1] - 1, he[ii][#he[ii]] + 1, he[ii][#he[ii]] - he[ii][1] + 1 do
                             if amino.preffered(iii) == "H" then
-                                deselect.all()
                                 select.index(iii)
-                                set.ss("H")
                             end -- if iii
                         end -- for iii
                     end -- if b_pre
                 end -- for ii
+                set.ss("H")
+                deselect.all()
             end -- if aa
             if b_pre_combine_structs then
                 for ii = 1, #sh - 1 do
                     for iii = sh[ii][1], sh[ii][#sh[ii]] do
                         if iii + 1 == i and sh[ii + 1][1] == i + 1 then
-                            deselect.all()
                             select.index(i)
-                            set.ss("E")
                         end -- if iii
                     end -- for iii
                 end -- for ii
@@ -1739,13 +1736,12 @@ local function _combine()
                 for ii = 1, #sh do
                     for iii = sh[ii][1] - 1, sh[ii][#sh[ii]] + 1, sh[ii][#sh[ii]] - sh[ii][1] + 1 do
                         if amino.preffered(iii) == "E" then
-                            deselect.all()
                             select.index(iii)
-                            set.ss("E")
                         end -- if iii
                     end -- for iii
                 end -- for ii
             end -- if b_pre
+            set.ss("E")
         end -- if ss
     end -- for i
 end
@@ -1804,14 +1800,13 @@ function struct_rebuild()
     get.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     if b_re_he then
+        deselect.all()
         for i = 1, #sh do
-            deselect.all()
             select.list(sh[i])
-            set.ss("L")
         end -- for i
+        set.ss("L")
         for i = 1, #he do
             p("Working on Helix ", i)
-            deselect.all()
             seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
@@ -1856,18 +1851,18 @@ function struct_rebuild()
             str_sc = nil
             str_rs = nil
         end -- for i
+        deselect.all()
         for i = 1, #sh do
-            deselect.all()
             select.list(sh[i])
-            set.ss("E")
         end -- for i
+        set.ss("E")
     end -- if b_re_he
     if b_re_sh then
+        deselect.all()
         for i = 1, #he do
-            deselect.all()
             select.list(he[i])
-            set.ss("L")
         end -- for i
+        set.ss("L")
         for i = 1, #sh do
             p("Working on Sheet ", i)
             seg = sh[i][1] - 2
@@ -1891,11 +1886,11 @@ function struct_rebuild()
                 rebuilding = false
             end -- if b_str_re_fuze
         end -- for i
+        deselect.all()
         for i = 1, #he do
-            deselect.all()
             select.list(he[i])
-            set.ss("H")
         end -- for i
+        set.ss("H")
         bonding.comp_sheet()
     end -- if b_re_sh
     sl.save(overall)
