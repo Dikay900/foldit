@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1153"
+Version = "1154"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -1815,7 +1815,7 @@ function struct_rebuild()
             if r > numsegs then
                 r = numsegs
             end -- if r
-            bonding.helix()
+            bonding.helix(i)
             deselect.all()
             select.range(seg, r)
             set.cl(0.4)
