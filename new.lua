@@ -2073,3 +2073,1175 @@ do
 
 end -- do
 "
+
+
+GA Mutate v1.0 by Grom.
+
+Trying to use genetic algorythm to find best aa structure on mutable puzzles:
+1. Create initial population by known structures and random ones.
+2. Check the score of each one.
+3. Make new population:
+  1) Choose top 3 solutions.
+  2) Create 5 solutions as crossover of top 3.
+  3) Create 2 solutions as mutation of top 2.
+  4) Create 1 solution as do_mutate(1) of 4th of top.
+  5) Create 1 solution randomly (special for Luckiest people in the world).
+4. Go to point 2.
+]]
+
+fsl={}      -- Foldit special library
+math={}     -- the lua standard library luaopen_math
+table={}    -- the lua standard library luaopen_table
+
+-- configuration
+mutationRate = 0.1
+populationSize = 12
+maxGenerations = 50
+seed = nil
+
+-- commented out residues not in Foldit (as of Nov 15, 2010)
+fsl.aminosLetterIndex=1
+fsl.aminosShortIndex=2
+fsl.aminosLongIndex=3
+fsl.aminosPolarityIndex=4
+fsl.aminosAcidityIndex=5
+fsl.aminosHydropathyIndex=6
+fsl.aminos = {
+   {'a','Ala','Alanine',      'nonpolar','neutral',   1.8},
+-- {'b','Asx','Asparagine or Aspartic acid' }, 
+   {'c','Cys','Cysteine',     'nonpolar','neutral',   2.5},
+   {'d','Asp','Aspartic acid',   'polar','negative', -3.5},
+   {'e','Glu','Glutamic acid',   'polar','negative', -3.5},
+   {'f','Phe','Phenylalanine','nonpolar','neutral',   2.8},
+   {'g','Gly','Glycine',      'nonpolar','neutral',  -0.4},
+   {'h','His','Histidine',       'polar','neutral',  -3.2},
+   {'i','Ile','Isoleucine',   'nonpolar','neutral',   4.5},
+-- {'j','Xle','Leucine or Isoleucine' }, 
+   {'k','Lys','Lysine',          'polar','positive', -3.9},
+   {'l','Leu','Leucine',      'nonpolar','neutral',   3.8},
+   {'m','Met','Methionine ',  'nonpolar','neutral',   1.9},
+   {'n','Asn','Asparagine',      'polar','neutral',  -3.5},
+-- {'o','Pyl','Pyrrolysine' }, 
+   {'p','Pro','Proline',     'nonpolar','neutral',   -1.6},
+   {'q','Gln','Glutamine',      'polar','neutral',   -3.5},
+   {'r','Arg','Arginine',       'polar','positive',  -4.5},
+   {'s','Ser','Serine',         'polar','neutral',   -0.8},
+   {'t','Thr','Threonine',      'polar','neutral',   -0.7},
+-- {'u','Sec','Selenocysteine' }, 
+   {'v','Val','Valine',      'nonpolar','neutral',    4.2},
+   {'w','Trp','Tryptophan',  'nonpolar','neutral',   -0.9},
+-- {'x','Xaa','Unspecified or unknown amino acid' },
+   {'y','Tyr','Tyrosine',       'polar','neutral',   -1.3},
+-- {'z','Glx','Glutamine or glutamic acid' } 
+}
+
+function math.abs(x)
+  if x < 0 then
+    return -x
+  else
+    return x
+  end
+end
+
+function math.floor(x)
+  return x - (x%1)
+end
+
+function math.min(x,...)
+  local min=x
+  local args={...}
+  for i=1,#args do
+    if args[i]<min then
+      min=args[i]
+    end
+  end
+  return min
+end
+
+function math.max(x,...)
+  local max=x
+  local args={...}
+  for i=1,#args do
+    if args[i]>max then
+      max=args[i]
+    end
+  end
+  return max
+end
+
+math.randLngX = 1000    -- nonstandard variable needed by math.random
+math.randLngC = 48313   -- nonstandard variable needed by math.random
+function math.random(m,n) 
+    local MWC = function()
+    local A_Hi = 63551
+    local A_Lo = 25354
+    local M = 4294967296
+    local H = 65536
+    local S_Hi = math.floor(math.randLngX / H)
+    local S_Lo = math.randLngX - (S_Hi * H)
+    local C_Hi = math.floor(math.randLngC / H)
+    local C_Lo = math.randLngC - (C_Hi * H)
+    local F1 = A_Hi * S_Hi
+    local F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
+    local F3 = (A_Lo * S_Lo) + C_Lo
+    local T1 = math.floor(F2 / H)
+    local T2 = F2 - (T1 * H)
+    math.randLngX = (T2 * H) + F3
+    local T3 = math.floor(math.randLngX / M)
+    math.randLngX = math.randLngX - (T3 * M)
+    math.randLngC = math.floor((F2 / H) + F1)
+    return math.randLngX
+  end
+
+  if n == nil and m ~= nil then
+    n = m
+    m = 1
+  end
+  if (m == nil) and (n == nil) then
+    return MWC() / 4294967296
+  else
+    m, n = math.min(m,n),math.max(m,n)
+    return math.floor((MWC() / 4294967296) * (n - m + 1)) + m
+  end
+end
+
+function math.randomseed(seed)
+  if seed == nil then -- use the game score to generate a large number
+    math.randLngX=1/((math.abs(get_score(true)%0.0001)*1000)%0.001)
+    while math.randLngX < 10000000 do
+      math.randLngX = math.randLngX * 10
+    end
+    math.randLngX = math.floor(math.randLngX) -- is an integer required? 
+  else
+    math.randLngX = seed
+  end
+  math.randLngC = 48313  -- restore to original
+end
+
+function table.insert(tab,val)
+  tab[#tab+1]=val
+end
+
+function table.my_sort(x,z,ind)
+ local j
+ local v
+ local vz
+ local vi
+   comp=function(x,y) return x>y end
+ for i = #x-1,1,-1 do
+   v=x[i]
+   vz=z[i]
+   vi=ind[i]
+   j=i
+   while (j<#x) and (comp(x[j+1],v)) do
+     x[j]=x[j+1]
+     z[j]=z[j+1]
+     ind[j]=ind[j+1]
+     j=j+1
+   end
+   x[j]=v
+   z[j]=vz
+   ind[j]=vi
+ end
+end
+
+function tune(tune_type)
+  if tune_type == 1 then
+    select_all()
+    do_shake(1)
+    do_global_wiggle_all(10)
+    deselect_all()
+  end
+  if tune_type == 2 then
+    select_all()
+    do_shake(1)
+    deselect_all()
+  end
+end
+
+function crossover(a, b) 
+    local cut = math.random(#a-1)
+    local s = {}
+    for i=1, cut do
+        s[i] = a[i]
+    end
+    for i=cut+1, #b do
+        s[i] = b[i]
+    end        
+    return s
+end
+
+function mutation(bitstring)
+    local s = {}
+    for i=1, #bitstring do
+        if math.random() < mutationRate then    
+            s[i] = fsl.aminos[math.random(20)][fsl.aminosLetterIndex]        
+        else s[i] = bitstring[i] end
+    end
+    return s
+end
+
+function equal(str1,str2)
+    local c=true
+    for i=1,#str1 do
+        if str1[i]~=str2[i] then c=false end
+    end
+    return c
+end
+
+
+function try_mutate_2(save)
+    quickload(indx[save])
+    select_all()
+    do_mutate(1)
+    do_global_wiggle_all(10)
+    strt = {}
+    for i=1,#mutable do
+        strt[i] = get_aa(mutable[i])
+    end
+    return strt
+end
+
+function reproduce(selected)
+    local pop = {}
+    pop[1]=selected[1]
+    pop[2]=selected[2]
+    pop[3]=selected[3]
+    pop[4]=crossover(selected[1],selected[2])
+    pop[5]=crossover(selected[2],selected[3])
+    pop[6]=crossover(selected[1],selected[3])
+    pop[7]=crossover(selected[2],selected[1])
+    pop[8]=crossover(selected[3],selected[2])
+    pop[9]=mutation(selected[1])
+    pop[10]=mutation(selected[2])
+    pop[11]=try_mutate_2(4)
+    pop[12]=random_bitstring(problemSize)
+    
+    for i=1,#pop-1 do
+        for j=i+1,#pop do
+            if equal(pop[i],pop[j]) then 
+                pop[j]=mutation(pop[j])
+            end
+        end
+    end
+    
+    return pop
+end
+
+function fitness(bitstring)
+    local cost = 0
+    for i=1, #bitstring do
+        if get_aa(mutable[i])~=bitstring[i] then 
+        deselect_all()
+        select_index(mutable[i])
+        replace_aa(bitstring[i])
+        end
+    end
+    tune(1)
+    cost = get_score()
+    return cost
+end
+
+function random_bitstring(length)
+    local s = {}
+    local i = 1
+    while #s < length do
+        s[i] = fsl.aminos[math.random(20)][fsl.aminosLetterIndex]
+        i=i+1
+    end 
+    return s
+end
+
+function evolve()
+    local population = {}
+    local bestString = nil
+    local outp = ""
+    reset_recent_best()
+	-- Insert starting sequence as first species
+    strt = {}
+    for i=1,#mutable do
+    strt[i] = get_aa(mutable[i])
+    end
+    table.insert(population, strt)
+	
+	-- Add known sequences
+	--[[
+	strt = {'k','l','v','e','d','h','g','f','e','l','a','l','e','m','d','d','n','r','p','n','k','f','k','e','i','a','k','f','v','k'}
+	table.insert(population, strt)
+	strt = {'r','l','m','e','d','w','g','f','k','l','a','l','e','r','d','e','n','r','p','n','r','f','k','e','i','a','k','f','v','k'}
+	table.insert(population, strt)
+	]]
+	
+    -- initialize the population random pool
+    for i=#population+1, populationSize do
+        table.insert(population, random_bitstring(problemSize))
+    end
+    -- optimize the population (fixed duration)
+    for i=1, maxGenerations do
+        -- evaluate
+        fitnesses = {}
+        restore_recent_best()
+        for i=1,#mutable do
+        strt[i] = get_aa(mutable[i])
+        end
+        table.insert(fitnesses, get_score())
+        outp=""
+        for z=1,#strt do
+            outp = outp .. strt[z]
+        end
+        print(outp..", "..fitnesses[1])
+        quicksave(1)
+        for j=2, #population do
+            restore_recent_best()
+            table.insert(fitnesses, fitness(population[j]))
+            quicksave(j)
+            -- print population and score
+            outp=""
+            for z=1,#population[j] do
+            outp = outp .. population[j][z]
+            end
+            print(outp..", "..fitnesses[j])
+        end
+        
+        indx={}
+        for j=1,#population do indx[j]=j end
+        
+        -- Sort population
+        table.my_sort(fitnesses,population,indx)
+        
+        -- Print current population
+        print("Generation "..i..". Current population:")
+        for i=1,#population do
+        outp = i..","..indx[i]..","..fitnesses[i]..","
+            for j=1, #population[i] do
+            outp = outp .. population[i][j]
+            end
+        print(outp)
+        end
+
+        -- Create new population
+        tmpPop = population
+        population = reproduce(tmpPop)
+    end    
+    return population[1]
+end
+
+function fsl.FindMutableSegments()
+  print("Finding Mutable Segments -- don't kill during this routine")
+  quicksave(10)
+  local mutable={}
+  local isG={}
+  local i
+  select_all()
+  replace_aa('g')                  -- all mutable segments are set to 'g'
+  for i=1,get_segment_count() do
+    if get_aa(i) == 'g' then        -- find the 'g' segments
+      isG[#isG + 1] = i
+    end
+  end
+  replace_aa('q')                  -- all mutable segments are set to 'q'
+  for j=1,#isG do
+    i=isG[j]
+    if get_aa(i) == 'q' then        -- this segment is mutable
+      mutable[#mutable + 1] = i
+    end
+  end
+  quickload(10)
+  print("Mutables found -- OK to kill if desired")
+  return mutable
+end
+
+---------------------
+-- run
+
+-- turn letter into alternative direct index
+for i=1,#fsl.aminos do
+  fsl.aminos[fsl.aminos[i][fsl.aminosLetterIndex]] = fsl.aminos[i]
+end
+
+mutable=fsl.FindMutableSegments()
+problemSize = #mutable
+
+math.randomseed(seed)
+best = evolve()
+print("Finished!")
+
+
+----------------------\"\n \"type\" : \"script\"\n \"uses\" : \"0\"\n \"ver\" : \"0.3\"\n}\n"
+ "_recipe_29360" : "{\n \"desc\" : \"Generic Aglorythm on Bands. Changed  length of band generating method.\"\n \"hidden\" : \"0\"\n \"mid\" : \"28974\"\n \"mrid\" : \"43111\"\n \"name\" : \"GA Bands 2.5  loss\"\n \"parent\" : \"26864\"\n \"parent_mrid\" : \"36194\"\n \"player_id\" : \"174969\"\n \"script\" : \"--GA Bands by Cartoon Villain 
+--modded many times by rav3n_pl
+
+normal=true --set false for Xploration puzzle !!!
+
+--[[
+    Beware: Ugly code ahead. And I mean it!
+    
+    A _primative_ genetic algorithm on bands.
+
+    Run this in the early to mid game, after you have
+    a general structure but long before you do your tweaks
+    to get the last few fractions of a point.
+
+    A brief overview:
+
+    1) [Optional] Create some bands that you think may help the fold.
+       The bands that you create will not be modified.  Note, that the
+       bands that you create do not have to be anchored at both ends.
+
+    2) This script will fill in random bands to make a enuf bands so that
+       the genetic algorithm can run smoothly.  These bands will be
+       anchored and they may be deleted by the script.
+
+    3) The script generates a "herd" of random critters, a critter is a
+       subset of all of the bands both user and script generated.
+
+    4) Score how well each critter (band subset) does.
+
+    5) Keep the best critters and kill the rest.
+
+    6) "Breed" the critters you kept by mixing rougly half of the bands
+       from the "mom" with half of the bands from the "dad" critter. Do
+       this until you have filled the herd back up.
+
+    7) Some critters are mutated during breeding. A mutation is
+       the replacement of one of the critter's bands with another
+       randomly chosen band.
+
+    8) If the scores aren't going anywhere after a few generations
+       start over with a new herd and a new set of script generated
+       bands, step 2.
+
+    9) Repeat from the scoring step (4) until the max generation is
+       reached or we can't lock the script generated bands.
+
+    This is a greedy GA, we keep score increases as soon as they occur.
+    If it's half way thru scoring a generation then so be it. This is why
+    we use relative improvements as a critter score.
+--]]
+
+segCnt=get_segment_count()
+p=print
+CI=set_behavior_clash_importance
+
+function round(x)--cut all afer 3-rd place
+    return x-x%0.001
+end
+function down(x)
+    return x-x%1
+end
+
+function Score()--return score, exploration too
+    local s=0
+    if normal==true then
+        s=get_score(true)
+    else
+        s=get_ranked_score(true)
+    end
+    return s
+end 
+
+function Wiggle(how, iters, minppi)
+    if how==nil then how="wa" end
+    if iters==nil then iters=6 end
+    if minppi==nil then minppi=0.1 end
+    
+    if iters>0 then
+        iters=iters-1
+        sp=Score()
+        if how == "s" then do_shake(1)
+            elseif how == "wb" then do_global_wiggle_backbone(2)
+            elseif how == "ws" then do_global_wiggle_sidechains(2)
+            elseif how == "wa" then do_global_wiggle_all(2) 
+        end
+        ep = Score()
+        ig=ep-sp
+        if how~="s" then
+            if ig > minppi then return Wiggle(how, iters, minppi) end --tail call
+        end
+    end
+end
+function AllLoop() --turning entire structure to loops
+    local ok=false
+    for i=1, segCnt do
+        local s=get_ss(i)
+        if s~="L" then 
+            save_structure()
+            ok=true
+            break
+        end
+    end
+    if ok then
+        select_all()
+        replace_ss("L")
+    end
+end
+
+--[[
+Tlaloc`s math library
+------------------------------------------------------------------------
+The original random script this was ported from has the following notices:
+Copyright (c) 2007 Richard L. Mueller
+Hilltop Lab web site - http://www.rlmueller.net
+Version 1.0 - January 2, 2007
+You have a royalty-free right to use, modify, reproduce, and
+distribute this script file in any way you find useful, provided that
+you agree that the copyright owner above has no warranty, obligations,
+or liability for such use.
+------------------------------------------------------------------------
+]]--
+local lngX = 1000
+local lngC = 48313
+
+local function _random(m,n)
+    local A_Hi = 63551
+    local A_Lo = 25354
+    local M = 4294967296
+    local H = 65536
+    
+    function _MWC()
+        local S_Hi = math.floor(lngX / H)
+        local S_Lo = lngX - (S_Hi * H)
+        local C_Hi = math.floor(lngC / H)
+        local F1 = A_Hi * S_Hi
+        local F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
+     
+        lngX = ((F2 - (math.floor(F2 / H) * H)) * H) + (A_Lo * S_Lo) + lngC - (C_Hi * H)
+        lngX = lngX - (math.floor(lngX / M) * M)
+        lngC = math.floor((F2 / H) + F1)
+
+        return lngX
+    end
+    
+    if n == nil and m ~= nil then
+        n = m
+        m = 1
+    end
+    if (m == nil) and (n == nil) then
+        return _MWC() / M
+    else
+        if n < m then
+            return nil
+        end
+        return math.floor((_MWC() / M) * (n - m + 1)) + m
+    end
+end
+
+local function _abs(value)
+    if value < 0 then
+        return -value
+    else
+        return value
+    end
+end
+
+local function _floor(value)
+    return value - (value % 1)
+end
+
+local function _randomseed(s)
+    if s==nil then 
+        s=math.abs(Score())
+        s=s%0.001
+        s=1/s
+        while s<10000 do s=s*1000 end
+        s=s-s%1
+    end
+    lngX = s
+end
+
+math=
+{
+    abs = _abs,
+    floor = _floor,
+    random = _random,
+    randomseed = _randomseed,
+}
+math.randomseed()
+--[[ End math library ]]--
+
+function CanBeUsed(sg1,sg2) --checking end of bands
+    local ok=true
+    if #DoNotUse>0 then --none of 2 can be in that area
+        for i=1, #DoNotUse do
+            local r=DoNotUse[i]
+            for x=r[1],r[2] do
+                if x==sg1 or x==sg2 then
+                    ok=false
+                    break
+                end
+            end
+            if ok==false then break end
+        end
+    end
+    if ok==false then 
+        return false --if false can`t be used
+    else
+        ok=false
+        if #AlwaysUse>0 then --at least one have to be there
+            for i=1, #AlwaysUse do
+                local r=AlwaysUse[i]
+                for x=r[1],r[2] do
+                    if x==sg1 or x==sg2 then
+                        ok=true
+                        break
+                    end
+                end
+                if ok==true then break end
+            end
+        else
+            ok=true
+        end
+        return ok --if true can be used
+    end    
+end
+
+bestScore=Score()
+function SaveBest()
+    local g=Score()-bestScore
+    if g>0 then
+        if g>0.1 then p("Gained another ",round(g)," pts.") end
+        bestScore=Score()
+        quicksave(3)
+    end
+end
+function SaveRB()
+    if normal==false then return end --not in exploration
+    quicksave(4)
+    restore_recent_best()
+    SaveBest()
+    quickload(4)
+end
+
+function qStab()
+    select_all()
+    CI(0.1)
+    Wiggle("s",1)
+    if fastQstab==false then 
+        CI(0.4)
+        Wiggle("wa",1)
+        CI(1)
+        Wiggle("s",1)
+    end
+    CI(1)
+    Wiggle()
+end
+
+function FuzeEnd()
+    CI(1)
+    Wiggle("wa",1)
+    Wiggle("s",1)
+    Wiggle()
+    SaveBest()
+end
+function Fuze1(ci1,ci2)
+    CI(ci1)
+    Wiggle("s",1)
+    CI(ci2)
+    Wiggle("wa",1)
+end
+function Fuze2(ci1,ci2)
+    CI(ci1)
+    Wiggle("wa",1)
+    CI(1)
+    Wiggle("wa",1)
+    CI(ci2)
+    Wiggle("wa",1)
+end
+function reFuze(scr)
+    local s=Score()
+    if s<scr then 
+        quickload(4)
+    else
+        scr=s
+        quicksave(4)
+    end
+    return scr
+end
+function Fuze()
+    local scr=Score()
+    quicksave(4)
+    select_all()
+    Fuze1(0.3,0.6) FuzeEnd()
+    scr=reFuze(scr)
+    Fuze2(0.3,1) SaveBest()
+    scr=reFuze(scr)
+    Fuze1(0.05,1) SaveBest()
+    scr=reFuze(scr)
+    Fuze2(0.7,0.5) FuzeEnd()
+    scr=reFuze(scr)
+    Fuze1(0.07,1) SaveBest()
+    reFuze(scr)
+end
+
+-- Per critter parameters
+Critter = {
+    idCounter = 0, -- Used to generate critter IDs
+    minBands  = 3, -- Min number of bands
+    maxBands  = 5, -- Max number of bands
+    startScore=0, --starting score of critter (rav3n)
+}
+
+-- Parameters dealing with the herd
+Herd = {
+    keep           = 3,  -- This many survive to next generation
+    breed          = 3,  -- Breed this many replacements
+    generation     = 1,  -- What generation is this
+    maxGeneration  = 20, -- Quit after this many generations
+    improvementWas = 0,  -- How good did the last generation do
+    scoreBefore    = 0,  -- Score at the start of a generation
+    rebootLimit    = 2,  -- Reboot after this many 0 improvement generations
+    rebootCount    = 0,  -- How close are we to the reboot limit
+    mutateRate     = 4,  -- On average mutate 1 out this many new borns
+    rebootScore    = 0.1, -- Only increment reboot count when below this
+    startingScore  = Score(), -- Score at the start of the script
+}
+Herd.size = Herd.keep + Herd.breed
+
+-- Parameters dealing with bands
+Band = {
+    userMade    = get_band_count(), -- How many bands did user enter
+    maxLength   = 5, --max difference between position of segments and mand length
+    minStrength = 0.1,
+    maxStrength = 1,
+    locked      = false, -- Were we able to lock the script generated bands
+}
+
+-- How many random bands to make
+Band.scriptMade = (Herd.size * Critter.maxBands) - Band.userMade
+if Band.scriptMade<0 then Band.scriptMade=1 end --if user made soooo many bands
+
+-- A random float between [0, 1)
+function RandomFloat()
+    return math.random()
+end
+
+ -- A random int between [1, high]
+function RandomInt(high)
+    return math.random(high)
+end
+
+-- Generate a random band
+function CreateBand()
+    local start  = RandomInt(segCnt)
+    local finish = RandomInt(segCnt)
+    if  start~=finish and --not make band to same place
+        math.abs(start-finish)>= minDist and --do not band if too close
+        CanBeUsed(start,finish) --at least one need to be in place
+    then
+        band_add_segment_segment(start, finish)
+        local range    = Band.maxStrength - Band.minStrength
+        local strength = (RandomFloat() * range) + Band.minStrength
+        local n = get_band_count()
+        if n > 0 then band_set_strength(n, strength) end
+        
+        local length = get_segment_distance(start,finish)  -- +-2-maxLenght form curent segments distance
+        local rn=0
+        while true do
+            rn=RandomFloat()*Band.maxLength*2-Band.maxLength
+            if rn<=-3 or rn >=3 then break end
+        end
+        length=length+rn
+        --3+ (RandomFloat() * (Band.maxLength-3)) --min len is 3
+        --p(rn, " ",length) --debug
+        if compressor then
+            length = get_segment_distance(start,finish)-compressFrac --compressing
+        else
+            if push then
+                local dist = get_segment_distance(start,finish)
+                if dist >2 then length=dist*1.5 end
+            end
+            
+            if hydroPull then
+                if is_hydrophobic(start) and is_hydrophobic(finish)  then 
+                    length=3 --always pull hydrophobic pair
+                end
+            end
+        end
+        --if length >20 then length=20 end
+        if length <0 then length=0 end
+        if n > 0 then band_set_length(n, length) end                
+    else
+        CreateBand()
+    end
+end
+
+function CreateBands()
+    local i
+    p("Creating bands...")
+    for i = 1, Band.scriptMade do
+        CreateBand()
+    end
+end
+
+function DeleteScriptMadeBands()
+    if Band.userMade==0 then 
+        band_delete() --if no user bands del them all
+    else 
+        local b
+        for b = get_band_count(), Band.userMade + 1, -1 do
+            band_delete(b)
+        end
+    end
+end
+
+function DisableAllBands()
+    band_disable()
+end
+
+function EnableCritterBands(critter)
+    local b
+    for b = 1, critter.bands do
+        band_enable(critter.band[b])
+    end
+end
+
+-- Default critter constructor
+function NewCritter()
+    Critter.idCounter = Critter.idCounter + 1
+    local critter = { bands = 0, score = -999999, age = 0, mutated = false, startScore = 0, }
+    critter.id = Herd.generation .. "_" .. Critter.idCounter
+    critter.band = {}
+    return critter
+end
+
+-- Constructor for generating a completely random critter
+function RandomCritter()
+    local i
+    local critter = NewCritter()
+    critter.mutated = true
+    critter.id = critter.id .. "r"
+    critter.bands = RandomInt(Critter.maxBands - Critter.minBands)
+                  + Critter.minBands
+    local max = get_band_count()
+    for i = 1, critter.bands do
+        critter.band[i] = RandomInt(max)
+    end
+
+    return critter
+end
+
+-- Lock in the script generated bands so that they will
+-- appear when we do a restore_abs_best()
+-- I would love to replace this with a slotted recent best
+function LockBands()
+    CI(1)
+    if Band.scriptMade <= 0 then
+        Band.locked = true
+        return
+    end
+    reset_recent_best() --save bands
+    Band.locked = true
+    quicksave(3) --to be 200% sure
+    p("Bands locked")
+end
+
+-- Generate a random heard. This includes all new critters,
+-- and a new set of script generated bands
+function RandomHerd()
+    local i
+    DeleteScriptMadeBands()
+    
+    if Herd.generation>1 and randomOptions then --randomize push/pull
+        local r=RandomInt(10)
+        if r%2==0 then compressor=true p("Compressing.") else compressor=false end
+        if compressor==false then
+            local r=RandomInt(10)
+            if r%2==0 then push=true p("Pushing.") else push=false end
+            r=RandomInt(10)
+            if r%2==0 then hydroPull=true p("Pulling hydros.") else hydroPull=false end
+        end
+    end
+    
+    CreateBands()
+    DisableAllBands()
+    LockBands()
+    for i = 1, Herd.size do
+        Herd[i] = RandomCritter()
+        p("randomize: ", Herd[i].id)
+    end
+    
+end
+
+function ScoreHerd()
+    local i
+    local first = 1 
+    local hs=Score()
+    for i = 1, Herd.size do
+        quicksave(5) --restore it if to much loss
+        local label   = "  unchanged score: "
+        local critter = Herd[i]
+        
+        if critter.startScore == Score() then
+            first=first+1
+        end
+        
+        if i >= first or critter.mutated then
+            label = "  score: "
+            local startingScore = Score()
+            critter.startScore = startingScore
+            
+            DisableAllBands()
+            EnableCritterBands(critter)
+            select_all()
+            local pullS=Score()
+            CI(wiggleCI)
+            do_global_wiggle_backbone(1)
+            CI(1)
+            DisableAllBands()
+            SaveRB() --sometimes it wotks ;]
+            if useQstab then
+                if math.abs(Score()-pullS)>doQstab then
+                    qStab()
+                else 
+                    Wiggle() 
+                end
+                
+                if Score()>bestScore-doFuze and useFuze==true then
+                    Fuze()
+                end
+            else
+                Fuze() --run it when not using qStab
+            end
+            
+            SaveBest() --if not use any fuze or so.
+            
+            critter.score = Score() - startingScore
+            
+            if critter.score<= 0.001 and critter.score>-0.1 then 
+                critter.score=-999 --no change, we not need it
+            end
+            
+            if loss==true then
+                if critter.score<0-maxLoss then 
+                    quickload(5) --too negative score
+                end 
+            else --next critter from best state
+                quickload(3)
+            end
+        end
+
+        critter.age = critter.age + 1
+        critter.mutated = false
+        p("critter: ", critter.id, label, round(critter.score))
+    end
+    quickload(3)
+    if mutate and Score()-hs>1 then--if more than 1pt change
+        select_all()
+        CI(mutateCI)
+        do_mutate(1)
+        CI(1)
+        qStab()
+    end
+end
+
+function SwapCritter(a, b)
+    Herd[a],Herd[b]=Herd[b],Herd[a]--yes! in LUA you can do that!
+end
+
+-- A quasi sort function. Only sort what is kept.
+-- A small N means that I'm OK with this being a quadratic sort
+function CullHerd()
+    local weakest = 1 -- Survivor with the lowest score
+    local i, j
+
+    for i = 2, Herd.size do
+        if Herd[i].score > Herd[weakest].score then
+            SwapCritter(i, weakest)
+            j = weakest
+            while j > 1 and Herd[j].score > Herd[j-1].score do
+                SwapCritter(j, j-1)
+                j = j - 1
+            end
+        end
+        weakest = weakest + 1
+        if weakest > Herd.keep then weakest = Herd.keep end
+    end
+
+    for i = 1, Herd.keep do
+        p("kept: ", Herd[i].id, "  score: ", round(Herd[i].score))
+    end
+end
+
+-- Mix bands from the mom and dad critter, rougly half from each
+function BreedPair(mom, dad)
+    local kid = NewCritter()
+    local k, i, b = 0, 0, 0
+
+    -- Choose bands from the mom
+    b = RandomInt(mom.bands)
+    for i = 1, (mom.bands / 2) + 0.5 do
+        k = k + 1
+        kid.band[k] = mom.band[b]
+
+        b = b + 1
+        if b > mom.bands then b = 1 end
+    end
+
+    -- Choose bands from the dad
+    b = RandomInt(dad.bands)
+    for i = 1, dad.bands / 2 do
+        k = k + 1
+        kid.band[k] = dad.band[b]
+
+        b = b + 1
+        if b > dad.bands then b = 1 end
+    end
+
+    kid.bands = k
+    return kid
+end
+
+-- Breed survivors with each other
+-- 1st breeds w/ 2nd and 2nd w/ 3rd etc.
+-- When that's done 1st breeds w/ 3rd and so on.
+function BreedHerd()
+    local mom, dad, kid = 0, 0, 0
+    local step = 0 -- Dad is this far away from mom +1
+    local keep = Herd.keep
+
+    for kid = keep + 1, Herd.size do
+        mom = mom + 1
+        if mom > keep then
+            mom = 1
+            step = step + 1
+        end
+        dad = ((mom + step) % keep) + 1
+        Herd[kid] = BreedPair(Herd[mom], Herd[dad])
+        p("breeding:  mom: ", Herd[mom].id,
+                       "  dad: ", Herd[dad].id,
+                       "  kid: ", Herd[kid].id)
+    end
+end
+
+-- Mutate a random selection of the new born critters. A mutation
+-- is the replacement of one of the critter's randomly chosen bands
+-- with another band randomly choosen from the entire band set.
+function MutateHerd()
+    local i, zap, new, mutate, max
+    max = get_band_count()
+    for i = Herd.keep + 1, Herd.size do
+        mutate = RandomInt(Herd.mutateRate)
+        if mutate == 1 then
+            zap = RandomInt(Herd[i].bands)
+            new = RandomInt(max)
+            Herd[i].band[zap] = new
+            Herd[i].mutated   = true
+            Herd[i].id        = Herd[i].id .. "m"
+            p("Mutating: ", Herd[i].id, "  zapped: ", zap)
+        end
+    end
+end
+
+function ga()
+    Herd.size = Herd.keep + Herd.breed
+    Band.scriptMade = (Herd.size * Critter.maxBands) - Band.userMade
+    if Band.scriptMade<0 then Band.scriptMade=1 end --if user made soooo many bands
+    
+    p("Starting GA Bands v2.1 ...") 
+    if normal==false then p("Using exploration puzzle settings.") end
+    if allLoop then AllLoop() end
+    quicksave(3)
+    select_all()
+    RandomHerd()
+
+    while Band.locked and Herd.generation <= Herd.maxGeneration do
+        p("")
+        p("generation: ", Herd.generation," of ",Herd.maxGeneration, " Start score: ",round(Score()))
+
+        if Herd.rebootCount >= Herd.rebootLimit then
+            RandomHerd()
+            Herd.rebootCount = 0
+        end
+        Herd.generation = Herd.generation + 1
+
+        Herd.scoreBefore = Score()
+
+        ScoreHerd()
+        CullHerd()
+        BreedHerd()
+        MutateHerd()
+
+        Herd.improvementWas = Score() - Herd.scoreBefore
+        p("score: ",             round(Score()))
+        p("improvement: ",       round(Herd.improvementWas))
+        p("total improvement: ", round(Score() - Herd.startingScore))
+
+        if Herd.improvementWas < Herd.rebootScore then
+            Herd.rebootCount = Herd.rebootCount + 1
+        else
+            Herd.rebootCount = 0
+        end
+        p("reboot count: ", Herd.rebootCount, "  limit: ", Herd.rebootLimit)
+        quickload(3) --every herd load best state
+    end
+
+    DeleteScriptMadeBands()
+    quickload(3)--load best state
+    if allLoop then load_structure() end
+    LockBands()
+end
+
+-- V V V V V editable options below V V V V V
+-- option to use normal or exploration puzze is ON TOP OF SCRIPT!
+
+DoNotUse={--just comment lines below or add more areas to avoid
+--{segCnt,segCnt}, --ligand cant be used
+--{120,134},
+--{1,10},
+}
+AlwaysUse={ --areas should be always used
+--{segCnt,segCnt},--ligand need to be at one end
+--{308,311}, --loopy
+--{313,317}, --loopy
+}
+
+Herd.keep = 3  -- This many survive to next generation
+Herd.breed = 6  -- Breed this many replacements
+--3+6=9 critters in herd
+
+Critter.minBands  = 4 -- Min number of bands
+Critter.maxBands  = 7 -- Max number of bands    
+    
+Band.minStrength=0.3 --minimum band STR
+Band.maxStrength=1.1 --maximum band STR
+Band.maxLength = 7 --maximum distance of push/pull (min is 2)
+minDist=down(segCnt/10)  --minimum dist (in segments) between banded segments
+
+mutate=false --true --do mutate(1) + qstab each generation
+mutateCI=0.1 --clash importance during mutate
+
+useQstab=true --quick stabilize to see that fuze have any chance 
+              --if false one (or both) of fuze/s are runned anyway
+doQstab=10 --run qstab only if loss is more than that. othwewise only wiggle
+fastQstab=true --false --if true only 1 shake and 1 wiggle as qstab
+
+useFuze=true --run Fuze when condition below met or not using qstab
+doFuze=-1 --how close to best score after stabilize to run PF
+
+--options below are valid only until reboot. it might change every reboot.
+compressor=false --true --making all bands shorter to compress protein OVERRIDES PUSH AND PULL!
+compressFrac=4 --shorten by that much. looks like 4 is good value
+push=false --always push when possible (hydros may be excluded)
+hydroPull=false --always pul hydrophobic pair
+randomOptions=false --true --randomizing push/pull/compressor options every reboot
+
+allLoop=false --run in all-loop mode (sometimes works better!)
+
+wiggleCI=0.9 --clash impotrance during push/pull
+loss=true --false --true --do not reload best score between critters in herd if true
+maxLoss=30 --maximum loss by criter, reloading last "good" herd position- not best total!
+
+Herd.maxGeneration  = 200 --how many generations. More=longer run
+Herd.rebootLimit = 2 --how many gens w/o improvement to random new bands 1-random after 1st bad one
+
+--- end of options -------^^^
+
+--main call
+ga()
+
+
+
+
+
+
+--end of script\"\n \"type\" : \"script\"\n \"uses\" : \"9\"\n \"ver\" : \"0.3\"\n}\n"

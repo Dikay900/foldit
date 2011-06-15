@@ -6,7 +6,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-Version = "1150"
+Version = "1153"
 Release = false             -- if true this script is probably safe ;)
 numsegs = get_segment_count()
 --Game vars#
@@ -1820,27 +1820,14 @@ function struct_rebuild()
             select.range(seg, r)
             set.cl(0.4)
             wiggle.backbone(1)
-            seg = he[i][1] - 2
-            if seg < 1 then
-                seg = 1
-            end -- if seg
-            r = he[i][#he[i]] + 2
-            if r > numsegs then
-                r = numsegs
-            end -- if r
-            select.range(seg, r)
             set.cl(0)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
+            set.cl(0.4)
+            wiggle.backbone(1)
             set.cl(1)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
-            seg = he[i][1] - 2
-            if seg < 1 then
-                seg = 1
-            end -- if seg
-            r = he[i][#he[i]] + 2
-            if r > numsegs then
-                r = numsegs
-            end -- if r
+            set.cl(0.4)
+            wiggle.backbone(1)
             band.delete()
             if b_str_re_fuze then
                 rebuilding = true
@@ -1876,6 +1863,8 @@ function struct_rebuild()
             bonding.sheet(i)
             deselect.all()
             select.range(seg, r)
+            set.cl(0.1)
+            wiggle.backbone(1)
             set.cl(0.4)
             wiggle.backbone(1)
             band.delete()
