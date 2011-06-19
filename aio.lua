@@ -1,34 +1,37 @@
 --[[#Header
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
-Thanks and Credits for external functions and ideas goes to Rav3n_pl, Tlaloc and Gary Forbis
-Special thanks goes to Seagat
+Thanks and Credits for external functions and ideas goes to Seagat, Rav3n_pl, Tlaloc and Gary Forbis
 see http://www.github.com/Darkknight900/foldit/ for latest version of this script
 ]]
 
 --#Game vars
-Version = "1154"
-Release = false             -- if true this script is probably safe ;)
-numsegs = get_segment_count()
+i_vers          = "1155"
+i_segscount     = get_segment_count()
+--#Release
+b_release       = false
+i_release_date  = "1.May 2011"
+i_release_vers  = 2
+--Release#
 --Game vars#
 
 --#Settings: default
 --#Working                  default     description
 i_maxiter       = 5         -- 5        max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1         -- 1        the first segment to work with
-i_end_seg       = numsegs   -- numsegs  the last segment to work with
+i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 0         -- 0        with how many segs shall we work - Walker
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
 b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
-b_str_re        = true     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
+b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
-b_explore       = false     -- false    if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_explore       = false     -- false    if true then the sl_overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -291,9 +294,9 @@ local function _calc()
     end -- for i
     p("Getting Segment Score out of the Matrix")
     strength = {}
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         strength[i] = {}
-        for ii = i + 2, numsegs - 2 do
+        for ii = i + 2, i_segscount - 2 do
             strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
         end  -- for ii
     end -- for i
@@ -417,9 +420,9 @@ sl =
 --#Getters
 local function _dists()
     distances = {}
-    for i = 1, numsegs - 1 do
+    for i = 1, i_segscount - 1 do
         distances[i] = {}
-        for j = i + 1, numsegs do
+        for j = i + 1, i_segscount do
             distances[i][j] = get.distance(i, j)
             if distances[i][j] > 20 then
                 distances[i][j] = 20
@@ -430,7 +433,7 @@ end -- function
 
 local function _sphere(seg, radius)
     local sphere = {}
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         if get.distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
         end -- if get_
@@ -443,9 +446,9 @@ local function _center()
     local distance
     local indexCenter
     get.dists()
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         distance = 0
-        for j = 1, numsegs do
+        for j = 1, i_segscount do
         if i ~= j then
             local x = i
             local y = j
@@ -499,7 +502,7 @@ local function _mutable()
     select.all()
     set.aa("a")
     get.aacid()
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         if aa[i] == "a" then
             isA[#isA + 1] = i
         end -- if aa
@@ -537,7 +540,7 @@ local function _hydro(s)
         hydro[s] = get.hydrophobic(s)
     else -- if
         hydro = {}
-        for i = 1, numsegs do
+        for i = 1, i_segscount do
             hydro[i] = get.hydrophobic(i)
         end -- for i
     end -- if
@@ -546,10 +549,10 @@ end -- function
 
 --#Ligand Check
 local function _ligand()
-    if get.ss(numsegs) == 'M' then
-        numsegs = numsegs - 1
-        if i_end_seg == numsegs + 1 then
-            i_end_seg = numsegs
+    if get.ss(i_segscount) == 'M' then
+        i_segscount = i_segscount - 1
+        if i_end_seg == i_segscount + 1 then
+            i_end_seg = i_segscount
         end -- if i_end_seg
     end -- if get.ss
 end -- function
@@ -558,7 +561,7 @@ end -- function
 --#Structurecheck
 local function _ss()
     ss = {}
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         ss[i] = get.ss(i)
     end -- for i
 end -- function
@@ -568,7 +571,7 @@ local function _aa(s)
         aa[s] = get.aa(s)
     else -- if
         aa = {}
-        for i = 1, numsegs do
+        for i = 1, i_segscount do
             aa[i] = get.aa(i)
         end -- for i
     end -- if
@@ -583,7 +586,7 @@ local function _struct()
     he = {}
     sh = {}
     lo = {}
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         if ss[i] == "H" and not helix then
             helix = true
             sheet = false
@@ -781,7 +784,7 @@ local function _mutate(mut, aa, more)
     end
     local sc_mut2 = get.score()
     if not more then
-        get.increase(sc_mut1, sc_mut2, overall)
+        get.increase(sc_mut1, sc_mut2, sl_overall)
     end
 end -- function
 
@@ -997,7 +1000,7 @@ local function _flow(g, more)
     elseif b_mutating then -- if
         slot = sl_mut
     else
-        slot = overall
+        slot = sl_overall
     end -- if
     work_sl = sl.request()
     repeat
@@ -1099,7 +1102,7 @@ local function _dist()
     p("Quaker")
     select.segs()
     local ps_1 = get.score()
-    sl.save(overall)
+    sl.save(sl_overall)
     dist = sl.request()
     local bandcount = get.bandcount()
     if b_solo_quake then
@@ -1116,7 +1119,7 @@ local function _dist()
             band.delete(ii)
             fuze.start(dist)
             ps_2 = get.score()
-            get.increase(ps_1, ps_2, overall)
+            get.increase(ps_1, ps_2, sl_overall)
         end -- for ii
         rebuilding = false
     else -- if b_solo_quake
@@ -1125,7 +1128,7 @@ local function _dist()
         band.delete()
         fuze.start(dist)
         ps_2 = get.score()
-        get.increase(ps_1, ps_2, overall)
+        get.increase(ps_1, ps_2, sl_overall)
     end -- if b_solo_quake
     sl.release(dist)
 end -- function
@@ -1242,7 +1245,7 @@ local function _pl(_local, bandsp)
     end -- if b_pp_fixed
     for x = start, _end - 2 do
         if hydro[x] then
-            for y = x + 2, numsegs do
+            for y = x + 2, i_segscount do
                 math.randomseed(distances[x][y])
                 if hydro[y] and math.random() < bandsp then
                     band.add(x, y)
@@ -1292,7 +1295,7 @@ local function _strong(_local)
     for i = start, _end do
         local max_str = 0
         local min_dist = 999
-        for ii = i + 2, numsegs - 2 do
+        for ii = i + 2, i_segscount - 2 do
             if max_str <= strength[i][ii] then
                 if max_str ~= strength[i][ii] then
                     min_dist = 999
@@ -1303,7 +1306,7 @@ local function _strong(_local)
                 end -- if min_dist
             end -- if max_str <=
         end -- for ii
-        for ii = i + 2, numsegs - 2 do
+        for ii = i + 2, i_segscount - 2 do
             if strength[i][ii] == max_str and min_dist == distances[i][ii] then
                 band.add(i , ii)
                 if b_pp_soft then
@@ -1317,15 +1320,15 @@ end -- function
 
 local function _one(_seg)
     get.dists()
-    for i = 1, numsegs do
+    for i = 1, i_segscount do
         if _seg == i then
         local max_str = 0
-        for ii = i + 2, numsegs - 2 do
+        for ii = i + 2, i_segscount - 2 do
             if max_str <= strength[i][ii] then
                 max_str = strength[i][ii]
             end -- if max_str <=
         end -- for ii
-        for ii = i + 2, numsegs - 2 do
+        for ii = i + 2, i_segscount - 2 do
             if strength[i][ii] == max_str then
                 band.add(i , ii)
                 if b_pp_soft then
@@ -1501,12 +1504,12 @@ function snap()
     if mutated then
         s_snap = get.score()
         if s_mut < s_snap then
-            sl.save(overall)
+            sl.save(sl_overall)
         else
             sl.load(sl_mut)
         end
     else
-        sl.save(overall)
+        sl.save(sl_overall)
     end
 end
 --Snapping#
@@ -1516,10 +1519,10 @@ function rebuild()
     local iter = 1
     rebuilding = true
     sl_re = sl.request()
-    sl.load(overall)
+    sl.load(sl_overall)
     select.segs()
     replace_ss("L")
-    sl.save(overall)
+    sl.save(sl_overall)
     sl.save(sl_re)
     select.segs(false, seg, r)
     if r == seg then
@@ -1539,14 +1542,14 @@ function rebuild()
     fuze.start(sl_re)
     rs_2 = get.score()
     sl.release(sl_re)
-    get.increase(rs_0, rs_2, overall)
+    get.increase(rs_0, rs_2, sl_overall)
     rebuilding = false
 end -- function
 --Rebuilding#
 
 --#Pull
 function dists()
-    sl.save(overall)
+    sl.save(sl_overall)
     dist_score = get.score()
     if b_comp then
         band.delete()
@@ -1598,7 +1601,7 @@ local function _getdata()
     local loop
     local i = 1
     local ui
-    while i < numsegs do
+    while i < i_segscount do
         ui = i
         loop = false
         if hydro[i] then
@@ -1644,10 +1647,10 @@ local function _getdata()
             p_he[#p_he][#p_he[#p_he] + 1] = i
             if loop or sheet then
                 helix = false
-                if i + 1 < numsegs then
+                if i + 1 < i_segscount then
                     if aa[i + 1] ~= "p" then
                         p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-                        if i + 2 < numsegs then
+                        if i + 2 < i_segscount then
                             if aa[i + 2] ~= "p" then
                                 p_he[#p_he][#p_he[#p_he] + 1] = i + 2
                                 i = i + 1
@@ -1663,10 +1666,10 @@ local function _getdata()
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
             if loop then
                 sheet = false
-                if i + 1 < numsegs then
+                if i + 1 < i_segscount then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
                 end -- if i + 1
-                if i + 2 < numsegs then
+                if i + 2 < i_segscount then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
                 end -- if i + 2
                 ui = i + 2
@@ -1692,12 +1695,12 @@ local function _getdata()
         select.list(p_sh[i])
     end -- for
     set.ss("E")
-    sl.save(overall)
+    sl.save(sl_overall)
     predict.combine()
 end
 
 local function _combine()
-    for i = 1, numsegs - 1 do
+    for i = 1, i_segscount - 1 do
         get.struct()
         deselect.all()
         if ss[i] == "L" then
@@ -1790,7 +1793,7 @@ function struct_curler()
         end -- for i
     end -- if b_cu_sh
     sl.release(str_re_best)
-    sl.save(overall)   
+    sl.save(sl_overall)   
 end
 
 function struct_rebuild()
@@ -1812,8 +1815,8 @@ function struct_rebuild()
                 seg = 1
             end -- if seg
             r = he[i][#he[i]] + 2
-            if r > numsegs then
-                r = numsegs
+            if r > i_segscount then
+                r = i_segscount
             end -- if r
             bonding.helix(i)
             deselect.all()
@@ -1857,8 +1860,8 @@ function struct_rebuild()
                 seg = 1
             end -- if seg
             r = sh[i][#sh[i]] + 2
-            if r > numsegs then
-                r = numsegs
+            if r > i_segscount then
+                r = i_segscount
             end -- if r
             bonding.sheet(i)
             deselect.all()
@@ -1882,7 +1885,7 @@ function struct_rebuild()
         set.ss("H")
         bonding.comp_sheet()
     end -- if b_re_sh
-    sl.save(overall)
+    sl.save(sl_overall)
     sl.release(str_re_best)
 end
 
@@ -1915,9 +1918,9 @@ function mutate()
             until get.score() - mut_1 < 0.01
             if get.score() > sc_mut then
                 sc_mut = get.score()
-                sl.save(overall)
+                sl.save(sl_overall)
             end
-            sl.load(overall)
+            sl.load(sl_overall)
             sl.release(sl_mut)
         end
     end
@@ -1942,32 +1945,40 @@ function mutate()
     if b_m_testall then
     for i = 1, #mutable do
         p("Mutating segment ", i)
-        sl.save(overall)
+        sl.save(sl_overall)
         sc_mut = get.score()
         for ii = i, #mutable do
             do_.mut(ii, true)
         end
-        sl.load(overall)
+        sl.load(sl_overall)
     end
     end
     for i = 1, #mutable do
         p("Mutating segment ", i)
-        sl.save(overall)
+        sl.save(sl_overall)
         sc_mut = get.score()
         for ii = 1, #amino.segs do
             do_.mutate(i, ii)
         end
-        sl.load(overall)
+        sl.load(sl_overall)
     end
     b_mutating = false
 end
 --Mutate#
 
-s_0 = get.score()
-p("v", Version)
-p("Starting Score: ", s_0)
-overall = sl.request()
-sl.save(overall)
+i_s0 = get.score()
+sl_overall = sl.request()
+p("v", i_vers)
+if b_release then
+    p("Release Version ", i_release_vers)
+    p("Released on ", i_release_date)
+else -- if b_release
+    p("No Released script so it's probably unsafe!")
+    p("Last version released on", i_release_date)
+    p("It was release version ", i_release_vers)
+end -- if b_release
+p("Starting Score: ", i_s0)
+sl.save(sl_overall)
 get.ligand()
 get.aacid()
 get.hydro()
@@ -1980,8 +1991,11 @@ if b_str_re then
 end -- if b_str_re
 if b_cu then
     struct_curler()
-end
+end -- if b_cu
 if b_pp then
+    if i_s0 < 0 then
+        fuze.start(sl_overall)
+    end
     for i = 1, i_pp_trys do
         if b_pp_pre_strong or b_pp_pre_local then
             calc.run()
@@ -1999,14 +2013,14 @@ for i = i_start_seg, i_end_seg do
     end
     for ii = i_start_walk, i_end_walk do
         r = i + ii
-        if r > numsegs then
-            r = numsegs
+        if r > i_segscount then
+            r = i_segscount
             break
         end -- if r
         if b_rebuild then
             --[[if b_worst_rebuild then         NEW FUNCTION FOR WORST SEGMENT DETECT
                 local worst = 1000
-                for iii = 1, numsegs do
+                for iii = 1, i_segscount do
                     local s = get.seg_score(iii)
                     if s < worst then
                         seg = iii
@@ -2031,10 +2045,10 @@ for i = i_start_seg, i_end_seg do
     end -- for ii
 end -- for i
 if b_fuze then
-    fuze.start(overall)
+    fuze.start(sl_overall)
 end -- if b_fuze
-sl.load(overall)
-sl.release(overall)
+sl.load(sl_overall)
+sl.release(sl_overall)
 s_1 = get.score()
-p("+++ Overall gain +++")
-p("+++", s_1 - s_0, "+++")
+p("+++ sl_overall gain +++")
+p("+++", s_1 - i_s0, "+++")
