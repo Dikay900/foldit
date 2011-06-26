@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1155"
+i_vers          = "1156"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -23,13 +23,13 @@ i_start_walk    = 0         -- 0        with how many segs shall we work - Walke
 i_end_walk      = 4         -- 4        starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false     -- false    do local wiggle and rewiggle
 b_rebuild       = false     -- false    rebuild | see #Rebuilding
-b_pp            = false     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true     -- false    pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false     -- false    rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false     -- false    Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false     -- false    should we snap every sidechain to different positions
 b_fuze          = false     -- false    should we fuze | see #Fuzing
 b_mutate        = false     -- false    it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
-b_predict       = true     -- false    reset and predict then the secondary structure based on the amino acids of the protein
+b_predict       = false     -- false    reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false     -- false    work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false     -- false    if true then the sl_overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
@@ -54,21 +54,21 @@ i_m_cl_wig      = 0.7
 --#Pull
 b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
-i_pp_loss       = 5         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
 b_pp_mutate     = false
 b_solo_quake    = false     -- false    just one seg is used on every method and all segs are tested
-b_pp_pre_strong = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = false     -- false
-b_pp_pull       = true      -- true     hydrophobic segs are pulled together
-b_pp_push       = true      -- true
+b_pp_pre_strong = false      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_local  = true     -- false
+b_pp_pull       = false      -- true     hydrophobic segs are pulled together
+b_pp_push       = false      -- true
 i_pp_bandperc   = 0.04      -- 0.04
 i_pp_expand     = 2         -- 2
 b_pp_fixed      = false     -- false
 i_pp_fix_start  = 0         -- 0
 i_pp_fix_end    = 0         -- 0
-b_pp_centerpull = true      -- true     hydrophobic segs are pulled to the center segment
-b_pp_centerpush = true      -- true
+b_pp_centerpull = false      -- true     hydrophobic segs are pulled to the center segment
+b_pp_centerpush = false      -- true
 b_pp_soft       = false
 i_pp_soft_len   = 1.75
 --Pull
@@ -1052,11 +1052,17 @@ function _quake(ii)
     if b_solo_quake then
         band.disable()
         band.enable(ii)
-        s3 = math.floor(s3 / bands * 10, 4)
-        strength = math.floor(strength * bands / 4, 4)
+        s3 = math.floor(s3 / bands * 2, 4)
+        strength = math.floor(strength / bands * 2, 4)
     elseif b_pp_pre_local then
-        s3 = math.floor(s3 / bands, 4)
-        strength = math.floor(strength * bands / 8, 4)
+        s3 = math.floor(s3 / bands * 4, 4)
+        if s3 > 150 then
+            s3 = 150
+        end
+        strength = math.floor(strength / bands * 4, 4)
+        if strength > 0.2 then
+            strength = 0.2
+        end
     end -- if
     if b_cu then
         s3 = math.floor(s3 / 10, 4)
