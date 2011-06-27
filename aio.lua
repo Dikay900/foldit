@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1156"
+i_vers          = "1157"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -52,7 +52,6 @@ i_m_cl_wig      = 0.7
 --Mutating#
 
 --#Pull
-b_comp          = false     -- false    try a pull of the two segments which have the biggest distance in between
 i_pp_trys       = 1         -- 1        how often should the pull start over?
 i_pp_loss       = 1         -- 1        the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false     -- false
@@ -1049,23 +1048,24 @@ function _quake(ii)
     else
         select.segs()
     end
+    if b_pp_pre_local then
+        s3 = math.floor(s3 / bands * 4, 4)
+        strength = math.floor(strength / bands * 4, 4)
+    end -- if
     if b_solo_quake then
         band.disable()
         band.enable(ii)
         s3 = math.floor(s3 / bands * 2, 4)
         strength = math.floor(strength / bands * 2, 4)
-    elseif b_pp_pre_local then
-        s3 = math.floor(s3 / bands * 4, 4)
-        if s3 > 150 then
-            s3 = 150
-        end
-        strength = math.floor(strength / bands * 4, 4)
-        if strength > 0.2 then
-            strength = 0.2
-        end
-    end -- if
+    end
     if b_cu then
         s3 = math.floor(s3 / 10, 4)
+    end
+    if s3 > 150 * i_pp_loss then
+        s3 = 150 * i_pp_loss
+    end
+    if strength > 0.2 * i_pp_loss * 3 / 4 then
+        strength = 0.2 * i_pp_loss * 3 / 4
     end
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
@@ -1265,35 +1265,6 @@ local function _pl(_local, bandsp)
     end -- for x
 end -- function
 --Pull#
-
---#BandMaxDist
-local function _maxdist(_local)
-    get.segs(_local)
-    get.dists()
-    local maxdistance = 0
-    for i = start, _end do
-        for j = start, _end do
-            if i ~= j then
-                local x = i
-                local y = j
-                if x > y then
-                    x, y = y, x
-                end -- >
-                if distances[x][y] > maxdistance then
-                    maxdistance = distances[x][y]
-                    maxx = i
-                    maxy = j
-                end -- if distances
-            end -- if ~=
-        end -- for j
-    end -- for i
-    band.add(maxx, maxy)
-    if b_pp_soft then
-        local cband = get.bandcount()
-        band.length(cband, distances[i][ii] - i_pp_soft_len)
-    end
-end -- function
---BandMaxDist#
 
 local function _strong(_local)
     get.dists()
@@ -1557,11 +1528,6 @@ end -- function
 function dists()
     sl.save(sl_overall)
     dist_score = get.score()
-    if b_comp then
-        band.delete()
-        bonding.maxdist()
-        work.dist()
-    end -- if b_comp
     band.delete()
     if b_pp_pre_strong then
         bonding.matrix.strong()
