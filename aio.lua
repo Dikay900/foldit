@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1158"
+i_vers          = "1159"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -23,7 +23,7 @@ i_start_walk    = 0             -- 0            with how many segs shall we work
 i_end_walk      = 4             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -41,7 +41,7 @@ i_score_gain    = 0.01          -- 0.01         Score will get applied after the
 
 --#Mutating
 b_m_new         = false         -- false        Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
-b_m_fuze        = false          -- true         fuze a change or just wiggling out (could get some more points but recipe needs longer)
+b_m_fuze        = true          -- true         fuze a change or just wiggling out (could get some more points but recipe needs longer)
 b_m_fast        = false         -- false        will just change every seg to every mut without wiggling and see if there is a gain
 b_m_through     = false
 b_m_wiggle      = true
@@ -57,10 +57,10 @@ i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is t
 b_pp_local      = false         -- false
 b_pp_mutate     = false
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
-b_pp_pre_strong = false        -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-b_pp_pre_local  = true          -- false
-b_pp_pull       = false        -- true         hydrophobic segs are pulled together
-b_pp_push       = false        -- true
+b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_local  = false         -- false
+b_pp_pull       = true          -- true         hydrophobic segs are pulled together
+b_pp_push       = true          -- true
 i_pp_bandperc   = 0.04          -- 0.04
 i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
@@ -176,18 +176,12 @@ score =
 }
 --Optimizing#
 
---#Debug
-local function _assert(b, m)
+function assert(b, m)
     if not b then
         p(m)
         error()
     end -- if
 end -- function
-
-debug =
-{   assert  = _assert
-}
---Debug#
 
 --#Amino
 local function _short(seg)
@@ -297,7 +291,7 @@ local function _calc()
         strength[i] = {}
         for ii = i + 2, i_segscount - 2 do
             strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
-        end  -- for ii
+        end -- for ii
     end -- for i
 end -- function
 
@@ -399,7 +393,7 @@ local function _release(slot)
 end -- function
 
 local function _request()
-    debug.assert(#sls > 0, "Out of save slots")
+    assert(#sls > 0, "Out of save slots")
     local slot = sls[#sls]
     sls[#sls] = nil
     return slot
@@ -423,9 +417,6 @@ local function _dists()
         distances[i] = {}
         for j = i + 1, i_segscount do
             distances[i][j] = get.distance(i, j)
-            if distances[i][j] > 20 then
-                distances[i][j] = 20
-            end
         end -- for j
     end -- for i
 end -- function
@@ -435,7 +426,7 @@ local function _sphere(seg, radius)
     for i = 1, i_segscount do
         if get.distance(seg, i) <= radius then
             sphere[#sphere + 1] = i
-        end -- if get_
+        end -- if get
     end -- for i
     return sphere
 end -- function
@@ -448,10 +439,12 @@ local function _center()
     for i = 1, i_segscount do
         distance = 0
         for j = 1, i_segscount do
-        if i ~= j then
-            local x = i
-            local y = j
-            if x > y then x, y = y, x end
+            if i ~= j then
+                local x = i
+                local y = j
+                if x > y then
+                    x, y = y, x
+                end
                 distance = distance + distances[x][y]
             end -- if i ~= j
         end -- for j
