@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1159"
+i_vers          = "1160"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -23,7 +23,7 @@ i_start_walk    = 0             -- 0            with how many segs shall we work
 i_end_walk      = 4             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -59,6 +59,8 @@ b_pp_mutate     = false
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
+b_pp_combined   = true          -- true
+b_pp_rnd        = true          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
 b_pp_push       = true          -- true
 i_pp_bandperc   = 0.04          -- 0.04
@@ -85,7 +87,7 @@ b_fuze_mut      = false
 --b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 i_max_rebuilds  = 2             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
-b_re_mutate     = true
+b_re_mutate     = false
 --Rebuilding#
 
 --#Predicting
@@ -113,7 +115,6 @@ sls         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 rebuilding  = false
 snapping    = false
 b_mutating  = false
-sc_changed  = true
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -471,8 +472,6 @@ local function _increase(sc1, sc2, slot, step)
         if sc2 - sc1 < step then
             sl.load(slot)
             return
-        else
-            sc_changed = true
         end
     end
     if sc2 > sc1 then
@@ -1019,9 +1018,6 @@ local function _flow(g, more)
     if not more then
         get.increase(ws_1, s1, slot, i_score_gain)
     end
-    if s1 - ws_1 > i_score_gain then
-        sc_changed = true
-    end -- if
 end -- function
 
 function _quake(ii)
@@ -1357,40 +1353,35 @@ local function _comp_sheet()
 end -- function
 
 local function _rndband()
-    local start  = RandomInt(segCnt)
-    local finish = RandomInt(segCnt)
-    if  start~=finish and --not make band to same place
-        math.abs(start-finish)>= minDist and --do not band if too close
-        CanBeUsed(start,finish) and --at least one need to be in place
-        get_segment_distance(start,finish) <= maxBandDist --not band if too far away
+    local start  = math.random(segCnt)
+    local finish = math.random(segCnt)
+    if  start ~= finish and --not make band to same place
+        math.abs(start - finish) >= minDist and --do not band if too close
+        get.distance(start, finish) <= 30 --not band if too far away
     then
-        band_add_segment_segment(start, finish)
-        local range    = Band.maxStrength - Band.minStrength
-        local strength = (RandomFloat() * range) + Band.minStrength
+        band.add(start, finish)
+        local strength = (math.random() * 0.7) + 0.3
         local n = get_band_count()
-        if n > 0 then band_set_strength(n, strength) end
+        if n > 0 then band.strength(n, strength) end
+
+        local length = 3 + (math.random() * (40 - 3)) --min len is 3
         
-        local length = 3+ (RandomFloat() * (Band.maxLength-3)) --min len is 3
-        
-        if compressor then
-            length = get_segment_distance(start,finish)-compressFrac --compressing
-        else
-            if push then
-                local dist = get_segment_distance(start,finish)
-                if dist >2 and dist <18 then length=dist*1.5 end
-            end
-            
-            if hydroPull then
-                if is_hydrophobic(start) and is_hydrophobic(finish)  then 
-                    length=3 --always pull hydrophobic pair
-                end
+        if push then
+            local dist = get_segment_distance(start,finish)
+            if dist > 2 and dist < 18 then length = dist * 1.5 end
+        end
+        if hydroPull then
+            if is_hydrophobic(start) and is_hydrophobic(finish)  then 
+                length = 3 --always pull hydrophobic pair
             end
         end
-        if length >20 then length=20 end
-        if length <0 then length=0 end
-        if n > 0 then band_set_length(n, length) end                
+
+        if length > 20 then length = 20 end
+        if length < 0 then length = 0 end
+        if n > 0 then band.length(n, length) end                
     else
-        CreateBand()
+        math.randomseed(get.distance(start, finish))
+        bonding.rnd()
     end
 end
 
@@ -1522,6 +1513,19 @@ function dists()
     sl.save(sl_overall)
     dist_score = get.score()
     band.delete()
+    if b_pp_combined then
+        bonding.pull(b_pp_local, i_pp_bandperc / 2)
+        bonding.push(b_pp_local, i_pp_bandperc)
+        work.dist()
+        band.delete()
+    end -- if b_pp_combined
+    if b_pp_rnd then
+        for i = 1, 20 do
+            bonding.rnd()
+        end
+        work.dist()
+        band.delete()
+    end -- if b_pp_rnd
     if b_pp_pre_strong then
         bonding.matrix.strong()
         work.dist()
@@ -1999,13 +2003,6 @@ for i = i_start_seg, i_end_seg do
         if b_lws then
             p(seg, "-", r)
             work.flow("wl")
-            if sc_changed then
-                work.flow("wb")
-                work.flow("ws")
-                work.flow("wa")
-                work.flow("s")
-                sc_changed = false
-            end -- if sc_changed
         end -- if b_lws
     end -- for ii
 end -- for i
