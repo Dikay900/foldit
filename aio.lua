@@ -5,11 +5,11 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1160"
+i_vers          = "1161"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
-i_release_date  = "1.May 2011"
+i_release_date  = "1. May 2011"
 i_release_vers  = 2
 --Release#
 --Game vars#
@@ -57,9 +57,9 @@ i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is t
 b_pp_local      = false         -- false
 b_pp_mutate     = false
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
-b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_combined   = true          -- true
+b_pp_combined   = false          -- true
 b_pp_rnd        = true          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
 b_pp_push       = true          -- true
@@ -1053,8 +1053,8 @@ function _quake(ii)
     if s3 > 150 * i_pp_loss then
         s3 = 150 * i_pp_loss
     end
-    if strength > 0.2 * i_pp_loss * 3 / 4 then
-        strength = 0.2 * i_pp_loss * 3 / 4
+    if strength > 0.2 * i_pp_loss then
+        strength = 0.2 * i_pp_loss
     end
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
@@ -1353,29 +1353,21 @@ local function _comp_sheet()
 end -- function
 
 local function _rndband()
-    local start  = math.random(segCnt)
-    local finish = math.random(segCnt)
+    local start  = math.floor(math.random() * (i_segscount - 1)) + 1
+    local finish = math.floor(math.random() * (i_segscount - 1)) + 1
     if  start ~= finish and --not make band to same place
-        math.abs(start - finish) >= minDist and --do not band if too close
-        get.distance(start, finish) <= 30 --not band if too far away
+        math.abs(start - finish) >= 5 and --do not band if too close
+        get.distance(start, finish) <= 25 --not band if too far away
     then
         band.add(start, finish)
-        local strength = (math.random() * 0.7) + 0.3
         local n = get_band_count()
-        if n > 0 then band.strength(n, strength) end
 
         local length = 3 + (math.random() * (40 - 3)) --min len is 3
         
-        if push then
-            local dist = get_segment_distance(start,finish)
-            if dist > 2 and dist < 18 then length = dist * 1.5 end
+        if is_hydrophobic(start) and is_hydrophobic(finish)  then 
+            length = 3 --always pull hydrophobic pair
         end
-        if hydroPull then
-            if is_hydrophobic(start) and is_hydrophobic(finish)  then 
-                length = 3 --always pull hydrophobic pair
-            end
-        end
-
+        
         if length > 20 then length = 20 end
         if length < 0 then length = 0 end
         if n > 0 then band.length(n, length) end                
