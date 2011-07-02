@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1161"
+i_vers          = "1162"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -53,25 +53,25 @@ i_m_cl_wig      = 0.7
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.75             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_local      = false         -- false
 b_pp_mutate     = false
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
-b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_combined   = false          -- true
-b_pp_rnd        = true          -- true
+b_pp_combined   = true          -- true
+b_pp_rnd        = false          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
-b_pp_push       = true          -- true
-i_pp_bandperc   = 0.04          -- 0.04
+b_pp_push       = false          -- true
+i_pp_bandperc   = 0.03          -- 0.04
 i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
-b_pp_centerpull = false         -- true        hydrophobic segs are pulled to the center segment
+b_pp_centerpull = true         -- true        hydrophobic segs are pulled to the center segment
 b_pp_centerpush = false         -- true
 b_pp_soft       = false
-i_pp_soft_len   = 1.75
+i_pp_soft_len   = 3
 --Pull
 
 --#Fuzing
@@ -1505,6 +1505,18 @@ function dists()
     sl.save(sl_overall)
     dist_score = get.score()
     band.delete()
+    if b_pp_pre_strong then
+        bonding.matrix.strong()
+        work.dist()
+        band.delete()
+    end -- if b_pp_predicted
+    if b_pp_pre_local then
+        for i = i_start_seg, i_end_seg do
+            bonding.matrix.one(i)
+            work.dist()
+            band.delete()
+        end
+    end -- if b_pp_predicted
     if b_pp_combined then
         bonding.pull(b_pp_local, i_pp_bandperc / 2)
         bonding.push(b_pp_local, i_pp_bandperc)
@@ -1518,18 +1530,6 @@ function dists()
         work.dist()
         band.delete()
     end -- if b_pp_rnd
-    if b_pp_pre_strong then
-        bonding.matrix.strong()
-        work.dist()
-        band.delete()
-    end -- if b_pp_predicted
-    if b_pp_pre_local then
-        for i = i_start_seg, i_end_seg do
-            bonding.matrix.one(i)
-            work.dist()
-            band.delete()
-        end
-    end -- if b_pp_predicted
     if b_pp_pull then
         bonding.pull(b_pp_local, i_pp_bandperc)
         work.dist()
