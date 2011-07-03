@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1162"
+i_vers          = "1163"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -19,11 +19,11 @@ i_release_vers  = 2
 i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
-i_start_walk    = 0             -- 0            with how many segs shall we work - Walker
-i_end_walk      = 4             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_walk    = 2             -- 0            with how many segs shall we work - Walker
+i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -68,7 +68,7 @@ i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
-b_pp_centerpull = true         -- true        hydrophobic segs are pulled to the center segment
+b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
 b_pp_centerpush = false         -- true
 b_pp_soft       = false
 i_pp_soft_len   = 3
@@ -76,7 +76,8 @@ i_pp_soft_len   = 3
 
 --#Fuzing
 b_fast_fuze     = false         -- false        not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
-b_fuze_bf       = false         -- false        Bluefuse only!!! Only recommended at mutating puzzles
+b_fuze_bf       = true         -- false         Use Bluefuse
+b_fuze_qstab    = false         -- false        Use Qstab
 b_fuze_mut      = false
 --Fuzing#
 
@@ -84,8 +85,9 @@ b_fuze_mut      = false
 --Snapping#
 
 --#Rebuilding
---b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
-i_max_rebuilds  = 2             -- 2            max rebuilds till best rebuild will be chosen 
+b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_len     = 2
+i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
 --Rebuilding#
@@ -692,6 +694,31 @@ local function _void(a)
     end
 end
 
+local function _segscores()
+    segs = {}
+    local i
+    for i = 1, i_segscount do
+        segs[i] = get.seg_score(i)
+    end
+end
+
+local function _worst(len)
+    local worst = 9999999
+    get.segscores()
+    for ii = 1, i_segscount - len do
+        for i = 1, len - 1 do
+            segs[ii] = segs[ii] + segs[ii + i]
+        end
+    end
+    for i = 1, i_segscount do
+        if segs[i] < worst then
+            seg = i
+            worst = segs[i]
+        end -- if s
+    end
+    r = seg + len - 1
+end
+
 get =
 {   dists       = _dists,
     sphere      = _sphere,
@@ -707,6 +734,8 @@ get =
     struct      = _struct,
     same_struct = _same,
     voids       = _void,
+    segscores   = _segscores,
+    worst       = _worst,
     -- renaming
     distance    = get_segment_distance,
     ss          = get_ss,
@@ -714,7 +743,8 @@ get =
     segcount    = get_segment_count,
     bandcount   = get_band_count,
     hydrophobic = is_hydrophobic,
-    snapcount   = get_sidechain_snap_count
+    snapcount   = get_sidechain_snap_count,
+    seg_score   = get_segment_score
 }
 --Getters#
 
@@ -845,21 +875,13 @@ local function _start(slot, fast)
     sl_f = sl.request()
     local s_f1 = get.score()
     sl.save(sl_f)
-    if b_fuze_bf then
-        repeat
-            local qs1 = get.score()
+    fuze.part(1, 0.1, 0.6)
+    if not b_fast_fuze and not fast then
+        if b_fuze_bf then
             fuze.part(3, 0.05, 0.07)
-            local qs2 = get.score()
-        until qs2 - qs1 < i_score_step
-    else
-        fuze.part(1, 0.1, 0.6)
-        if not b_fast_fuze and not fast then
-            repeat
-                local qs1 = get.score()
-                fuze.part(3, 0.05, 0.07)
-                fuze.part(2, 0.1, 0.4)
-                local qs2 = get.score()
-            until qs2 - qs1 < i_score_step
+        end
+        if b_fuze_qstab then
+            fuze.part(2, 0.1, 0.4)
         end
     end
     sl.load(sl_f)
@@ -1323,11 +1345,11 @@ end -- function
 
 local function _sheet(_sh)
     if _sh then
-        for ii = 1, #sh[_sh] - 1 do
-            band.add(sh[_sh][ii] - 1, sh[_sh][ii] + 2)
+        for ii = sh[_sh][1], sh[_sh][#sh[_sh]] - 1 do
+            band.add(ii - 1, ii + 2)
             local cbands = get.bandcount()
             band.strength(cbands, 10)
-            band.length(cbands, 20)
+            band.length(cbands, 100)
         end -- for ii
     else
         for i = 1, #sh do
@@ -1335,7 +1357,7 @@ local function _sheet(_sh)
             band.add(sh[i][ii] - 1, sh[i][ii] + 2)
             local cbands = get.bandcount()
             band.strength(cbands, 10)
-            band.length(cbands, 20)
+            band.length(cbands, 100)
         end -- for ii
     end -- for i
     end
@@ -1484,9 +1506,16 @@ function rebuild()
         p("Rebuilding Segment ", seg, "-", r)
     end -- if r
     rs_0 = get.score()
+    sl_r = {}
+    for ii = 1, #sls - 1 do
     work.rebuild(i_max_rebuilds, i_rebuild_str)
+    sl_r[ii] = sl.request()
+    sl.save(sl_r[ii])
+    end
     set.cl(1)
     rs_1 = get.score()
+    for ii = 1, #sl_r do
+    sl.load(sl_r[ii])
     if b_re_mutate then
         select.all()
         do_mutate(1)
@@ -1494,8 +1523,10 @@ function rebuild()
     p(rs_1 - rs_0)
     fuze.start(sl_re)
     rs_2 = get.score()
-    sl.release(sl_re)
     get.increase(rs_0, rs_2, sl_overall)
+    rs_0 = get.score()
+    end
+    sl.release(sl_re)
     rebuilding = false
 end -- function
 --Rebuilding#
@@ -1979,17 +2010,10 @@ for i = i_start_seg, i_end_seg do
             break
         end -- if r
         if b_rebuild then
-            --[[if b_worst_rebuild then         NEW FUNCTION FOR WORST SEGMENT DETECT
-                local worst = 1000
-                for iii = 1, i_segscount do
-                    local s = get.seg_score(iii)
-                    if s < worst then
-                        seg = iii
-                        worst = s
-                    end -- if s
-                end
-                r = seg + ii
-            end]]
+            if b_worst_rebuild then
+                get.worst(b_worst_len)
+                p(seg, " - ", r)
+            end
             rebuild()
         end -- if b_rebuild
         if b_lws then
