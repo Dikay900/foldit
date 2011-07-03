@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1163"
+i_vers          = "1164"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -31,7 +31,7 @@ b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
-b_explore       = false         -- false        if true then the sl_overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -86,7 +86,7 @@ b_fuze_mut      = false
 
 --#Rebuilding
 b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
-b_worst_len     = 2
+b_worst_len     = 4
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -838,27 +838,27 @@ local function _loss(option, cl1, cl2)
         p("Wiggle Out cl1-wa-cl=1-wa-s-cl1-wa")
         work.step(false, "s", 1, cl1)
         work.step(false, "wa", 1, cl2)
-        work.step(false, "wa", 2, 1)
+        work.step(false, "wa", 1, 1)
         work.step(false, "s", 1, 1)
         work.step(false, "wa", 1, cl2)
-        work.gain("wa", 1)
+        work.step(false, "wa", 3, 1)
     elseif option == 2 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
         work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 1, cl2)
+        work.step(false, "wa", 2, cl2)
         work.step(false, "s", 1, 1)
-        work.gain("wa", 1)
+        work.step(false, "wa", 3, 1)
         reset.recent()
     else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
         work.step(false, "s", 1, cl1)
-        work.gain("wa", 1)
+        work.step(false, "wa", 2, 1)
         reset.score()
         work.step(false, "s", 1, cl2)
-        work.gain("wa", 1)
+        work.step(false, "wa", 3, 1)
         reset.recent()
         work.step(false, "s", 1, cl1 - 0.02)
-        work.gain("wa", 1)
+        work.step(false, "wa", 3, 1)
     end -- if option
     reset.recent()
 end -- function
@@ -908,7 +908,7 @@ local function _segs(sphered, start, _end, more)
             local list1
             if _end then
                 if start ~= _end then
-                    list1 = get.sphere(_end, 12)
+                    list1 = get.sphere(_end, 10)
                     select.list(list1)
                 end -- if ~= end
                 if  start > _end then
@@ -916,7 +916,7 @@ local function _segs(sphered, start, _end, more)
                 end -- if > end
                 select.range(start, _end)
             end
-            list1 = get.sphere(start, 12)
+            list1 = get.sphere(start, 10)
             select.list(list1)
         elseif _end and start ~= _end then
             if start > _end then
@@ -1966,7 +1966,7 @@ if b_release then
     p("Released on ", i_release_date)
 else -- if b_release
     p("No Released script so it's probably unsafe!")
-    p("Last version released on", i_release_date)
+    p("Last version released on ", i_release_date)
     p("It was release version ", i_release_vers)
 end -- if b_release
 p("Starting Score: ", i_s0)
