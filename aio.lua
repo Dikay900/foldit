@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1166"
+i_vers          = "1167"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -22,7 +22,7 @@ i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 2             -- 0            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_rebuild       = false         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
@@ -543,7 +543,7 @@ end -- function
 
 --#Ligand Check
 local function _ligand()
-    if get.ss(i_segscount) == 'M' then
+    if ss[i_segscount] == 'M' then
         i_segscount = i_segscount - 1
         if i_end_seg == i_segscount + 1 then
             i_end_seg = i_segscount
@@ -626,15 +626,16 @@ local function _same(a, b)
     local bool
     local a_s
     local b_s
+    p(a," ",b)
     for i = 1, #he do
         for ii = he[i][1], he[i][#he[i]] do
             if a == ii then
-                a_s = he[i][1]
+                a_s = i
             end
             if b == ii then
-                b_s = he[i][1]
+                b_s = i
             end
-            if a_s == b_s then
+            if a_s == b_s and a_s and b_s then
                 p(a_s, b_s)
                 p("true")
                 return true
@@ -651,6 +652,8 @@ local function _same(a, b)
                     b_s = sh[i][1]
                 end
                 if b_s == a_s then
+                    p(a_s, b_s)
+                    p("true")
                     return true
                 end
             end
@@ -1973,6 +1976,7 @@ else -- if b_release
 end -- if b_release
 p("Starting Score: ", i_s0)
 sl.save(sl_overall)
+get.ss()
 get.ligand()
 get.aacid()
 get.hydro()
@@ -2024,6 +2028,7 @@ for i = i_start_seg, i_end_seg do
                     p(seg, " - ", r)
                     rebuild()
                 end
+                break
             else
                 select.segs()
                 replace_ss("L")
@@ -2042,5 +2047,5 @@ end -- if b_fuze
 sl.load(sl_overall)
 sl.release(sl_overall)
 s_1 = get.score()
-p("+++ sl_overall gain +++")
+p("+++ overall gain +++")
 p("+++", s_1 - i_s0, "+++")
