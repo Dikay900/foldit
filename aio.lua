@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1164"
+i_vers          = "1165"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -85,8 +85,9 @@ b_fuze_mut      = false
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
-b_worst_len     = 4
+b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_len     = 6
+b_re_str        = true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -705,12 +706,12 @@ end
 local function _worst(len)
     local worst = 9999999
     get.segscores()
-    for ii = 1, i_segscount - len do
+    for ii = 1, i_segscount - len + 1 do
         for i = 1, len - 1 do
             segs[ii] = segs[ii] + segs[ii + i]
         end
     end
-    for i = 1, i_segscount do
+    for i = 1, i_segscount - len + 1 do
         if segs[i] < worst then
             seg = i
             worst = segs[i]
@@ -1494,9 +1495,6 @@ function rebuild()
     local iter = 1
     rebuilding = true
     sl_re = sl.request()
-    sl.load(sl_overall)
-    select.segs()
-    replace_ss("L")
     sl.save(sl_overall)
     sl.save(sl_re)
     select.segs(false, seg, r)
@@ -2014,7 +2012,19 @@ for i = i_start_seg, i_end_seg do
                 get.worst(b_worst_len)
                 p(seg, " - ", r)
             end
-            rebuild()
+            if b_re_str then
+                get.struct()
+                for i = 1, #lo do
+                    seg = lo[i][1]
+                    r = lo[i][#lo[i]]
+                    p(seg, " - ", r)
+                    rebuild()
+                end
+            else
+                select.segs()
+                replace_ss("L")
+                rebuild()
+            end
         end -- if b_rebuild
         if b_lws then
             p(seg, "-", r)
