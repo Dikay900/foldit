@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1167"
+i_vers          = "1168"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -23,7 +23,7 @@ i_start_walk    = 2             -- 0            with how many segs shall we work
 i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -85,9 +85,9 @@ b_fuze_mut      = false
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
-b_worst_len     = 6
-b_re_str        = true
+b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_len     = 3
+b_re_str        = false
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -953,28 +953,6 @@ select =
 --Universal select#
 
 --#working
-local function _gain(g, cl)
-    local iter
-    repeat
-        iter = 0
-        repeat
-            iter = iter + 1
-            local s1_f = get.score()
-            if iter <= i_maxiter then
-                work.step(false, g, iter, cl)
-            end -- if
-            local s2_f = get.score()
-        until s2_f - s1_f < i_score_step
-        local s3_f = get.score()
-        work.step(false, "s")
-        if b_fuze_mut then
-            select.all()
-            do_mutate(1)
-        end
-        local s4_f = get.score()
-    until s4_f - s3_f < i_score_step
-end
-
 local function _step(sphered, _g, iter, cl)
     if cl then
         set.cl(cl)
@@ -1176,7 +1154,6 @@ end -- function
 work =
 {   gain    = _gain,
     step    = _step,
-    flow    = _flow,
     quake   = _quake,
     dist    = _dist,
     rebuild = _rebuild
@@ -1312,25 +1289,21 @@ end -- function
 
 local function _one(_seg)
     get.dists()
-    for i = 1, i_segscount do
-        if _seg == i then
-        local max_str = 0
-        for ii = i + 2, i_segscount - 2 do
-            if max_str <= strength[i][ii] then
-                max_str = strength[i][ii]
-            end -- if max_str <=
-        end -- for ii
-        for ii = i + 2, i_segscount - 2 do
-            if strength[i][ii] == max_str then
-                band.add(i , ii)
-                if b_pp_soft then
-                    local cband = get.bandcount()
-                    band.length(cband, distances[i][ii] - i_pp_soft_len)
-                end
-            end -- if strength
-        end -- for ii
-        end
-    end -- for i
+    local max_str = 0
+    for ii = _seg + 2, i_segscount - 2 do
+        if max_str <= strength[_seg][ii] then
+            max_str = strength[_seg][ii]
+        end -- if max_str <=
+    end -- for ii
+    for ii = _seg + 2, i_segscount - 2 do
+        if strength[_seg][ii] == max_str then
+            band.add(_seg , ii)
+            if b_pp_soft then
+                local cband = get.bandcount()
+                band.length(cband, distances[_seg][ii] - i_pp_soft_len)
+            end
+        end -- if strength
+    end -- for ii
 end -- function
 
 local function _helix(_he)
@@ -1455,16 +1428,17 @@ function snap()
                 break
             end
             if c_s - c_s2 > 1 then
-            sl.save(snapwork)
-            select.segs(false, seg)
-            do_.freeze("s")
-            fuze.start(snapwork)
-            do_.unfreeze()
-            work.gain("wa")
-            sl.save(snapwork)
-            if c_snap < get.score() then
-                c_snap = get.score()
-            end
+                sl.save(snapwork)
+                select.segs(false, seg)
+                do_.freeze("s")
+                fuze.start(snapwork)
+                do_.unfreeze()
+                work.step(true, "s", 1)
+                work.step(false, "wa", 3)
+                sl.save(snapwork)
+                if c_snap < get.score() then
+                    c_snap = get.score()
+                end
             end
         end
         sl.load(snapwork)
@@ -1509,23 +1483,23 @@ function rebuild()
     rs_0 = get.score()
     sl_r = {}
     for ii = 1, #sls - 1 do
-    work.rebuild(i_max_rebuilds, i_rebuild_str)
-    sl_r[ii] = sl.request()
-    sl.save(sl_r[ii])
+        work.rebuild(i_max_rebuilds, i_rebuild_str)
+        sl_r[ii] = sl.request()
+        sl.save(sl_r[ii])
     end
     set.cl(1)
-    rs_1 = get.score()
     for ii = 1, #sl_r do
-    sl.load(sl_r[ii])
-    if b_re_mutate then
-        select.all()
-        do_mutate(1)
-    end
-    p(rs_1 - rs_0)
-    fuze.start(sl_re)
-    rs_2 = get.score()
-    get.increase(rs_0, rs_2, sl_overall)
-    rs_0 = get.score()
+        sl.load(sl_r[ii])
+        sl.release(sl_r[ii])
+        rs_1 = get.score()
+        if b_re_mutate then
+            select.all()
+            do_mutate(1)
+        end
+        p(rs_1 - rs_0)
+        fuze.start(sl_re)
+        rs_2 = get.score()
+        get.increase(rs_0, rs_2, sl_overall)
     end
     sl.release(sl_re)
     rebuilding = false
