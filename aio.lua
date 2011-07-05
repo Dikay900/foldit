@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1165"
+i_vers          = "1166"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -1707,8 +1707,10 @@ local function _combine()
                 for ii = 1, #he do
                     if b_pre_add_pref then
                         for iii = he[ii][1] - 1, he[ii][#he[ii]] + 1, he[ii][#he[ii]] - he[ii][1] + 1 do
-                            if amino.preffered(iii) == "H" then
-                                select.index(iii)
+                            if iii > 0 and iii <= i_segscount then
+                                if amino.preffered(iii) == "H" then
+                                    select.index(iii)
+                                end -- if iii
                             end -- if iii
                         end -- for iii
                     end -- if b_pre
@@ -1728,9 +1730,11 @@ local function _combine()
             if b_pre_add_pref then
                 for ii = 1, #sh do
                     for iii = sh[ii][1] - 1, sh[ii][#sh[ii]] + 1, sh[ii][#sh[ii]] - sh[ii][1] + 1 do
-                        if amino.preffered(iii) == "E" then
-                            select.index(iii)
-                        end -- if iii
+                        if iii > 0 and iii <= i_segscount then
+                            if amino.preffered(iii) == "E" then
+                                select.index(iii)
+                            end -- if iii
+                        end
                     end -- for iii
                 end -- for ii
             end -- if b_pre
