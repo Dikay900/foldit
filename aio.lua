@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1168"
+i_vers          = "1169"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -22,15 +22,15 @@ i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 2             -- 0            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
-b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
+b_sphered       = true         -- false        work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
 
@@ -54,24 +54,25 @@ i_m_cl_wig      = 0.7
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
 i_pp_loss       = 0.75             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
-b_pp_local      = false         -- false
 b_pp_mutate     = false
+b_pp_structs    = true
+i_pp_bandperc   = 0.03          -- 0.04
+i_pp_expand     = 2             -- 2
+b_pp_fixed      = false         -- false
+i_pp_fix_start  = 0             -- 0
+i_pp_fix_end    = 0             -- 0
+b_pp_soft       = false
+i_pp_soft_len   = 3
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
+b_pp_local      = false         -- false
 b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_combined   = true          -- true
 b_pp_rnd        = false          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
 b_pp_push       = false          -- true
-i_pp_bandperc   = 0.03          -- 0.04
-i_pp_expand     = 2             -- 2
-b_pp_fixed      = false         -- false
-i_pp_fix_start  = 0             -- 0
-i_pp_fix_end    = 0             -- 0
 b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
 b_pp_centerpush = false         -- true
-b_pp_soft       = false
-i_pp_soft_len   = 3
 --Pull
 
 --#Fuzing
@@ -799,12 +800,8 @@ local function _mutate(mut, aa, more)
         fuze.start(sl_mut)
     elseif b_m_wiggle then
         set.cl(i_m_cl_wig)
-        work.flow("wb", true)
-        work.flow("ws", true)
         work.flow("wa", true)
         set.cl(1)
-        work.flow("wb", true)
-        work.flow("ws", true)
         work.flow("wa", true)
     end
     local sc_mut2 = get.score()
@@ -840,29 +837,29 @@ local function _loss(option, cl1, cl2)
     reset.score()
     if option == 1 then
         p("Wiggle Out cl1-wa-cl=1-wa-s-cl1-wa")
-        work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 1, cl2)
-        work.step(false, "wa", 1, 1)
-        work.step(false, "s", 1, 1)
-        work.step(false, "wa", 1, cl2)
-        work.step(false, "wa", 3, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 1, cl2)
+        work.step("wa", 1, 1)
+        work.step("s", 1, 1)
+        work.step("wa", 1, cl2)
+        work.step("wa", 3, 1)
     elseif option == 2 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 2, cl2)
-        work.step(false, "s", 1, 1)
-        work.step(false, "wa", 3, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 2, cl2)
+        work.step("s", 1, 1)
+        work.step("wa", 3, 1)
         reset.recent()
     else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
-        work.step(false, "s", 1, cl1)
-        work.step(false, "wa", 2, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 2, 1)
         reset.score()
-        work.step(false, "s", 1, cl2)
-        work.step(false, "wa", 3, 1)
+        work.step("s", 1, cl2)
+        work.step("wa", 3, 1)
         reset.recent()
-        work.step(false, "s", 1, cl1 - 0.02)
-        work.step(false, "wa", 3, 1)
+        work.step("s", 1, cl1 - 0.02)
+        work.step("wa", 3, 1)
     end -- if option
     reset.recent()
 end -- function
@@ -953,11 +950,11 @@ select =
 --Universal select#
 
 --#working
-local function _step(sphered, _g, iter, cl)
+local function _step(_g, iter, cl)
     if cl then
         set.cl(cl)
     end -- if
-    if rebuilding and _g == "s" or snapping and _g == "s" or sphered then
+    if rebuilding and _g == "s" or snapping and _g == "s" or b_sphered then
         select.segs(true, seg, r)
     else -- if rebuilding
         select.segs()
@@ -1005,11 +1002,7 @@ local function _flow(g, more)
         end -- if iter
         s1 = get.score()
         if iter < i_maxiter then
-            if b_sphered then
-                work.step(true, g, iter)
-            else -- if b_sphered
-                work.step(false, g, iter)
-            end -- if b_sphered
+            work.step(g, iter)
         end -- <
         s2 = get.score()
     until s2 - s1 < (i_score_step * iter)
@@ -1433,8 +1426,8 @@ function snap()
                 do_.freeze("s")
                 fuze.start(snapwork)
                 do_.unfreeze()
-                work.step(true, "s", 1)
-                work.step(false, "wa", 3)
+                work.step("s", 1)
+                work.step("wa", 3)
                 sl.save(snapwork)
                 if c_snap < get.score() then
                     c_snap = get.score()
@@ -1474,7 +1467,11 @@ function rebuild()
     sl_re = sl.request()
     sl.save(sl_overall)
     sl.save(sl_re)
-    select.segs(false, seg, r)
+    if b_sphered then
+        select.segs(true, seg, r)
+    else
+        select.segs(false, seg, r)
+    end
     if r == seg then
         p("Rebuilding Segment ", seg)
     else -- if r
