@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1169"
+i_vers          = "1170"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -22,15 +22,15 @@ i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 2             -- 0            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = true         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = false         -- false        rebuild | see #Rebuilding
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
-b_sphered       = true         -- false        work with a sphere always, can be used on lws and rebuilding walker
+b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Working#
 
@@ -65,13 +65,13 @@ b_pp_soft       = false
 i_pp_soft_len   = 3
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_combined   = true          -- true
-b_pp_rnd        = false          -- true
-b_pp_pull       = true          -- true         hydrophobic segs are pulled together
+b_pp_combined   = false          -- true
+b_pp_rnd        = true          -- true
+b_pp_pull       = false          -- true         hydrophobic segs are pulled together
 b_pp_push       = false          -- true
-b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
+b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
 b_pp_centerpush = false         -- true
 --Pull
 
@@ -1035,20 +1035,20 @@ function _quake(ii)
         select.segs()
     end
     if b_pp_pre_local then
-        s3 = math.floor(s3 / bands * 4, 4)
-        strength = math.floor(strength / bands * 4, 4)
+        s3 = math.floor(s3 * 4 / bands, 4)
+        strength = math.floor(strength * 4 / bands, 4)
     end -- if
     if b_solo_quake then
         band.disable()
         band.enable(ii)
-        s3 = math.floor(s3 / bands * 2, 4)
-        strength = math.floor(strength / bands * 2, 4)
+        s3 = math.floor(s3 * 2, 4)
+        strength = math.floor(strength * 2, 4)
     end
     if b_cu then
         s3 = math.floor(s3 / 10, 4)
     end
-    if s3 > 150 * i_pp_loss then
-        s3 = 150 * i_pp_loss
+    if s3 > 200 * i_pp_loss then
+        s3 = 200 * i_pp_loss
     end
     if strength > 0.2 * i_pp_loss then
         strength = 0.2 * i_pp_loss
@@ -1354,10 +1354,10 @@ local function _rndband()
         band.add(start, finish)
         local n = get_band_count()
 
-        local length = 3 + (math.random() * (40 - 3)) --min len is 3
+        local length = 4 + (math.random() * (40 - 4)) --min len is 3
         
-        if is_hydrophobic(start) and is_hydrophobic(finish)  then 
-            length = 3 --always pull hydrophobic pair
+        if hydro[start] and hydro[finish] then 
+            length = 4 --always pull hydrophobic pair
         end
         
         if length > 20 then length = 20 end
@@ -1527,7 +1527,7 @@ function dists()
         band.delete()
     end -- if b_pp_combined
     if b_pp_rnd then
-        for i = 1, 20 do
+        for i = 1, 40 do
             bonding.rnd()
         end
         work.dist()
