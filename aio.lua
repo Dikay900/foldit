@@ -1947,7 +1947,7 @@ else -- if b_release
 end -- if b_release
 p("Starting Score: ", i_s0)
 sl.save(sl_overall)
-get.ss()
+get.secstr()
 get.ligand()
 get.aacid()
 get.hydro()
