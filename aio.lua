@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1170"
+i_vers          = "1171"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -22,8 +22,8 @@ i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 2             -- 0            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -78,7 +78,7 @@ b_pp_centerpush = false         -- true
 --#Fuzing
 b_fast_fuze     = false         -- false        not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
 b_fuze_bf       = true         -- false         Use Bluefuse
-b_fuze_qstab    = false         -- false        Use Qstab
+b_fuze_qstab    = true         -- false        Use Qstab
 b_fuze_mut      = false
 --Fuzing#
 
@@ -86,9 +86,9 @@ b_fuze_mut      = false
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 3
-b_re_str        = false
+b_re_str        = true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -908,13 +908,15 @@ local function _segs(sphered, start, _end, more)
         if sphered then
             local list1
             if _end then
-                if start ~= _end then
-                    list1 = get.sphere(_end, 10)
-                    select.list(list1)
-                end -- if ~= end
                 if  start > _end then
                     start, _end = _end, start
                 end -- if > end
+                if start ~= _end then
+                    for i = start, _end do
+                        list1 = get.sphere(i, 10)
+                        select.list(list1)
+                    end
+                end -- if ~= end
                 select.range(start, _end)
             end
             list1 = get.sphere(start, 10)
