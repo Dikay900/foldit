@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1171"
+i_vers          = "1172"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -19,8 +19,8 @@ i_release_vers  = 2
 i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
-i_start_walk    = 2             -- 0            with how many segs shall we work - Walker
-i_end_walk      = 3             -- 4            starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
+i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = true         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
@@ -662,6 +662,14 @@ local function _same(a, b)
     end
     return false
 end -- function
+
+local function _checksame(a, b)
+    if b_pp_struct then
+        return get.samestruct(a, b)
+    end
+    return true
+end
+
 --Structurecheck#
 
 local function _void(a)
@@ -737,7 +745,8 @@ get =
     ligand      = _ligand,
     hydro       = _hydro,
     struct      = _struct,
-    same_struct = _same,
+    samestruct  = _same,
+    checksame   = _checksame,
     voids       = _void,
     segscores   = _segscores,
     worst       = _worst,
@@ -1166,10 +1175,12 @@ local function _cpl(_local)
             local y = indexCenter
             if x > y then x, y = y, x end
             if hydro[i] then
-                band.add(x, y)
-                if b_pp_soft then
-                    local cband = get.bandcount()
-                    band.length(cband, distances[x][y] - i_pp_soft_len)
+                if get.checksame(x, y) then
+                    band.add(x, y)
+                    if b_pp_soft then
+                        local cband = get.bandcount()
+                        band.length(cband, distances[x][y] - i_pp_soft_len)
+                    end
                 end
             end -- if hydro
         end -- if ~=
@@ -1187,9 +1198,11 @@ local function _cps(_local)
             if x > y then x, y = y, x end
             if not hydro[i] then
                 if distances[x][y] <= (20 - i_pp_expand) then
-                    band.add(x, y)
-                    local cband = get.bandcount()
-                    band.length(cband, distances[x][y] + i_pp_expand)
+                    if get.checksame(x, y) then
+                        band.add(x, y)
+                        local cband = get.bandcount()
+                        band.length(cband, distances[x][y] + i_pp_expand)
+                    end
                 end
             end -- if hydro
         end -- if ~=
@@ -1205,9 +1218,11 @@ local function _ps(_local, bandsp)
                 math.randomseed(distances[x][y])
                 if not hydro[y] and math.random() <= bandsp then
                     if distances[x][y] <= (20 - i_pp_expand) then
-                        band.add(x, y)
-                        local cband = get.bandcount()
-                        band.length(cband, distances[x][y] + i_pp_expand)
+                        if get.checksame(x, y) then
+                            band.add(x, y)
+                            local cband = get.bandcount()
+                            band.length(cband, distances[x][y] + i_pp_expand)
+                        end
                     end
                 end
             end
@@ -1225,11 +1240,15 @@ local function _pl(_local, bandsp)
             if hydro[x] then
                 for y = i_pp_fix_start, i_pp_fix_end do
                     math.randomseed(distances[x][y])
-                    if hydro[y] and math.random() < bandsp * 4 then
-                        band.add(x, y)
-                        if b_pp_soft then
-                            local cband = get.bandcount()
-                            band.length(cband, distances[x][y] - i_pp_soft_len)
+                    if hydro[y] then
+                        if math.random() < bandsp * 4 then
+                            if get.checksame(x, y) then
+                                band.add(x, y)
+                                if b_pp_soft then
+                                    local cband = get.bandcount()
+                                    band.length(cband, distances[x][y] - i_pp_soft_len)
+                                end
+                            end
                         end
                     end
                 end
@@ -1240,11 +1259,15 @@ local function _pl(_local, bandsp)
         if hydro[x] then
             for y = x + 2, i_segscount do
                 math.randomseed(distances[x][y])
-                if hydro[y] and math.random() < bandsp then
-                    band.add(x, y)
-                    if b_pp_soft then
-                        local cband = get.bandcount()
-                        band.length(cband, distances[x][y] - i_pp_soft_len)
+                if hydro[y] then
+                    if math.random() < bandsp then
+                        if get.checksame(x, y) then
+                            band.add(x, y)
+                            if b_pp_soft then
+                                local cband = get.bandcount()
+                                band.length(cband, distances[x][y] - i_pp_soft_len)
+                            end
+                        end
                     end
                 end -- hydro y
             end -- for y
@@ -1272,10 +1295,12 @@ local function _strong(_local)
         end -- for ii
         for ii = i + 2, i_segscount - 2 do
             if strength[i][ii] == max_str and min_dist == distances[i][ii] then
-                band.add(i , ii)
-                if b_pp_soft then
-                    local cband = get.bandcount()
-                    band.length(cband, distances[i][ii] - i_pp_soft_len)
+                if get.checksame(i, ii) then
+                    band.add(i , ii)
+                    if b_pp_soft then
+                        local cband = get.bandcount()
+                        band.length(cband, distances[i][ii] - i_pp_soft_len)
+                    end
                 end
             end -- if strength
         end -- for ii
@@ -1292,10 +1317,12 @@ local function _one(_seg)
     end -- for ii
     for ii = _seg + 2, i_segscount - 2 do
         if strength[_seg][ii] == max_str then
-            band.add(_seg , ii)
-            if b_pp_soft then
-                local cband = get.bandcount()
-                band.length(cband, distances[_seg][ii] - i_pp_soft_len)
+            if get.checksame(_seg, ii) then
+                band.add(_seg , ii)
+                if b_pp_soft then
+                    local cband = get.bandcount()
+                    band.length(cband, distances[_seg][ii] - i_pp_soft_len)
+                end
             end
         end -- if strength
     end -- for ii
@@ -1308,10 +1335,10 @@ local function _helix(_he)
         end -- for ii
     else
         for i = 1, #he do
-        for ii = he[i][1], he[i][#he[i]] - 4 do
-            band.add(ii, ii + 4)
-        end -- for ii
-    end -- for i
+            for ii = he[i][1], he[i][#he[i]] - 4 do
+                band.add(ii, ii + 4)
+            end -- for ii
+        end -- for i
     end
 end -- function
 
@@ -1325,13 +1352,13 @@ local function _sheet(_sh)
         end -- for ii
     else
         for i = 1, #sh do
-        for ii = 1, #sh[i] - 1 do
-            band.add(sh[i][ii] - 1, sh[i][ii] + 2)
-            local cbands = get.bandcount()
-            band.strength(cbands, 10)
-            band.length(cbands, 100)
-        end -- for ii
-    end -- for i
+            for ii = 1, #sh[i] - 1 do
+                band.add(sh[i][ii] - 1, sh[i][ii] + 2)
+                local cbands = get.bandcount()
+                band.strength(cbands, 10)
+                band.length(cbands, 100)
+            end -- for ii
+        end -- for i
     end
 end -- function
 
@@ -1913,15 +1940,15 @@ function mutate()
         end
     end
     if b_m_testall then
-    for i = 1, #mutable do
-        p("Mutating segment ", i)
-        sl.save(sl_overall)
-        sc_mut = get.score()
-        for ii = i, #mutable do
-            do_.mut(ii, true)
+        for i = 1, #mutable do
+            p("Mutating segment ", i)
+            sl.save(sl_overall)
+            sc_mut = get.score()
+            for ii = i, #mutable do
+                do_.mut(ii, true)
+            end
+            sl.load(sl_overall)
         end
-        sl.load(sl_overall)
-    end
     end
     for i = 1, #mutable do
         p("Mutating segment ", i)
