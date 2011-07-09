@@ -8,9 +8,9 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 i_vers          = "1174"
 i_segscount     = get_segment_count()
 --#Release
-b_release       = false
-i_release_date  = "1. May 2011"
-i_release_vers  = 2
+b_release       = true
+i_release_date  = "10. July 2011"
+i_release_vers  = 3
 --Release#
 --Game vars#
 
@@ -22,7 +22,7 @@ i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_rebuild       = false         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
@@ -114,7 +114,7 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-sls         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+sls         = {1, 2, 4, 5, 6, 7, 8, 9, 10}
 rebuilding  = false
 snapping    = false
 b_mutating  = false
@@ -1957,7 +1957,7 @@ end
 --Mutate#
 
 i_s0 = get.score()
-sl_overall = sl.request()
+sl_overall = 3
 p("v", i_vers)
 if b_release then
     p("Release Version ", i_release_vers)
