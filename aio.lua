@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1173"
+i_vers          = "1174"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -22,8 +22,8 @@ i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -76,9 +76,8 @@ b_pp_centerpush = false         -- true
 --Pull
 
 --#Fuzing
-b_fast_fuze     = false         -- false        not qstab is used here, a part of the Pink fuze which just loosen up the prot a bit and then wiggle it (faster than qstab, recommend for evo work where the protein is a bit stiff)
-b_fuze_bf       = true         -- false         Use Bluefuse
-b_fuze_qstab    = true         -- false        Use Qstab
+b_fuze_bf       = false         -- false         Use Bluefuse
+b_fuze_qstab    = false         -- false        Use Qstab
 b_fuze_mut      = false
 --Fuzing#
 
@@ -483,6 +482,7 @@ local function _increase(sc1, sc2, slot, step)
         p("+", sc2 - sc1, "+")
         local sc = get.score()
         p("==", sc, "==")
+        sc1 = sc2
     else -- if
         sl.load(slot)
     end -- if
@@ -886,7 +886,7 @@ local function _start(slot, fast)
     local s_f1 = get.score()
     sl.save(sl_f)
     fuze.part(1, 0.1, 0.6)
-    if not b_fast_fuze and not fast then
+    if not fast then
         if b_fuze_bf then
             fuze.part(3, 0.05, 0.07)
         end
@@ -1977,6 +1977,7 @@ get.mutated()
 if b_predict then
     predict.getdata()
 end -- if b_predict
+save_structure()
 if b_str_re then
     struct_rebuild()
 end -- if b_str_re
@@ -1997,6 +1998,24 @@ end -- if b_pp
 if b_mutate then
     mutate()
 end
+if b_rebuild then
+    if b_worst_rebuild then
+        get.worst(b_worst_len)
+        p(seg, " - ", r)
+        select.segs(seg, r)
+        replace_ss("L")
+        rebuild()
+    end
+    if b_re_str then
+        get.struct()
+        for i = 1, #lo do
+            seg = lo[i][1]
+            r = lo[i][#lo[i]]
+            p(seg, " - ", r)
+            rebuild()
+        end
+    end
+end
 for i = i_start_seg, i_end_seg do
     seg = i
     if b_snap then
@@ -2009,24 +2028,9 @@ for i = i_start_seg, i_end_seg do
             break
         end -- if r
         if b_rebuild then
-            if b_worst_rebuild then
-                get.worst(b_worst_len)
-                p(seg, " - ", r)
-            end
-            if b_re_str then
-                get.struct()
-                for i = 1, #lo do
-                    seg = lo[i][1]
-                    r = lo[i][#lo[i]]
-                    p(seg, " - ", r)
-                    rebuild()
-                end
-                break
-            else
-                select.segs()
-                replace_ss("L")
-                rebuild()
-            end
+            select.segs()
+            replace_ss("L")
+            rebuild()
         end -- if b_rebuild
         if b_lws then
             p(seg, "-", r)
@@ -2038,6 +2042,7 @@ if b_fuze then
     fuze.start(sl_overall)
 end -- if b_fuze
 sl.load(sl_overall)
+load_structure()
 sl.release(sl_overall)
 s_1 = get.score()
 p("+++ overall gain +++")
