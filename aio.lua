@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1176"
+i_vers          = "1177"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = true
@@ -53,10 +53,10 @@ i_m_cl_wig      = 0.7
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 0.75             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
-b_pp_structs    = true
-i_pp_bandperc   = 0.03          -- 0.04
+b_pp_structs    = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
+i_pp_bandperc   = 0.05 / i_segscount * 100  --  
 i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
@@ -67,16 +67,16 @@ b_solo_quake    = false         -- false        just one seg is used on every me
 b_pp_local      = false         -- false
 b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_combined   = false          -- true
-b_pp_rnd        = true          -- true
-b_pp_pull       = false          -- true         hydrophobic segs are pulled together
+b_pp_combined   = true          -- true
+b_pp_rnd        = false          -- true
+b_pp_pull       = true          -- true         hydrophobic segs are pulled together
 b_pp_push       = false          -- true
-b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
+b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
 b_pp_centerpush = false         -- true
 --Pull
 
 --#Fuzing
-b_fuze_bf       = false         -- false         Use Bluefuse
+b_fuze_bf       = true         -- false         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 b_fuze_mut      = false
 --Fuzing#
@@ -479,9 +479,13 @@ local function _increase(sc1, sc2, slot, step)
     end
     if sc2 > sc1 then
         sl.save(slot)
-        p("+", sc2 - sc1, "+")
-        local sc = get.score()
-        p("==", sc, "==")
+        if slot == 3 then
+            p("Gain: ", sc2 - sc1)
+        else
+            p("+", sc2 - sc1, "+")
+        end
+            local sc = get.score()
+            p("==", sc, "==")
         sc1 = sc2
     else -- if
         sl.load(slot)
@@ -1333,10 +1337,16 @@ local function _helix(_he)
         for ii = he[_he][1], he[_he][#he[_he]] - 4 do
             band.add(ii, ii + 4)
         end -- for ii
+        for ii = he[_he][1], he[_he][#he[_he]] - 3 do
+            band.add(ii, ii + 3)
+        end -- for ii
     else
         for i = 1, #he do
             for ii = he[i][1], he[i][#he[i]] - 4 do
                 band.add(ii, ii + 4)
+            end -- for ii
+            for ii = he[_he][1], he[_he][#he[_he]] - 3 do
+                band.add(ii, ii + 3)
             end -- for ii
         end -- for i
     end
@@ -1564,6 +1574,9 @@ function dists()
         bonding.push(b_pp_local, i_pp_bandperc * 2)
         work.dist()
         band.delete()
+        bonding.pull(b_pp_local, i_pp_bandperc)
+        work.dist()
+        band.delete()
     end -- if b_pp_push
     if b_pp_centerpull then
         bonding.centerpull(b_pp_local)
@@ -1572,6 +1585,8 @@ function dists()
     end -- if b_pp_centerpull
     if b_pp_centerpush then
         bonding.centerpush(b_pp_local)
+        work.dist()
+        bonding.centerpull(b_pp_local)
         work.dist()
         band.delete()
     end -- if b_pp_centerpull
@@ -1751,6 +1766,7 @@ function struct_curler()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     if b_cu_he then
         for i = 1, #he do
+            if #he[i] > 3 then
             p("Working on Helix ", i)
             seg = he[i][1]
             r = he[i][#he[i]]
@@ -1764,10 +1780,12 @@ function struct_curler()
             fuze.start(str_re_best)
             sl.load(str_re_best)
             rebuilding = false
+            end
         end -- for i
     end -- if b_cu_he
     if b_cu_sh then
         for i = 1, #sh do
+            if #sh[i] > 2 then
             p("Working on Sheet ", i)
             seg = sh[i][1]
             r = sh[i][#sh[i]]
@@ -1780,6 +1798,7 @@ function struct_curler()
             fuze.start(str_re_best)
             sl.load(str_re_best)
             rebuilding = false
+            end
         end -- for i
     end -- if b_cu_sh
     sl.release(str_re_best)
