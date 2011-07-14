@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1177"
+i_vers          = "1178"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = true
@@ -15,12 +15,7 @@ i_release_vers  = 3
 --Game vars#
 
 --#Settings: default
---#Working                      default         description
-i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
-i_start_seg     = 1             -- 1            the first segment to work with
-i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
-i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
-i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
+--#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = true         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
@@ -32,6 +27,14 @@ b_mutate        = false         -- false        it's a mutating puzzle so we sho
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+--Main#
+
+--#Working                      default         description
+i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
+i_start_seg     = 1             -- 1            the first segment to work with
+i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
+i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
+i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -48,7 +51,7 @@ b_m_wiggle      = true
 b_m_testall     = false
 b_m_after       = true
 i_m_cl_mut      = 1
-i_m_cl_wig      = 0.7
+i_m_cl_wig      = 1
 --Mutating#
 
 --#Pull
@@ -56,7 +59,7 @@ i_pp_trys       = 1             -- 1            how often should the pull start 
 i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_structs    = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
-i_pp_bandperc   = 0.05 / i_segscount * 100  --  
+i_pp_bandperc   = 0.05          -- 0.05
 i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
@@ -76,6 +79,7 @@ b_pp_centerpush = false         -- true
 --Pull
 
 --#Fuzing
+b_fuze_pf       = true         -- true
 b_fuze_bf       = true         -- false         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 b_fuze_mut      = false
@@ -94,14 +98,14 @@ b_re_mutate     = false
 --Rebuilding#
 
 --#Predicting
-b_predict_full  = true     -- try to detect the secondary structure between every segment, there can be less loops but the protein become impossible to rebuild
+b_predict_full  = true         -- try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
 b_pre_add_pref  = true
-b_pre_combine_structs = false
+b_pre_comb_str  = false
 --Predicting#
 
 --#Curler
-b_cu_sh         = true          -- true
 b_cu_he         = true          -- true
+b_cu_sh         = true          -- true
 --Curler#
 
 --#Structed rebuilding
@@ -114,10 +118,10 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-sls         = {1, 2, 4, 5, 6, 7, 8, 9, 10}
-rebuilding  = false
-snapping    = false
-b_mutating  = false
+sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10}
+sphering        = false
+b_mutating      = false
+i_pp_bandperc   = i_pp_bandperc / i_segscount * 100  
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -558,11 +562,15 @@ end -- function
 --Ligand Check#
 
 --#Structurecheck
-local function _ss()
-    ss = {}
-    for i = 1, i_segscount do
-        ss[i] = get.ss(i)
-    end -- for i
+local function _ss(s)
+    if s then
+        ss[s] = get.aa(s)
+    else -- if
+        ss = {}
+        for i = 1, i_segscount do
+            ss[i] = get.ss(i)
+        end -- for i
+    end
 end -- function
 
 local function _aa(s)
@@ -631,7 +639,6 @@ local function _same(a, b)
     local bool
     local a_s
     local b_s
-    p(a," ",b)
     for i = 1, #he do
         for ii = he[i][1], he[i][#he[i]] do
             if a == ii then
@@ -641,8 +648,6 @@ local function _same(a, b)
                 b_s = i
             end
             if a_s == b_s and a_s and b_s then
-                p(a_s, b_s)
-                p("true")
                 return true
             end
         end
@@ -657,8 +662,6 @@ local function _same(a, b)
                     b_s = sh[i][1]
                 end
                 if b_s == a_s then
-                    p(a_s, b_s)
-                    p("true")
                     return true
                 end
             end
@@ -673,38 +676,37 @@ local function _checksame(a, b)
     end
     return true
 end
-
 --Structurecheck#
 
 local function _void(a)
     p("Banding segment ", a)
     getDist()
-    local t={}--there we store possible sehments
-    for b=1,segCnt do --test all segments
-        local ab=dist(a,b) --distance between segments
-        if ab>minLenght then --no voind if less
-            --p(a," ",b," ",ab)
-            local void=true
-            for c=1,segCnt do --searhing that is any segment between them                
-                local ac=dist(a,c)
-                local bc=dist(b,c)
-                if ac~=0 and bc~=0 and ac<ab and bc<ab and ac>4 and bc>4 then
-                    if ac+bc<ab+1.5
-                        then void=false break --no void there for sure
+    local t = {}
+    for b = 1, segCnt do
+        local ab = dist(a, b)
+        if ab > minLenght then
+            local void = true
+            for c = 1, segCnt do
+                local ac = dist(a, c)
+                local bc = dist(b, c)
+                if ac ~= 0 and bc ~= 0 and ac < ab and bc < ab and ac > 4 and bc > 4 then
+                    if ac + bc < ab + 1.5 then
+                        void = false
+                        break
                     end
                 end
             end
-            if void==true then 
-                if math.abs(a-b)>=minDist then
-                    t[#t+1]={a,b}
+            if void then
+                if math.abs(a - b) >= minDist then
+                    t[#t + 1] = {a, b}
                 end
             end
         end
     end
-    if #t>0 then
-        p("Found ",#t," possible bands across voids")
-        for i=1,#t do
-            band_add_segment_segment(t[i][1],t[i][2])
+    if #t > 0 then
+        p("Found ", #t, " possible bands across voids")
+        for i = 1, #t do
+            band_add_segment_segment(t[i][1], t[i][2])
         end
     else
         p("No voids found")
@@ -779,7 +781,7 @@ end -- function
 
 local function _mutate(mut, aa, more)
     local sc_mut1 = get.score()
-    select.segs(false, mutable[mut])
+    select.segs(mutable[mut])
     set.aa(amino.segs[aa])
     get.aacid()
     p(#amino.segs - aa, " Mutations left")
@@ -889,7 +891,9 @@ local function _start(slot, fast)
     sl_f = sl.request()
     local s_f1 = get.score()
     sl.save(sl_f)
-    fuze.part(1, 0.1, 0.6)
+    if b_fuze_pf then
+        fuze.part(1, 0.1, 0.6)
+    end
     if not fast then
         if b_fuze_bf then
             fuze.part(3, 0.05, 0.07)
@@ -914,6 +918,17 @@ fuze =
 
 --#Universal select
 local function _segs(sphered, start, _end, more)
+    if sphered ~= false and sphered ~= true then
+        local temp = start
+        start = sphered
+        sphered = nil
+        if start then
+            _end, temp = temp, _end
+            if _end then
+                more = temp
+            end
+        end
+    end
     if not more then
         deselect.all()
     end -- if more
@@ -969,11 +984,11 @@ local function _step(_g, iter, cl)
     if cl then
         set.cl(cl)
     end -- if
-    if rebuilding and _g == "s" or snapping and _g == "s" or b_sphered then
+    if sphering and _g == "s" or b_sphered then
         select.segs(true, seg, r)
-    else -- if rebuilding
+    else -- if sphering
         select.segs()
-    end -- if rebuilding
+    end -- if sphering
     if _g == "wa" then
         wiggle.all(iter)
     elseif _g == "s" then
@@ -983,7 +998,7 @@ local function _step(_g, iter, cl)
     elseif _g == "ws" then
         wiggle.sidechains(iter)
     elseif _g == "wl" then
-        select.segs(false, seg, r)
+        select.segs(seg, r)
         reset.score()
         for i = iter, iter + 5 do
             local s_s1 = get.score()
@@ -1000,9 +1015,9 @@ end -- function
 local function _flow(g, more)
     local ws_1 = get.score()
     local iter = 0
-    if rebuilding then
+    if sphering then
         slot = sl_re
-    elseif snapping then -- if
+    elseif sphering then -- if
         slot = snapwork
     elseif b_mutating then -- if
         slot = sl_mut
@@ -1029,45 +1044,46 @@ local function _flow(g, more)
     sl.release(work_sl)
     if not more then
         get.increase(ws_1, s1, slot, i_score_gain)
-    end
+    end -- if not more
 end -- function
 
 function _quake(ii)
-    local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
-    if s3 < 0 then
+    if get.score() < 0 then
         band.disable()
         fuze.start()
         band.enable()
-        local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
-    end
+    end -- if s3 < 0
+    local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
     local strength = 0.075 + 0.125 * i_pp_loss
     local bands = get.bandcount()
     local quake = sl.request()
     local quake2 = sl.request()
     if seg or r then
-        select.segs(false, seg, r)
-    else
+        select.segs(seg, r)
+    else -- if seg
         select.segs()
-    end
-    if b_pp_pre_local then
-        s3 = math.floor(s3 * 4 / bands, 4)
-        strength = math.floor(strength * 4 / bands, 4)
-    end -- if
-    if b_solo_quake then
-        band.disable()
-        band.enable(ii)
-        s3 = math.floor(s3 * 2, 4)
-        strength = math.floor(strength * 2, 4)
-    end
+    end -- if seg
+    if b_pp then
+        if b_pp_pre_local then
+            s3 = math.floor(s3 * 4 / bands, 4)
+            strength = math.floor(strength * 4 / bands, 4)
+        end -- if
+        if b_solo_quake then
+            band.disable()
+            band.enable(ii)
+            s3 = math.floor(s3 * 2, 4)
+            strength = math.floor(strength * 2, 4)
+        end -- if b_solo_quake
+    end -- if b_pp
     if b_cu then
         s3 = math.floor(s3 / 10, 4)
-    end
+    end -- if b_cu
     if s3 > 200 * i_pp_loss then
         s3 = 200 * i_pp_loss
-    end
+    end -- if s3
     if strength > 0.2 * i_pp_loss then
         strength = 0.2 * i_pp_loss
-    end
+    end -- if strength
     p("Pulling until a loss of more than ", s3, " points")
     sl.save(quake2)
     repeat
@@ -1114,7 +1130,7 @@ local function _dist()
     local bandcount = get.bandcount()
     if b_solo_quake then
         p("Solo quaking enabled")
-        rebuilding = true
+        sphering = true
         for ii = 1, bandcount do
             ps_1 = get.score()
             sl.save(dist)
@@ -1122,13 +1138,13 @@ local function _dist()
             if b_pp_mutate then
                 select.all()
                 do_mutate(1)
-            end
+            end -- if b_pp_mutate
             band.delete(ii)
             fuze.start(dist)
             ps_2 = get.score()
             get.increase(ps_1, ps_2, sl_overall)
         end -- for ii
-        rebuilding = false
+        sphering = false
     else -- if b_solo_quake
         sl.save(dist)
         work.quake()
@@ -1177,15 +1193,17 @@ local function _cpl(_local)
         if i ~= indexCenter then
             local x = i
             local y = indexCenter
-            if x > y then x, y = y, x end
+            if x > y then
+                x, y = y, x
+            end -- if x
             if hydro[i] then
                 if get.checksame(x, y) then
                     band.add(x, y)
                     if b_pp_soft then
                         local cband = get.bandcount()
                         band.length(cband, distances[x][y] - i_pp_soft_len)
-                    end
-                end
+                    end -- if b_pp_soft
+                end -- if checksame
             end -- if hydro
         end -- if ~=
     end -- for
@@ -1199,19 +1217,22 @@ local function _cps(_local)
         if i ~= indexCenter then
             local x = i
             local y = indexCenter
-            if x > y then x, y = y, x end
+            if x > y then
+                x, y = y, x
+            end -- if x
             if not hydro[i] then
                 if distances[x][y] <= (20 - i_pp_expand) then
                     if get.checksame(x, y) then
                         band.add(x, y)
                         local cband = get.bandcount()
                         band.length(cband, distances[x][y] + i_pp_expand)
-                    end
-                end
+                    end -- if checksame
+                end -- if distances
             end -- if hydro
         end -- if ~=
     end -- for
 end -- function
+--Center#
 
 local function _ps(_local, bandsp)
     get.segs(_local)
@@ -1219,13 +1240,15 @@ local function _ps(_local, bandsp)
     for x = start, _end - 2 do
         if not hydro[x] then
             for y = x + 2, _end do
-                math.randomseed(distances[x][y])
-                if not hydro[y] and math.random() <= bandsp then
-                    if distances[x][y] <= (20 - i_pp_expand) then
-                        if get.checksame(x, y) then
-                            band.add(x, y)
-                            local cband = get.bandcount()
-                            band.length(cband, distances[x][y] + i_pp_expand)
+                if not hydro[y] then
+                    math.randomseed(math.random() * distances[x][y] + 1)
+                    if math.random() <= bandsp then
+                        if distances[x][y] <= (20 - i_pp_expand) then
+                            if get.checksame(x, y) then
+                                band.add(x, y)
+                                local cband = get.bandcount()
+                                band.length(cband, distances[x][y] + i_pp_expand)
+                            end
                         end
                     end
                 end
@@ -1233,9 +1256,7 @@ local function _ps(_local, bandsp)
         end
     end
 end
---Center#
 
---#Pull
 local function _pl(_local, bandsp)
     get.segs(_local)
     get.dists()
@@ -1243,42 +1264,41 @@ local function _pl(_local, bandsp)
         for x = start, _end do
             if hydro[x] then
                 for y = i_pp_fix_start, i_pp_fix_end do
-                    math.randomseed(distances[x][y])
                     if hydro[y] then
+                        math.randomseed(math.random() * distances[x][y] + 1)
                         if math.random() < bandsp * 4 then
                             if get.checksame(x, y) then
                                 band.add(x, y)
                                 if b_pp_soft then
                                     local cband = get.bandcount()
                                     band.length(cband, distances[x][y] - i_pp_soft_len)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
+                                end -- b_pp_soft
+                            end -- if checksame
+                        end -- if random
+                    end -- if hydro[y]
+                end -- for y
+            end -- if hydro[x]
+        end -- for x
     end -- if b_pp_fixed
     for x = start, _end - 2 do
         if hydro[x] then
             for y = x + 2, i_segscount do
-                math.randomseed(distances[x][y])
                 if hydro[y] then
+                    math.randomseed(math.random() * distances[x][y] + 1)
                     if math.random() < bandsp then
                         if get.checksame(x, y) then
                             band.add(x, y)
                             if b_pp_soft then
                                 local cband = get.bandcount()
                                 band.length(cband, distances[x][y] - i_pp_soft_len)
-                            end
-                        end
-                    end
+                            end -- if b_pp_soft
+                        end -- if checksame
+                    end -- if random
                 end -- hydro y
             end -- for y
         end -- if hydro x
     end -- for x
 end -- function
---Pull#
 
 local function _strong(_local)
     get.dists()
@@ -1304,8 +1324,8 @@ local function _strong(_local)
                     if b_pp_soft then
                         local cband = get.bandcount()
                         band.length(cband, distances[i][ii] - i_pp_soft_len)
-                    end
-                end
+                    end -- if pp_soft
+                end -- if get.checksame
             end -- if strength
         end -- for ii
     end -- for i
@@ -1333,23 +1353,25 @@ local function _one(_seg)
 end -- function
 
 local function _helix(_he)
+    local i
+    local ii
     if _he then
-        for ii = he[_he][1], he[_he][#he[_he]] - 4 do
-            band.add(ii, ii + 4)
-        end -- for ii
-        for ii = he[_he][1], he[_he][#he[_he]] - 3 do
-            band.add(ii, ii + 3)
-        end -- for ii
+        for i = he[_he][1], he[_he][#he[_he]] - 4 do
+            band.add(i, i + 4)
+        end -- for i
+        for i = he[_he][1], he[_he][#he[_he]] - 3 do
+            band.add(i, i + 3)
+        end -- for i
     else
         for i = 1, #he do
             for ii = he[i][1], he[i][#he[i]] - 4 do
                 band.add(ii, ii + 4)
             end -- for ii
-            for ii = he[_he][1], he[_he][#he[_he]] - 3 do
+            for ii = he[i][1], he[i][#he[i]] - 3 do
                 band.add(ii, ii + 3)
             end -- for ii
         end -- for i
-    end
+    end -- if _he
 end -- function
 
 local function _sheet(_sh)
@@ -1421,7 +1443,7 @@ bonding =
 
 --#Snapping
 function snap()
-    snapping = true
+    sphering = true
     snaps = sl.request()
     cs = get.score()
     c_snap = get.score()
@@ -1454,7 +1476,7 @@ function snap()
             end
             if c_s - c_s2 > 1 then
                 sl.save(snapwork)
-                select.segs(false, seg)
+                select.segs(seg)
                 do_.freeze("s")
                 fuze.start(snapwork)
                 do_.unfreeze()
@@ -1477,7 +1499,7 @@ function snap()
     else
         p("Skipping...")
     end
-    snapping = false
+    sphering = false
     sl.release(snaps)
     if mutated then
         s_snap = get.score()
@@ -1495,14 +1517,14 @@ end
 --#Rebuilding
 function rebuild()
     local iter = 1
-    rebuilding = true
+    sphering = true
     sl_re = sl.request()
     sl.save(sl_overall)
     sl.save(sl_re)
     if b_sphered then
         select.segs(true, seg, r)
     else
-        select.segs(false, seg, r)
+        select.segs(seg, r)
     end
     if r == seg then
         p("Rebuilding Segment ", seg)
@@ -1531,7 +1553,7 @@ function rebuild()
         get.increase(rs_0, rs_2, sl_overall)
     end
     sl.release(sl_re)
-    rebuilding = false
+    sphering = false
 end -- function
 --Rebuilding#
 
@@ -1707,10 +1729,10 @@ local function _combine()
         if ss[i] == "L" then
             if aa[i] ~= "p" then
                 for ii = 1, #he - 1 do
-                    if b_pre_combine_structs then
+                    if b_pre_comb_str then
                         for iii = he[ii][1], he[ii][#he[ii]] do
                             if iii + 1 == i and he[ii + 1][1] == i + 1 then
-                                select.index(i)
+                                select.segs(i)
                             end -- if iii
                         end -- for iii
                     end -- if b_pre
@@ -1720,7 +1742,7 @@ local function _combine()
                         for iii = he[ii][1] - 1, he[ii][#he[ii]] + 1, he[ii][#he[ii]] - he[ii][1] + 1 do
                             if iii > 0 and iii <= i_segscount then
                                 if amino.preffered(iii) == "H" then
-                                    select.index(iii)
+                                    select.segs(iii)
                                 end -- if iii
                             end -- if iii
                         end -- for iii
@@ -1729,11 +1751,11 @@ local function _combine()
                 set.ss("H")
                 deselect.all()
             end -- if aa
-            if b_pre_combine_structs then
+            if b_pre_comb_str then
                 for ii = 1, #sh - 1 do
                     for iii = sh[ii][1], sh[ii][#sh[ii]] do
                         if iii + 1 == i and sh[ii + 1][1] == i + 1 then
-                            select.index(i)
+                            select.segs(i)
                         end -- if iii
                     end -- for iii
                 end -- for ii
@@ -1743,7 +1765,7 @@ local function _combine()
                     for iii = sh[ii][1] - 1, sh[ii][#sh[ii]] + 1, sh[ii][#sh[ii]] - sh[ii][1] + 1 do
                         if iii > 0 and iii <= i_segscount then
                             if amino.preffered(iii) == "E" then
-                                select.index(iii)
+                                select.segs(iii)
                             end -- if iii
                         end
                     end -- for iii
@@ -1761,43 +1783,37 @@ predict =
 --predictss#
 
 function struct_curler()
+    local i
     str_re_best = sl.request()
     get.struct()
     p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
     if b_cu_he then
         for i = 1, #he do
             if #he[i] > 3 then
-            p("Working on Helix ", i)
-            seg = he[i][1]
-            r = he[i][#he[i]]
-            deselect.all()
-            select.segs(false, seg, r)
-            bonding.helix(i)
-            work.dist()
-            band.delete()
-            sl.save(str_re_best)
-            rebuilding = true
-            fuze.start(str_re_best)
-            sl.load(str_re_best)
-            rebuilding = false
+                p("Working on Helix ", i)
+                seg = he[i][1]
+                r = he[i][#he[i]]
+                select.segs(seg, r)
+                bonding.helix(i)
+                sphering = true
+                work.dist()
+                band.delete()
+                sphering = false
             end
         end -- for i
     end -- if b_cu_he
     if b_cu_sh then
         for i = 1, #sh do
             if #sh[i] > 2 then
-            p("Working on Sheet ", i)
-            seg = sh[i][1]
-            r = sh[i][#sh[i]]
-            bonding.sheet(i)
-            select.segs(false, seg, r)
-            work.dist()
-            band.delete()
-            sl.save(str_re_best)
-            rebuilding = true
-            fuze.start(str_re_best)
-            sl.load(str_re_best)
-            rebuilding = false
+                p("Working on Sheet ", i)
+                seg = sh[i][1]
+                r = sh[i][#sh[i]]
+                bonding.sheet(i)
+                select.segs(seg, r)
+                sphering = true
+                work.dist()
+                band.delete()
+                sphering = false
             end
         end -- for i
     end -- if b_cu_sh
@@ -1842,10 +1858,10 @@ function struct_rebuild()
             wiggle.backbone(1)
             band.delete()
             if b_str_re_fuze then
-                rebuilding = true
+                sphering = true
                 fuze.start(str_re_best)
                 sl.load(str_re_best)
-                rebuilding = false
+                sphering = false
             end -- if b_str_re_fuze
             str_sc = nil
             str_rs = nil
@@ -1881,10 +1897,10 @@ function struct_rebuild()
             wiggle.backbone(1)
             band.delete()
             if b_str_re_fuze then
-                rebuilding = true
+                sphering = true
                 fuze.start(str_re_best)
                 sl.load(str_re_best)
-                rebuilding = false
+                sphering = false
             end -- if b_str_re_fuze
         end -- for i
         deselect.all()
