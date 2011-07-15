@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1178"
+i_vers          = "1179"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = true
@@ -56,7 +56,7 @@ i_m_cl_wig      = 1
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 2             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_structs    = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
@@ -475,6 +475,7 @@ local function _segs(_local)
 end -- function
 
 local function _increase(sc1, sc2, slot, step)
+    local sc
     if step then
         if sc2 - sc1 < step then
             sl.load(slot)
@@ -483,13 +484,14 @@ local function _increase(sc1, sc2, slot, step)
     end
     if sc2 > sc1 then
         sl.save(slot)
+        sc = sc2 - sc1
         if slot == 3 then
-            p("Gain: ", sc2 - sc1)
-        else
-            p("+", sc2 - sc1, "+")
-        end
-            local sc = get.score()
+            p("Gain: ", sc)
+            sc = get.score()
             p("==", sc, "==")
+        else
+            p("+", sc, "+")
+        end
         sc1 = sc2
     else -- if
         sl.load(slot)
