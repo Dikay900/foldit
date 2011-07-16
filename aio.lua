@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1179"
+i_vers          = "1180"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = true
@@ -17,10 +17,10 @@ i_release_vers  = 3
 --#Settings: default
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_rebuild       = false         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
-b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
+b_cu            = true         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -66,9 +66,10 @@ i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
 b_pp_soft       = false
 i_pp_soft_len   = 3
+b_pp_fuze       = true
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_combined   = true          -- true
 b_pp_rnd        = false          -- true
@@ -79,7 +80,7 @@ b_pp_centerpush = false         -- true
 --Pull
 
 --#Fuzing
-b_fuze_pf       = true         -- true
+b_fuze_pf       = false         -- true
 b_fuze_bf       = true         -- false         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 b_fuze_mut      = false
@@ -121,7 +122,8 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10}
 sphering        = false
 b_mutating      = false
-i_pp_bandperc   = i_pp_bandperc / i_segscount * 100  
+i_pp_bandperc   = i_pp_bandperc / i_segscount * 100
+selected        = {}
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -161,10 +163,22 @@ wiggle =
     backbone    = do_global_wiggle_backbone
 }
 
+local function _deindex(a)
+    if selected[a] then
+        deselect_index(a)
+        selected[a] = false
+    end
+end
+
+local function _deall()
+    deselect_all()
+    selected = {}
+end
+
 deselect =
-{   -- renaming
-    index   = deselect_index,
-    all     = deselect_all
+{
+    index   = _deindex,
+    all     = _deall
 }
 
 set =
@@ -241,7 +255,7 @@ amino =
     part        = {short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7, vdw_vol = 8},
     segs        = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'},
     table       = {
-  -- short, {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw }
+ -- short,  {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw }
     ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67  },
     ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05,   86  },
     ['d'] = {'Asp', 'Aspartic acid',    false,      6.7,    'L',    133.10384,  2.85,   91  },
@@ -967,16 +981,41 @@ end -- function
 local function _list(list)
     if list then
         for i = 1, #list do
-            select.index(list[i])
+            if not selected[list[i]] then
+                select.index(list[i])
+            end
         end -- for
     end -- if list
 end -- function
 
+local function _range(a, b)
+    local i
+    local bool
+    for i = a, b do 
+        if not selected[i] then
+            bool = true
+        end
+    end
+    if bool then
+        select_index_range(a, b)
+        for i = a, b do
+            selected[i] = true
+        end
+    end
+end
+
+local function _index(a)
+    if not selected[a] then
+        select_index(a)
+        selected[a] = true
+    end
+end
+
 select =
 {   segs    = _segs,
     list    = _list,
-    index   = select_index,
-    range   = select_index_range,
+    index   = _index,
+    range   = _range,
     all     = select_all
 }
 --Universal select#
@@ -1019,8 +1058,6 @@ local function _flow(g, more)
     local iter = 0
     if sphering then
         slot = sl_re
-    elseif sphering then -- if
-        slot = snapwork
     elseif b_mutating then -- if
         slot = sl_mut
     else
@@ -1142,7 +1179,11 @@ local function _dist()
                 do_mutate(1)
             end -- if b_pp_mutate
             band.delete(ii)
-            fuze.start(dist)
+            if b_pp_fuze then
+                fuze.start(dist)
+            else
+                work.step("wa", 3)
+            end
             ps_2 = get.score()
             get.increase(ps_1, ps_2, sl_overall)
         end -- for ii
@@ -1151,7 +1192,11 @@ local function _dist()
         sl.save(dist)
         work.quake()
         band.delete()
-        fuze.start(dist)
+        if b_pp_fuze then
+            fuze.start(dist)
+        else
+            work.step("wa", 3)
+        end
         ps_2 = get.score()
         get.increase(ps_1, ps_2, sl_overall)
     end -- if b_solo_quake
