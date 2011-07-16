@@ -5,11 +5,11 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1181"
+i_vers          = "1182"
 i_segscount     = get_segment_count()
 --#Release
-b_release       = true
-i_release_date  = "10. July 2011"
+b_release       = false
+i_release_date  = "16. July 2011"
 i_release_vers  = 3
 --Release#
 --Game vars#
@@ -20,7 +20,7 @@ b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
-b_cu            = true         -- false        Do bond the structures and curl it, try to improve it and get some points
+b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -72,17 +72,17 @@ b_pp_local      = false         -- false
 b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_combined   = true          -- true
-b_pp_rnd        = false          -- true
+b_pp_rnd        = true          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
-b_pp_push       = false          -- true
-b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
-b_pp_centerpush = false         -- true
+--b_pp_push       = false         -- false
+b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
+--b_pp_centerpush = false         -- false
 --Pull
 
 --#Fuzing
-b_fuze_pf       = false         -- true
-b_fuze_bf       = true         -- false         Use Bluefuse
-b_fuze_qstab    = false         -- false        Use Qstab
+b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
+b_fuze_bf       = true          -- true         Use Bluefuse
+b_fuze_qstab    = true         -- false        Use Qstab
 b_fuze_mut      = false
 --Fuzing#
 
@@ -90,9 +90,10 @@ b_fuze_mut      = false
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 3
-b_re_str        = true
+b_re_str        = false
+b_re_walk       = false
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -1768,8 +1769,8 @@ local function _getdata()
         select.list(p_sh[i])
     end -- for
     set.ss("E")
-    sl.save(sl_overall)
     predict.combine()
+    sl.save(sl_overall)
 end
 
 local function _combine()
@@ -2113,9 +2114,11 @@ for i = i_start_seg, i_end_seg do
             break
         end -- if r
         if b_rebuild then
-            select.segs()
-            replace_ss("L")
-            rebuild()
+            if b_re_walk then
+                select.segs()
+                replace_ss("L")
+                rebuild()
+            end
         end -- if b_rebuild
         if b_lws then
             p(seg, "-", r)
