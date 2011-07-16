@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1180"
+i_vers          = "1181"
 i_segscount     = get_segment_count()
 --#Release
 b_release       = true
@@ -506,9 +506,10 @@ local function _increase(sc1, sc2, slot, step)
         else
             p("+", sc, "+")
         end
-        sc1 = sc2
+        return true
     else -- if
         sl.load(slot)
+        return false
     end -- if
 end
 
@@ -1597,7 +1598,9 @@ function rebuild()
         p(rs_1 - rs_0)
         fuze.start(sl_re)
         rs_2 = get.score()
-        get.increase(rs_0, rs_2, sl_overall)
+        if get.increase(rs_0, rs_2, sl_overall) then
+            rs_0 = get.score()
+        end
     end
     sl.release(sl_re)
     sphering = false
