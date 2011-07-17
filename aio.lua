@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = "1182"
+i_vers          = 1183
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -38,20 +38,17 @@ i_end_walk      = 3             -- 3            starting at the current seg + i_
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_step    = 0.01          -- 0.01         an action tries to get this score, then it will repeat itself
-i_score_gain    = 0.01          -- 0.01         Score will get applied after the score changed this value
+i_score_change  = 0.01          -- 0.01         an action tries to get this score, then it will repeat itself
 --Scoring#
 
 --#Mutating
-b_m_new         = false         -- false        Will change _ALL_ mutatable, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
-b_m_fuze        = true          -- true         fuze a change or just wiggling out (could get some more points but recipe needs longer)
+b_m_new         = false         -- false        Will change ALL mutatable segs, then wiggles out and then mutate again, could get some points for solo, at high evos it's not recommend
 b_m_fast        = false         -- false        will just change every seg to every mut without wiggling and see if there is a gain
 b_m_through     = false
-b_m_wiggle      = true
 b_m_testall     = false
 b_m_after       = true
-i_m_cl_mut      = 1
-i_m_cl_wig      = 1
+i_m_cl_mut      = 0.75          -- 0.75         cl for mutating
+i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 --Mutating#
 
 --#Pull
@@ -74,25 +71,24 @@ b_pp_pre_local  = false         -- false
 b_pp_combined   = true          -- true
 b_pp_rnd        = true          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
---b_pp_push       = false         -- false
-b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
---b_pp_centerpush = false         -- false
+b_pp_push       = false         -- false        push then pull protein
+b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
+b_pp_centerpush = false         -- false        same b_pp_push
 --Pull
 
 --#Fuzing
 b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
-b_fuze_bf       = true          -- true         Use Bluefuse
-b_fuze_qstab    = true         -- false        Use Qstab
-b_fuze_mut      = false
+b_fuze_bf       = false          -- true         Use Bluefuse
+b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
 
 --#Snapping
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 3
-b_re_str        = false
+b_re_str        = true
 b_re_walk       = false
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
@@ -829,14 +825,7 @@ local function _mutate(mut, aa, more)
         do_shake(2)
     end
     select.segs()
-    if b_m_fuze then
-        fuze.start(sl_mut)
-    elseif b_m_wiggle then
-        set.cl(i_m_cl_wig)
-        work.flow("wa", true)
-        set.cl(1)
-        work.flow("wa", true)
-    end
+    fuze.start(sl_mut)
     local sc_mut2 = get.score()
     if not more then
         get.increase(sc_mut1, sc_mut2, sl_overall)
@@ -1076,7 +1065,7 @@ local function _flow(g, more)
             work.step(g, iter)
         end -- <
         s2 = get.score()
-    until s2 - s1 < (i_score_step * iter)
+    until s2 - s1 < (i_score_change * iter)
     if s2 < s1 then
         sl.load(work_sl)
     else -- if <
@@ -1084,7 +1073,7 @@ local function _flow(g, more)
     end -- if <
     sl.release(work_sl)
     if not more then
-        get.increase(ws_1, s1, slot, i_score_gain)
+        get.increase(ws_1, s1, slot, i_score_change)
     end -- if not more
 end -- function
 
@@ -1988,10 +1977,10 @@ function mutate()
                 repeat
                     mut_1 = get.score()
                     do_mutate(1)
-                until get.score() - mut_1 < 0.01
+                until get.score() - mut_1 < i_score_change
                 mut_1 = get.score()
                 fuze.start(sl_mut, true)
-            until get.score() - mut_1 < 0.01
+            until get.score() - mut_1 < i_score_change
             if get.score() > sc_mut then
                 sc_mut = get.score()
                 sl.save(sl_overall)
