@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1183
+i_vers          = 1184
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -17,7 +17,7 @@ i_release_vers  = 3
 --#Settings: default
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
@@ -25,7 +25,7 @@ b_snap          = false         -- false        should we snap every sidechain t
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
-b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
+b_sphered       = true         -- false        work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Main#
 
@@ -55,7 +55,7 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 i_pp_trys       = 1             -- 1            how often should the pull start over?
 i_pp_loss       = 2             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
-b_pp_structs    = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
+b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
 i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
@@ -117,7 +117,7 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 
 --#Constants | Game vars
 sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10}
-sphering        = false
+b_sphering        = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segscount * 100
 selected        = {}
@@ -376,13 +376,14 @@ local function _randomseed(x)
 end -- function
 
 local function _random(m, n)
-    if not n and m then
-        n = m
-        m = 1
-    end -- if n
-    if not m and not n then
-        return _MWC() / 4294967296
-    else -- if m
+    if not n then
+        if m then
+            n = m
+            m = 1
+        else
+            return _MWC() / 4294967296
+        end
+    else
         if n < m then
             n, m = m, n
         end -- if n < m
@@ -430,22 +431,47 @@ sl =
 
 --#Internal functions
 --#Getters
-local function _dists()
-    distances = {}
+local function _dist()
+    local i
+    local j
+    local dist = {}
+    backupdist = {}
     for i = 1, i_segscount - 1 do
-        distances[i] = {}
+        dist[i] = {}
         for j = i + 1, i_segscount do
-            distances[i][j] = get.distance(i, j)
+            dist[i][j] = get.distance(i, j)
         end -- for j
     end -- for i
+    backupdist = dist
+    return dist
 end -- function
+
+local function _dists()
+    local backupdist2
+    if b_puzzle_changed then
+        backupdist2 = _dist()
+        b_puzzle_changed = false
+    end
+    return backupdist
+end
 
 local function _sphere(seg, radius)
     local sphere = {}
+    local distances = get.dists()
+    local i
+    local _i
+    local _seg
     for i = 1, i_segscount do
-        if get.distance(seg, i) <= radius then
-            sphere[#sphere + 1] = i
-        end -- if get
+        if seg ~= i then
+            _seg = seg
+            _i = i
+            if _i > seg then
+                _i, _seg = seg, i
+            end
+            if distances[_i][_seg] <= radius and not selected[i] then
+                sphere[#sphere + 1] = i
+            end -- if get
+        end -- if seg
     end -- for i
     return sphere
 end -- function
@@ -454,7 +480,7 @@ local function _center()
     local minDistance = 10000
     local distance
     local indexCenter
-    get.dists()
+    distances = get.dists()
     for i = 1, i_segscount do
         distance = 0
         for j = 1, i_segscount do
@@ -925,6 +951,7 @@ fuze =
 
 --#Universal select
 local function _segs(sphered, start, _end, more)
+    local i
     if sphered ~= false and sphered ~= true then
         local temp = start
         start = sphered
@@ -940,20 +967,20 @@ local function _segs(sphered, start, _end, more)
         deselect.all()
     end -- if more
     if start then
-        if sphered then
+        if sphered or b_sphered then
             local list1
             if _end then
-                if  start > _end then
-                    start, _end = _end, start
-                end -- if > end
                 if start ~= _end then
+                    if start > _end then
+                        start, _end = _end, start
+                    end -- if > end
+                    select.range(start, _end)
                     for i = start, _end do
                         list1 = get.sphere(i, 10)
                         select.list(list1)
-                    end
+                    end -- for i
                 end -- if ~= end
-                select.range(start, _end)
-            end
+            end -- if _end
             list1 = get.sphere(start, 10)
             select.list(list1)
         elseif _end and start ~= _end then
@@ -969,14 +996,13 @@ local function _segs(sphered, start, _end, more)
     end -- if start
 end -- function
 
-local function _list(list)
-    if list then
-        for i = 1, #list do
-            if not selected[list[i]] then
-                select.index(list[i])
-            end
+local function _list(_list)
+    local i
+    if _list then
+        for i = 1, #_list do
+            select.index(_list[i])
         end -- for
-    end -- if list
+    end -- if _list
 end -- function
 
 local function _range(a, b)
@@ -1002,52 +1028,68 @@ local function _index(a)
     end
 end
 
+local function _all()
+    for i = 1, i_segscount do
+        selected[i] = true
+    end
+    select_all()
+end
+
 select =
 {   segs    = _segs,
     list    = _list,
     index   = _index,
     range   = _range,
-    all     = select_all
+    all     = _all
 }
 --Universal select#
 
 --#working
-local function _step(_g, iter, cl)
+local function _step(a, iter, cl)
+    local s1
+    local s2
     if cl then
         set.cl(cl)
     end -- if
-    if sphering and _g == "s" or b_sphered then
-        select.segs(true, seg, r)
-    else -- if sphering
-        select.segs()
-    end -- if sphering
-    if _g == "wa" then
+    if a == "s" then
+        if b_sphering then
+            select.segs(true, seg, r)
+        else -- if b_sphering
+            select.segs()
+        end -- if b_sphering
+    else -- if a
+        if b_sphered then
+            select.segs(true, seg, r)
+        end
+        b_puzzle_changed = true
+    end -- if a
+    reset.score()
+    if a == "wa" then
         wiggle.all(iter)
-    elseif _g == "s" then
+    elseif a == "s" then
         do_.shake(2)
-    elseif _g == "wb" then
+    elseif a == "wb" then
         wiggle.backbone(iter)
-    elseif _g == "ws" then
+    elseif a == "ws" then
         wiggle.sidechains(iter)
-    elseif _g == "wl" then
+    elseif a == "wl" then
         select.segs(seg, r)
-        reset.score()
-        for i = iter, iter + 5 do
-            local s_s1 = get.score()
+        repeat
+            s1 = get.score()
             wiggle._local(i)
-            local s_s2 = get.score()
-            if s_s2 < s_s1 then
-                reset.recent()
-                break
-            end -- if >
-        end -- for
-    end -- if _g
+            s2 = get.score()
+        until s_s2 < s_s1
+        reset.recent()
+    else -- if a
+        p("Debug: Wrong Parameter: ", g)
+    end -- if a
+    reset.recent()
 end -- function
 
-local function _flow(g, more)
+local function _flow(a, more, scorechange)
     local ws_1 = get.score()
     local iter = 0
-    if sphering then
+    if b_sphering then
         slot = sl_re
     elseif b_mutating then -- if
         slot = sl_mut
@@ -1061,11 +1103,9 @@ local function _flow(g, more)
             sl.save(work_sl)
         end -- if iter
         s1 = get.score()
-        if iter < i_maxiter then
-            work.step(g, iter)
-        end -- <
+        work.step(a, iter)
         s2 = get.score()
-    until s2 - s1 < (i_score_change * iter)
+    until s2 - s1 < (0.01 * iter)
     if s2 < s1 then
         sl.load(work_sl)
     else -- if <
@@ -1160,7 +1200,7 @@ local function _dist()
     local bandcount = get.bandcount()
     if b_solo_quake then
         p("Solo quaking enabled")
-        sphering = true
+        b_sphering = true
         for ii = 1, bandcount do
             ps_1 = get.score()
             sl.save(dist)
@@ -1178,7 +1218,7 @@ local function _dist()
             ps_2 = get.score()
             get.increase(ps_1, ps_2, sl_overall)
         end -- for ii
-        sphering = false
+        b_sphering = false
     else -- if b_solo_quake
         sl.save(dist)
         work.quake()
@@ -1211,6 +1251,7 @@ local function _rebuild(trys, str)
         end -- while
         iter = 1
     end -- for i
+    b_puzzle_changed = true
 end -- function
 
 work =
@@ -1250,7 +1291,7 @@ end -- function
 local function _cps(_local)
     local indexCenter = get.center()
     get.segs(_local)
-    get.dists()
+    distances = get.dists()
     for i = start, _end do
         if i ~= indexCenter then
             local x = i
@@ -1274,7 +1315,7 @@ end -- function
 
 local function _ps(_local, bandsp)
     get.segs(_local)
-    get.dists()
+    distances = get.dists()
     for x = start, _end - 2 do
         if not hydro[x] then
             for y = x + 2, _end do
@@ -1297,7 +1338,7 @@ end
 
 local function _pl(_local, bandsp)
     get.segs(_local)
-    get.dists()
+    distances = get.dists()
     if b_pp_fixed then
         for x = start, _end do
             if hydro[x] then
@@ -1339,8 +1380,8 @@ local function _pl(_local, bandsp)
 end -- function
 
 local function _strong(_local)
-    get.dists()
     get.segs(_local)
+    distances = get.dists()
     for i = start, _end do
         local max_str = 0
         local min_dist = 999
@@ -1370,7 +1411,7 @@ local function _strong(_local)
 end -- function
 
 local function _one(_seg)
-    get.dists()
+    distances = get.dists()
     local max_str = 0
     for ii = _seg + 2, i_segscount - 2 do
         if max_str <= strength[_seg][ii] then
@@ -1481,7 +1522,7 @@ bonding =
 
 --#Snapping
 function snap()
-    sphering = true
+    b_sphering = true
     snaps = sl.request()
     cs = get.score()
     c_snap = get.score()
@@ -1537,7 +1578,7 @@ function snap()
     else
         p("Skipping...")
     end
-    sphering = false
+    b_sphering = false
     sl.release(snaps)
     if mutated then
         s_snap = get.score()
@@ -1555,7 +1596,7 @@ end
 --#Rebuilding
 function rebuild()
     local iter = 1
-    sphering = true
+    b_sphering = true
     sl_re = sl.request()
     sl.save(sl_overall)
     sl.save(sl_re)
@@ -1593,7 +1634,7 @@ function rebuild()
         end
     end
     sl.release(sl_re)
-    sphering = false
+    b_sphering = false
 end -- function
 --Rebuilding#
 
@@ -1835,10 +1876,10 @@ function struct_curler()
                 r = he[i][#he[i]]
                 select.segs(seg, r)
                 bonding.helix(i)
-                sphering = true
+                b_sphering = true
                 work.dist()
                 band.delete()
-                sphering = false
+                b_sphering = false
             end
         end -- for i
     end -- if b_cu_he
@@ -1850,10 +1891,10 @@ function struct_curler()
                 r = sh[i][#sh[i]]
                 bonding.sheet(i)
                 select.segs(seg, r)
-                sphering = true
+                b_sphering = true
                 work.dist()
                 band.delete()
-                sphering = false
+                b_sphering = false
             end
         end -- for i
     end -- if b_cu_sh
@@ -1898,10 +1939,10 @@ function struct_rebuild()
             wiggle.backbone(1)
             band.delete()
             if b_str_re_fuze then
-                sphering = true
+                b_sphering = true
                 fuze.start(str_re_best)
                 sl.load(str_re_best)
-                sphering = false
+                b_sphering = false
             end -- if b_str_re_fuze
             str_sc = nil
             str_rs = nil
@@ -1937,10 +1978,10 @@ function struct_rebuild()
             wiggle.backbone(1)
             band.delete()
             if b_str_re_fuze then
-                sphering = true
+                b_sphering = true
                 fuze.start(str_re_best)
                 sl.load(str_re_best)
-                sphering = false
+                b_sphering = false
             end -- if b_str_re_fuze
         end -- for i
         deselect.all()
@@ -1960,7 +2001,7 @@ function mutate()
     local mut_1
     local i
     local ii
-    get.dists()
+    distances = get.dists()
     mutating = true
     if b_m_new then
         select.list(mutable)
