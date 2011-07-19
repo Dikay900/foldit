@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1184
+i_vers          = 1185
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -17,15 +17,15 @@ i_release_vers  = 3
 --#Settings: default
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = true         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = false         -- false        rebuild | see #Rebuilding
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
-b_sphered       = true         -- false        work with a sphere always, can be used on lws and rebuilding walker
+b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Main#
 
@@ -33,7 +33,7 @@ b_explore       = false         -- false        if true then the overall score w
 i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
-i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
+i_start_walk    = 2             -- 1            with how many segs shall we work - Walker
 i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
 
@@ -53,9 +53,9 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 2             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.4             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
-b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
+b_pp_struct     = false          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
 i_pp_expand     = 2             -- 2
 b_pp_fixed      = false         -- false
@@ -63,14 +63,14 @@ i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
 b_pp_soft       = false
 i_pp_soft_len   = 3
-b_pp_fuze       = true
-b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
+b_pp_fuze       = false
+b_solo_quake    = true         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
 b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_combined   = true          -- true
 b_pp_rnd        = true          -- true
-b_pp_pull       = true          -- true         hydrophobic segs are pulled together
+b_pp_pull       = false          -- true         hydrophobic segs are pulled together
 b_pp_push       = false         -- false        push then pull protein
 b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
 b_pp_centerpush = false         -- false        same b_pp_push
@@ -78,7 +78,7 @@ b_pp_centerpush = false         -- false        same b_pp_push
 
 --#Fuzing
 b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
-b_fuze_bf       = false          -- true         Use Bluefuse
+b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
 
@@ -86,9 +86,9 @@ b_fuze_qstab    = false         -- false        Use Qstab
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 3
-b_re_str        = true
+b_re_str        = false
 b_re_walk       = false
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
@@ -117,10 +117,11 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 
 --#Constants | Game vars
 sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10}
-b_sphering        = false
+b_sphering      = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segscount * 100
 selected        = {}
+b_puzzle_changed= true
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -434,30 +435,25 @@ sl =
 local function _dist()
     local i
     local j
-    local dist = {}
-    backupdist = {}
+    distances = {}
     for i = 1, i_segscount - 1 do
-        dist[i] = {}
+        distances[i] = {}
         for j = i + 1, i_segscount do
-            dist[i][j] = get.distance(i, j)
+            distances[i][j] = get.distance(i, j)
         end -- for j
     end -- for i
-    backupdist = dist
-    return dist
 end -- function
 
 local function _dists()
-    local backupdist2
     if b_puzzle_changed then
-        backupdist2 = _dist()
+        _dist()
         b_puzzle_changed = false
     end
-    return backupdist
 end
 
 local function _sphere(seg, radius)
     local sphere = {}
-    local distances = get.dists()
+    get.dists()
     local i
     local _i
     local _seg
@@ -480,7 +476,7 @@ local function _center()
     local minDistance = 10000
     local distance
     local indexCenter
-    distances = get.dists()
+    get.dists()
     for i = 1, i_segscount do
         distance = 0
         for j = 1, i_segscount do
@@ -1124,7 +1120,7 @@ function _quake(ii)
         band.enable()
     end -- if s3 < 0
     local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
-    local strength = 0.075 + 0.125 * i_pp_loss
+    local strength = 0.1 + 0.1 * i_pp_loss
     local bands = get.bandcount()
     local quake = sl.request()
     local quake2 = sl.request()
@@ -1291,7 +1287,7 @@ end -- function
 local function _cps(_local)
     local indexCenter = get.center()
     get.segs(_local)
-    distances = get.dists()
+    get.dists()
     for i = start, _end do
         if i ~= indexCenter then
             local x = i
@@ -1315,7 +1311,7 @@ end -- function
 
 local function _ps(_local, bandsp)
     get.segs(_local)
-    distances = get.dists()
+    get.dists()
     for x = start, _end - 2 do
         if not hydro[x] then
             for y = x + 2, _end do
@@ -1338,7 +1334,7 @@ end
 
 local function _pl(_local, bandsp)
     get.segs(_local)
-    distances = get.dists()
+    get.dists()
     if b_pp_fixed then
         for x = start, _end do
             if hydro[x] then
@@ -1381,7 +1377,7 @@ end -- function
 
 local function _strong(_local)
     get.segs(_local)
-    distances = get.dists()
+    get.dists()
     for i = start, _end do
         local max_str = 0
         local min_dist = 999
@@ -1411,7 +1407,7 @@ local function _strong(_local)
 end -- function
 
 local function _one(_seg)
-    distances = get.dists()
+    get.dists()
     local max_str = 0
     for ii = _seg + 2, i_segscount - 2 do
         if max_str <= strength[_seg][ii] then
@@ -2001,7 +1997,7 @@ function mutate()
     local mut_1
     local i
     local ii
-    distances = get.dists()
+    get.dists()
     mutating = true
     if b_m_new then
         select.list(mutable)
