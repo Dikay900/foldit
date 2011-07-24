@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1190
+i_vers          = 1191
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -52,7 +52,7 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 3             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
@@ -118,6 +118,7 @@ b_sphering      = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segscount * 100
 selected        = {}
+bands           = {}
 b_changed       = true
 b_pushing       = false
 b_ss_changed    = false
@@ -142,14 +143,83 @@ reset =
     puzzle  = reset_puzzle
 }
 
+local function _add(a, b)
+    local bandcount = get.bandcount()
+    band_add_segment_segment(a, b)
+    local bandcount2 = get.bandcount()
+    if bandcount == bandcount2 then
+        return false
+    end
+    bands[bandcount2] =
+    {
+        length      =   3,
+        strength    =   1,
+        start       =   a,
+        _end        =   b,
+        enabled     =   true
+    }
+end
+
+local function _length(a, b)
+    assert((a > i_segcount or a < i_segcount or b > 100 or b < 0), ("Length Mod failed, Band ", a," Len ", b))
+    band_set_length(a, b)
+    bands[a][length] = b
+end
+
+local function _strength(a, b)
+    assert((a > i_segcount or a < i_segcount or b > 10 or b < 0), ("Strength Mod failed, Band ", a," Str ", b))
+    band_set_strength(a, b)
+    bands[a][strength] = b
+end
+
+local function _disable(a)
+    if not a then
+        band_disable()
+        local bandcount = get.bandcount()
+        for i = 1, bandcount do
+            bands[i][enabled] = false
+        end
+    else
+        assert((a > i_segcount or a < i_segcount), ("Disable Mod failed, Band ", a))
+        band_disable(a)
+        bands[a][enabled] = false
+    end
+end
+
+local function _enable(a)
+    if not a then
+        band_enable()
+        local bandcount = get.bandcount()
+        for i = 1, bandcount do
+            bands[i][enabled] = true
+        end
+    else
+        assert((a > i_segcount or a < i_segcount), ("Enable Mod failed, Band ", a))
+        band_enable(a)
+        bands[a][enabled] = true
+    end
+end
+
+local function _delete(a)
+    if not a then
+        band_delete()
+        local bandcount = get.bandcount()
+        bands = {}
+    else
+        assert((a > i_segcount or a < i_segcount), ("Delete Mod failed, Band ", a))
+        band_delete(a)
+        bands[a] = {}
+    end
+end
+
 band =
-{   -- renaming
-    add         = band_add_segment_segment,
-    length      = band_set_length,
-    strength    = band_set_strength,
-    disable     = band_disable,
-    enable      = band_enable,
-    delete      = band_delete
+{   -- Band Mod
+    add         = _add,
+    length      = _length,
+    strength    = _strength,
+    disable     = _disable,
+    enable      = _enable,
+    delete      = _delete
 }
 
 wiggle =
@@ -173,13 +243,13 @@ local function _deall()
 end
 
 deselect =
-{
+{   -- Selection Mod
     index   = _deindex,
     all     = _deall
 }
 
 set =
-{   -- renaming
+{   -- Selection Mod
     cl  = set_behavior_clash_importance,
     ss  = replace_ss,
     aa  = replace_aa
