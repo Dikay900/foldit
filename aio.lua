@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1188
+i_vers          = 1189
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -30,7 +30,6 @@ b_explore       = false         -- false        if true then the overall score w
 --Main#
 
 --#Working                      default         description
-i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
 i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
@@ -53,11 +52,11 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 3             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
-i_pp_len        = 3
+i_pp_len        = 6
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
@@ -122,6 +121,7 @@ i_pp_bandperc   = i_pp_bandperc / i_segscount * 100
 selected        = {}
 b_changed       = true
 b_pushing       = false
+b_ss_changed    = false
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -620,53 +620,55 @@ local function _aa(s)
 end -- function
 
 local function _struct()
-    get.secstr()
-    p("Detecting structures of the protein")
-    local helix
-    local sheet
-    local loop
-    he = {}
-    sh = {}
-    lo = {}
-    for i = 1, i_segscount do
-        if ss[i] == "H" and not helix then
-            helix = true
-            sheet = false
-            loop = false
-            he[#he + 1] = {}
-        elseif ss[i] == "E" and not sheet then
-            sheet = true
-            loop = false
-            helix = false
-            sh[#sh + 1] = {}
-        elseif ss[i] == "L" and not loop then
-            loop = true
-            helix = false
-            sheet = false
-            lo[#lo + 1] = {}
-        end -- if ss
-        if helix then
-            if ss[i] == "H" then
-                he[#he][#he[#he]+1] = i
-            else -- if ss
-                helix = false
-            end -- if ss
-        end -- if helix
-        if sheet then
-            if ss[i] == "E" then
-                sh[#sh][#sh[#sh]+1] = i
-            else -- if ss
+    if b_ss_changed then
+        get.secstr()
+        local helix
+        local sheet
+        local loop
+        he = {}
+        sh = {}
+        lo = {}
+        for i = 1, i_segscount do
+            if ss[i] == "H" and not helix then
+                helix = true
                 sheet = false
-            end -- if ss
-        end -- if sheet
-        if loop then
-            if ss[i] == "L" then
-                lo[#lo][#lo[#lo]+1] = i
-            else -- if ss
                 loop = false
+                he[#he + 1] = {}
+            elseif ss[i] == "E" and not sheet then
+                sheet = true
+                loop = false
+                helix = false
+                sh[#sh + 1] = {}
+            elseif ss[i] == "L" and not loop then
+                loop = true
+                helix = false
+                sheet = false
+                lo[#lo + 1] = {}
             end -- if ss
-        end -- if loop
-    end -- for
+            if helix then
+                if ss[i] == "H" then
+                    he[#he][#he[#he]+1] = i
+                else -- if ss
+                    helix = false
+                end -- if ss
+            end -- if helix
+            if sheet then
+                if ss[i] == "E" then
+                    sh[#sh][#sh[#sh]+1] = i
+                else -- if ss
+                    sheet = false
+                end -- if ss
+            end -- if sheet
+            if loop then
+                if ss[i] == "L" then
+                    lo[#lo][#lo[#lo]+1] = i
+                else -- if ss
+                    loop = false
+                end -- if ss
+            end -- if loop
+        end -- for
+    b_ss_changed = false
+    end -- if b_ss_changed
 end -- function
 
 local function _same(a, b)
@@ -1234,10 +1236,6 @@ local function _rebuild(trys, str)
         local re2 = re1
         while re1 == re2 do
             do_.rebuild(iter * str)
-            if iter > i_maxiter then
-                iter = i_maxiter
-                return
-            end -- if iter
             iter = iter + 1
             re2 = get.score()
         end -- while
@@ -1797,6 +1795,7 @@ local function _getdata()
     end -- for
     set.ss("E")
     predict.combine()
+    b_ss_changed = true
     sl.save(sl_overall)
 end
 
