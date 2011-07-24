@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1186
+i_vers          = 1187
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -17,8 +17,8 @@ i_release_vers  = 3
 --#Settings: default
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -33,8 +33,8 @@ b_explore       = false         -- false        if true then the overall score w
 i_maxiter       = 5             -- 5            max. iterations an action will do | use higher number for a better gain but script needs a longer time
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
-i_start_walk    = 2             -- 1            with how many segs shall we work - Walker
-i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
+i_end_walk      = 4             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -77,7 +77,7 @@ b_pp_centerpush = true         -- false        same b_pp_push
 --Pull
 
 --#Fuzing
-b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
@@ -86,10 +86,10 @@ b_fuze_qstab    = false         -- false        Use Qstab
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 3
 b_re_str        = false
-b_re_walk       = false
+b_re_walk       = true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -435,24 +435,20 @@ sl =
 
 --#Internal functions
 --#Getters
-local function _dist()
+local function _dists()
     local i
     local j
-    distances = {}
-    for i = 1, i_segscount - 1 do
-        distances[i] = {}
-        for j = i + 1, i_segscount do
-            distances[i][j] = get.distance(i, j)
-        end -- for j
-    end -- for i
-end -- function
-
-local function _dists()
     if b_puzzle_changed then
-        _dist()
+        distances = {}
+        for i = 1, i_segscount - 1 do
+            distances[i] = {}
+            for j = i + 1, i_segscount do
+                distances[i][j] = get.distance(i, j)
+            end -- for j
+        end -- for i
         b_puzzle_changed = false
     end
-end
+end -- function
 
 local function _sphere(seg, radius)
     local sphere = {}
