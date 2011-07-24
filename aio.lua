@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1185
+i_vers          = 1186
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -53,31 +53,31 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 0.4             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = false          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
-i_pp_expand     = 2             -- 2
+i_pp_expand     = 5             -- 2
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
 b_pp_soft       = false
 i_pp_soft_len   = 3
 b_pp_fuze       = false
-b_solo_quake    = true         -- false        just one seg is used on every method and all segs are tested
+b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_combined   = true          -- true
-b_pp_rnd        = true          -- true
+b_pp_combined   = false          -- true
+b_pp_rnd        = false          -- true
 b_pp_pull       = false          -- true         hydrophobic segs are pulled together
-b_pp_push       = false         -- false        push then pull protein
-b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
-b_pp_centerpush = false         -- false        same b_pp_push
+b_pp_push       = true         -- false        push then pull protein
+b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
+b_pp_centerpush = true         -- false        same b_pp_push
 --Pull
 
 --#Fuzing
-b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
@@ -103,7 +103,7 @@ b_pre_comb_str  = false
 
 --#Curler
 b_cu_he         = true          -- true
-b_cu_sh         = true          -- true
+b_cu_sh         = false          -- true
 --Curler#
 
 --#Structed rebuilding
@@ -303,6 +303,9 @@ local function _calc()
             hci_table[amino.segs[i]][amino.segs[ii]] = calc.hci(i, ii)
             cci_table[amino.segs[i]][amino.segs[ii]] = calc.cci(i, ii)
             sci_table[amino.segs[i]][amino.segs[ii]] = calc.sci(i, ii)
+            p(amino.segs[i],":",amino.segs[ii]," HCI ",hci_table[amino.segs[i]][amino.segs[ii]])
+            p(amino.segs[i],":",amino.segs[ii]," CCI ",cci_table[amino.segs[i]][amino.segs[ii]])
+            p(amino.segs[i],":",amino.segs[ii]," SCI ",sci_table[amino.segs[i]][amino.segs[ii]])
         end -- for ii
     end -- for i
     p("Getting Segment Score out of the Matrix")
@@ -675,20 +678,21 @@ local function _same(a, b)
     local bool
     local a_s
     local b_s
-    for i = 1, #he do
-        for ii = he[i][1], he[i][#he[i]] do
-            if a == ii then
-                a_s = i
-            end
-            if b == ii then
-                b_s = i
-            end
-            if a_s == b_s and a_s and b_s then
-                return true
+    if ss[a] == "H" and ss[b] == "H" then
+        for i = 1, #he do
+            for ii = he[i][1], he[i][#he[i]] do
+                if a == ii then
+                    a_s = i
+                end
+                if b == ii then
+                    b_s = i
+                end
+                if a_s == b_s and a_s and b_s then
+                    return false
+                end
             end
         end
-    end
-    if not a_s and not b_s then
+    elseif ss[a] == "E" and ss[b] == "E" then
         for i = 1, #sh do
             for ii = sh[i][1], sh[i][#sh[i]] do
                 if a == ii then
@@ -697,13 +701,14 @@ local function _same(a, b)
                 if b == ii then
                     b_s = sh[i][1]
                 end
-                if b_s == a_s then
-                    return true
+                if b_s == a_s and a_s and b_s then
+                    return false
                 end
             end
         end
+    else 
+        return true
     end
-    return false
 end -- function
 
 local function _checksame(a, b)
@@ -898,10 +903,8 @@ local function _loss(option, cl1, cl2)
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
         work.step("s", 1, cl1)
         work.step("wa", 2, 1)
-        reset.score()
         work.step("s", 1, cl2)
         work.step("wa", 3, 1)
-        reset.recent()
         work.step("s", 1, cl1 - 0.02)
         work.step("wa", 3, 1)
     end -- if option
@@ -1059,7 +1062,6 @@ local function _step(a, iter, cl)
         end
         b_puzzle_changed = true
     end -- if a
-    reset.score()
     if a == "wa" then
         wiggle.all(iter)
     elseif a == "s" then
@@ -1070,19 +1072,17 @@ local function _step(a, iter, cl)
         wiggle.sidechains(iter)
     elseif a == "wl" then
         select.segs(seg, r)
+        reset.score()
         repeat
             s1 = get.score()
             wiggle._local(i)
             s2 = get.score()
         until s_s2 < s_s1
         reset.recent()
-    else -- if a
-        p("Debug: Wrong Parameter: ", g)
     end -- if a
-    reset.recent()
 end -- function
 
-local function _flow(a, more, scorechange)
+local function _flow(a, more)
     local ws_1 = get.score()
     local iter = 0
     if b_sphering then
