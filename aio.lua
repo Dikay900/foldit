@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1189
+i_vers          = 1190
 i_segscount     = get_segment_count()
 --#Release
 b_release       = false
@@ -52,11 +52,11 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 3             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
-i_pp_len        = 6
+i_pp_len        = 4
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
@@ -66,12 +66,11 @@ b_solo_quake    = false         -- false        just one seg is used on every me
 b_pp_local      = false         -- false
 b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_combined   = false          -- true
-b_pp_rnd        = false          -- true
+b_pp_evo        = true          -- true
+b_pp_push_pull  = false          -- true
 b_pp_pull       = false          -- true         hydrophobic segs are pulled together
-b_pp_push       = true         -- false        push then pull protein
+b_pp_c_pushpull = false          -- true
 b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
-b_pp_centerpush = true         -- false        same b_pp_push
 --Pull
 
 --#Fuzing
@@ -1217,13 +1216,15 @@ local function _dist()
         sl.save(dist)
         work.quake()
         band.delete()
-        if b_pp_fuze then
-            fuze.start(dist)
-        else
-            work.step("wa", 3)
+        if not b_pushing then
+            if b_pp_fuze then
+                fuze.start(dist)
+            else
+                work.step("wa", 3)
+            end
+            ps_2 = get.score()
+            get.increase(ps_1, ps_2, sl_overall)
         end
-        ps_2 = get.score()
-        get.increase(ps_1, ps_2, sl_overall)
     end -- if b_solo_quake
     sl.release(dist)
 end -- function
@@ -1645,13 +1646,13 @@ function dists()
             band.delete()
         end
     end -- if b_pp_predicted
-    if b_pp_combined then
+    if b_pp_push_pull then
         bonding.pull(b_pp_local, i_pp_bandperc / 2)
         bonding.push(b_pp_local, i_pp_bandperc)
         work.dist()
         band.delete()
     end -- if b_pp_combined
-    if b_pp_rnd then
+    if b_pp_evo then
         for i = 1, 40 do
             bonding.rnd()
         end
@@ -1663,27 +1664,13 @@ function dists()
         work.dist()
         band.delete()
     end -- if b_pp_pull
-    if b_pp_push then
-        b_pushing = true
-        bonding.push(b_pp_local, i_pp_bandperc * 2)
-        work.dist()
-        band.delete()
-        b_pushing = false
-        bonding.pull(b_pp_local, i_pp_bandperc)
-        work.dist()
-        band.delete()
-    end -- if b_pp_push
     if b_pp_centerpull then
         bonding.centerpull(b_pp_local)
         work.dist()
         band.delete()
     end -- if b_pp_centerpull
-    if b_pp_centerpush then
-        b_pushing = true
+    if b_pp_c_push_pull then
         bonding.centerpush(b_pp_local)
-        work.dist()
-        band.delete()
-        b_pushing = false
         bonding.centerpull(b_pp_local)
         work.dist()
         band.delete()
