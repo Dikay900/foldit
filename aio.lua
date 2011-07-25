@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1193
+i_vers          = 1194
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -52,7 +52,7 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 3             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.5             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
@@ -61,12 +61,13 @@ b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
 b_pp_soft       = false
-b_pp_fuze       = false
+b_pp_fuze       = true
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
 b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_evo        = true          -- true
+i_pp_evos       = 10
 b_pp_push_pull  = false          -- true
 b_pp_pull       = false          -- true         hydrophobic segs are pulled together
 b_pp_c_pushpull = false          -- true
@@ -74,7 +75,7 @@ b_pp_centerpull = false         -- true          hydrophobic segs are pulled to 
 --Pull
 
 --#Fuzing
-b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
@@ -113,7 +114,7 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10}
+sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 b_sphering      = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
@@ -152,13 +153,12 @@ local function _add(a, b)
 end
 
 local function _length(a, b)
-    assert(a > i_segcount or a < i_segcount or b > 100 or b < 0, "Length Mod failed, Band "..a.." Len "..b)
+    local bandcount = get.bandcount()
     band_set_length(a, b)
     band.table[a][band.part.length] = b
 end
 
 local function _strength(a, b)
-    assert(a > i_segcount or a < i_segcount or b > 10 or b < 0, "Strength Mod failed, Band "..a.." Str "..b)
     band_set_strength(a, b)
     band.table[a][band.part.strength] = b
 end
@@ -171,7 +171,6 @@ local function _disable(a)
             band.table[i][band.part.enabled] = false
         end
     else
-        assert(a > i_segcount or a < i_segcount, "Disable Mod failed, Band "..a)
         band_disable(a)
         band.table[a][band.part.enabled] = false
     end
@@ -185,7 +184,6 @@ local function _enable(a)
             band.table[i][band.part.enabled] = true
         end
     else
-        assert(a > i_segcount or a < i_segcount, "Enable Mod failed, Band "..a)
         band_enable(a)
         band.table[a][band.part.enabled] = true
     end
@@ -194,10 +192,8 @@ end
 local function _delete(a)
     if not a then
         band_delete()
-        local bandcount = get.bandcount()
         band.table = {}
     else
-        assert(a > i_segcount or a < i_segcount, "Delete Mod failed, Band "..a)
         band_delete(a)
         band.table[a] = {}
     end
@@ -1218,7 +1214,9 @@ function _quake(ii)
             band.strength(ii, strength)
         else -- if b_solo
             for i = 1, cbands do
-                band.strength(i, strength)
+                if band.table[i][band.part.enabled] then
+                    band.strength(i, strength)
+                end
             end -- for
         end -- if b_solo
         reset.score()
@@ -1264,22 +1262,6 @@ local function _dist()
                 do_mutate(1)
             end -- if b_pp_mutate
             band.delete(ii)
-            if not b_pushing then
-                if b_pp_fuze then
-                    fuze.start(dist)
-                else
-                    work.step("wa", 3)
-                end
-                ps_2 = get.score()
-                get.increase(ps_1, ps_2, sl_overall)
-            end
-        end -- for ii
-        b_sphering = false
-    else -- if b_solo_quake
-        sl.save(dist)
-        work.quake()
-        band.delete()
-        if not b_pushing then
             if b_pp_fuze then
                 fuze.start(dist)
             else
@@ -1287,7 +1269,19 @@ local function _dist()
             end
             ps_2 = get.score()
             get.increase(ps_1, ps_2, sl_overall)
+        end -- for ii
+        b_sphering = false
+    else -- if b_solo_quake
+        sl.save(dist)
+        work.quake()
+        band.disable()
+        if b_pp_fuze then
+            fuze.start(dist)
+        else
+            work.step("wa", 3)
         end
+        ps_2 = get.score()
+        get.increase(ps_1, ps_2, sl_overall)
     end -- if b_solo_quake
     sl.release(dist)
 end -- function
@@ -1544,9 +1538,9 @@ local function _rndband()
     if start ~= finish and math.abs(start - finish) >= 5 and get.distance(start, finish) <= 30 then
         band.add(start, finish)
         local n = get.bandcount()
-        local length = 4 + (math.random() * (30 - 4))
+        local length = 3 + (math.random() * (30 - 3))
         if hydro[start] and hydro[finish] then 
-            length = 4 + (math.random() * (get.distance(start, finish) - 4))
+            length = 3 + (math.random() * (get.distance(start, finish) - 3))
         end
         if length < 0 then length = 0 end
         if n > 0 then band.length(n, length) end
@@ -1692,6 +1686,24 @@ function rebuild()
 end -- function
 --Rebuilding#
 
+function evolution()
+    local i
+    for i = 1, 50 do
+        bonding.rnd()
+    end
+    band.disable()
+    for i = 1, i_pp_evos do
+        local bandcount = get.bandcount()
+        local rnd = math.floor(math.random() * (5 - 1)) + 1
+        for ii = 1, rnd do
+            local cband = math.floor(math.random() * (bandcount - 1)) + 1
+            math.randomseed(ii * rnd)
+            band.enable(cband)
+        end
+        work.dist()
+    end
+end
+
 --#Pull
 function dists()
     sl.save(sl_overall)
@@ -1716,11 +1728,7 @@ function dists()
         band.delete()
     end -- if b_pp_combined
     if b_pp_evo then
-        for i = 1, 40 do
-            bonding.rnd()
-        end
-        work.dist()
-        band.delete()
+        evolution()
     end -- if b_pp_rnd
     if b_pp_pull then
         bonding.pull(b_pp_local, i_pp_bandperc)
