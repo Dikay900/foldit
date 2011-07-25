@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1192
+i_vers          = 1193
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -118,12 +118,7 @@ b_sphering      = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
 selected        = {}
-bands           =
-{
-    part = {lenght = 1, strength = 2, start = 3, _end = 4, enabled = 5}
-}
 b_changed       = true
-b_pushing       = false
 b_ss_changed    = false
 --Constants | Game vars#
 
@@ -153,23 +148,19 @@ local function _add(a, b)
     if bandcount == bandcount2 then
         return false
     end
-    p(bandcount2)
-    bands[bandcount2] = {3, 1, a, b, true}
-    p(bands[bandcount2][lenght])
+    band.table[bandcount2] = {3, 1, a, b, true}
 end
 
 local function _length(a, b)
     assert(a > i_segcount or a < i_segcount or b > 100 or b < 0, "Length Mod failed, Band "..a.." Len "..b)
     band_set_length(a, b)
-    p("A =",a, " B =",b)
-    p(bands[a][length])
-    bands[a][bands.part.length] = b
+    band.table[a][band.part.length] = b
 end
 
 local function _strength(a, b)
     assert(a > i_segcount or a < i_segcount or b > 10 or b < 0, "Strength Mod failed, Band "..a.." Str "..b)
     band_set_strength(a, b)
-    bands[a][bands.part.strength] = b
+    band.table[a][band.part.strength] = b
 end
 
 local function _disable(a)
@@ -177,12 +168,12 @@ local function _disable(a)
         band_disable()
         local bandcount = get.bandcount()
         for i = 1, bandcount do
-            bands[i][bands.part.enabled] = false
+            band.table[i][band.part.enabled] = false
         end
     else
         assert(a > i_segcount or a < i_segcount, "Disable Mod failed, Band "..a)
         band_disable(a)
-        bands[a][bands.part.enabled] = false
+        band.table[a][band.part.enabled] = false
     end
 end
 
@@ -191,12 +182,12 @@ local function _enable(a)
         band_enable()
         local bandcount = get.bandcount()
         for i = 1, bandcount do
-            bands[i][bands.part.enabled] = true
+            band.table[i][band.part.enabled] = true
         end
     else
         assert(a > i_segcount or a < i_segcount, "Enable Mod failed, Band "..a)
         band_enable(a)
-        bands[a][bands.part.enabled] = true
+        band.table[a][band.part.enabled] = true
     end
 end
 
@@ -204,11 +195,11 @@ local function _delete(a)
     if not a then
         band_delete()
         local bandcount = get.bandcount()
-        bands = {}
+        band.table = {}
     else
         assert(a > i_segcount or a < i_segcount, "Delete Mod failed, Band "..a)
         band_delete(a)
-        bands[a] = {}
+        band.table[a] = {}
     end
 end
 
@@ -219,7 +210,9 @@ band =
     strength    = _strength,
     disable     = _disable,
     enable      = _enable,
-    delete      = _delete
+    delete      = _delete,
+    table       = {},
+    part        = {length = 1, strength = 2, start = 3, _end = 4, enabled = 5}
 }
 
 wiggle =
