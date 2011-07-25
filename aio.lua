@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1194
+i_vers          = 1195
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -121,6 +121,7 @@ i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
 selected        = {}
 b_changed       = true
 b_ss_changed    = false
+b_evo           = false
 --Constants | Game vars#
 
 --#Securing for changes that will be made at Fold.it
@@ -398,8 +399,8 @@ obligations, or liability for such use.
 This function is not covered by the Creative Commons license given at the start of the script,
 and is instead covered by the comment given here.
 ]]
-lngX = 1000
-lngC = 48313
+lngX = 1000 + score.stab()
+lngC = 48313 + lngX
 local function _MWC()
     local A_Hi = 63551
     local A_Lo = 25354
@@ -814,7 +815,7 @@ local function _segscores()
     segs = {}
     local i
     for i = 1, i_segcount do
-        segs[i] = get.seg_score(i)
+        segs[i] = score.seg(i)
     end
 end
 
@@ -860,8 +861,7 @@ get =
     segcount    = get_segment_count,
     bandcount   = get_band_count,
     hydrophobic = is_hydrophobic,
-    snapcount   = get_sidechain_snap_count,
-    seg_score   = get_segment_score
+    snapcount   = get_sidechain_snap_count
 }
 --Getters#
 
@@ -1281,7 +1281,9 @@ local function _dist()
             work.step("wa", 3)
         end
         ps_2 = get.score()
-        get.increase(ps_1, ps_2, sl_overall)
+        if not b_evo then
+            get.increase(ps_1, ps_2, sl_overall)
+        end
     end -- if b_solo_quake
     sl.release(dist)
 end -- function
@@ -1687,6 +1689,7 @@ end -- function
 --Rebuilding#
 
 function evolution()
+    b_evo = true
     local i
     for i = 1, 50 do
         bonding.rnd()
@@ -1702,6 +1705,7 @@ function evolution()
         end
         work.dist()
     end
+    b_evo = false
 end
 
 --#Pull
