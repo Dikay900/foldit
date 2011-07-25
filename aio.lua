@@ -5,8 +5,8 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1191
-i_segscount     = get_segment_count()
+i_vers          = 1192
+i_segcount      = get_segment_count()
 --#Release
 b_release       = false
 i_release_date  = "16. July 2011"
@@ -31,7 +31,7 @@ b_explore       = false         -- false        if true then the overall score w
 
 --#Working                      default         description
 i_start_seg     = 1             -- 1            the first segment to work with
-i_end_seg       = i_segscount   -- i_segscount  the last segment to work with
+i_end_seg       = i_segcount   -- i_segcount  the last segment to work with
 i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
 i_end_walk      = 4             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
@@ -116,9 +116,12 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10}
 b_sphering      = false
 b_mutating      = false
-i_pp_bandperc   = i_pp_bandperc / i_segscount * 100
+i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
 selected        = {}
-bands           = {}
+bands           =
+{
+    part = {lenght = 1, strength = 2, start = 3, _end = 4, enabled = 5}
+}
 b_changed       = true
 b_pushing       = false
 b_ss_changed    = false
@@ -146,30 +149,27 @@ reset =
 local function _add(a, b)
     local bandcount = get.bandcount()
     band_add_segment_segment(a, b)
-    local bandcount2 = get.bandcount()
+    bandcount2 = get.bandcount()
     if bandcount == bandcount2 then
         return false
     end
-    bands[bandcount2] =
-    {
-        length      =   3,
-        strength    =   1,
-        start       =   a,
-        _end        =   b,
-        enabled     =   true
-    }
+    p(bandcount2)
+    bands[bandcount2] = {3, 1, a, b, true}
+    p(bands[bandcount2][lenght])
 end
 
 local function _length(a, b)
-    assert((a > i_segcount or a < i_segcount or b > 100 or b < 0), ("Length Mod failed, Band ", a," Len ", b))
+    assert(a > i_segcount or a < i_segcount or b > 100 or b < 0, "Length Mod failed, Band "..a.." Len "..b)
     band_set_length(a, b)
-    bands[a][length] = b
+    p("A =",a, " B =",b)
+    p(bands[a][length])
+    bands[a][bands.part.length] = b
 end
 
 local function _strength(a, b)
-    assert((a > i_segcount or a < i_segcount or b > 10 or b < 0), ("Strength Mod failed, Band ", a," Str ", b))
+    assert(a > i_segcount or a < i_segcount or b > 10 or b < 0, "Strength Mod failed, Band "..a.." Str "..b)
     band_set_strength(a, b)
-    bands[a][strength] = b
+    bands[a][bands.part.strength] = b
 end
 
 local function _disable(a)
@@ -177,12 +177,12 @@ local function _disable(a)
         band_disable()
         local bandcount = get.bandcount()
         for i = 1, bandcount do
-            bands[i][enabled] = false
+            bands[i][bands.part.enabled] = false
         end
     else
-        assert((a > i_segcount or a < i_segcount), ("Disable Mod failed, Band ", a))
+        assert(a > i_segcount or a < i_segcount, "Disable Mod failed, Band "..a)
         band_disable(a)
-        bands[a][enabled] = false
+        bands[a][bands.part.enabled] = false
     end
 end
 
@@ -191,12 +191,12 @@ local function _enable(a)
         band_enable()
         local bandcount = get.bandcount()
         for i = 1, bandcount do
-            bands[i][enabled] = true
+            bands[i][bands.part.enabled] = true
         end
     else
-        assert((a > i_segcount or a < i_segcount), ("Enable Mod failed, Band ", a))
+        assert(a > i_segcount or a < i_segcount, "Enable Mod failed, Band "..a)
         band_enable(a)
-        bands[a][enabled] = true
+        bands[a][bands.part.enabled] = true
     end
 end
 
@@ -206,7 +206,7 @@ local function _delete(a)
         local bandcount = get.bandcount()
         bands = {}
     else
-        assert((a > i_segcount or a < i_segcount), ("Delete Mod failed, Band ", a))
+        assert(a > i_segcount or a < i_segcount, "Delete Mod failed, Band "..a)
         band_delete(a)
         bands[a] = {}
     end
@@ -379,9 +379,9 @@ local function _calc()
     end -- for i
     p("Getting Segment Score out of the Matrix")
     strength = {}
-    for i = 1, i_segscount do
+    for i = 1, i_segcount do
         strength[i] = {}
-        for ii = i + 2, i_segscount - 2 do
+        for ii = i + 2, i_segcount - 2 do
             strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
         end -- for ii
     end -- for i
@@ -509,9 +509,9 @@ local function _dists()
     local j
     if b_changed then
         distances = {}
-        for i = 1, i_segscount - 1 do
+        for i = 1, i_segcount - 1 do
             distances[i] = {}
-            for j = i + 1, i_segscount do
+            for j = i + 1, i_segcount do
                 distances[i][j] = get.distance(i, j)
             end -- for j
         end -- for i
@@ -525,7 +525,7 @@ local function _sphere(seg, radius)
     local i
     local _i
     local _seg
-    for i = 1, i_segscount do
+    for i = 1, i_segcount do
         if seg ~= i then
             _seg = seg
             _i = i
@@ -545,9 +545,9 @@ local function _center()
     local distance
     local indexCenter
     get.dists()
-    for i = 1, i_segscount do
+    for i = 1, i_segcount do
         distance = 0
-        for j = 1, i_segscount do
+        for j = 1, i_segcount do
             if i ~= j then
                 local x = i
                 local y = j
@@ -609,7 +609,7 @@ local function _mutable()
     select.all()
     set.aa("a")
     get.aacid()
-    for i = 1, i_segscount do
+    for i = 1, i_segcount do
         if aa[i] == "a" then
             isA[#isA + 1] = i
         end -- if aa
@@ -647,7 +647,7 @@ local function _hydro(s)
         hydro[s] = get.hydrophobic(s)
     else -- if
         hydro = {}
-        for i = 1, i_segscount do
+        for i = 1, i_segcount do
             hydro[i] = get.hydrophobic(i)
         end -- for i
     end -- if
@@ -656,10 +656,10 @@ end -- function
 
 --#Ligand Check
 local function _ligand()
-    if ss[i_segscount] == 'M' then
-        i_segscount = i_segscount - 1
-        if i_end_seg == i_segscount + 1 then
-            i_end_seg = i_segscount
+    if ss[i_segcount] == 'M' then
+        i_segcount = i_segcount - 1
+        if i_end_seg == i_segcount + 1 then
+            i_end_seg = i_segcount
         end -- if i_end_seg
     end -- if get.ss
 end -- function
@@ -671,7 +671,7 @@ local function _ss(s)
         ss[s] = get.aa(s)
     else -- if
         ss = {}
-        for i = 1, i_segscount do
+        for i = 1, i_segcount do
             ss[i] = get.ss(i)
         end -- for i
     end
@@ -682,7 +682,7 @@ local function _aa(s)
         aa[s] = get.aa(s)
     else -- if
         aa = {}
-        for i = 1, i_segscount do
+        for i = 1, i_segcount do
             aa[i] = get.aa(i)
         end -- for i
     end -- if
@@ -697,7 +697,7 @@ local function _struct()
         he = {}
         sh = {}
         lo = {}
-        for i = 1, i_segscount do
+        for i = 1, i_segcount do
             if ss[i] == "H" and not helix then
                 helix = true
                 sheet = false
@@ -824,7 +824,7 @@ end
 local function _segscores()
     segs = {}
     local i
-    for i = 1, i_segscount do
+    for i = 1, i_segcount do
         segs[i] = get.seg_score(i)
     end
 end
@@ -832,12 +832,12 @@ end
 local function _worst(len)
     local worst = 9999999
     get.segscores()
-    for ii = 1, i_segscount - len + 1 do
+    for ii = 1, i_segcount - len + 1 do
         for i = 1, len - 1 do
             segs[ii] = segs[ii] + segs[ii + i]
         end
     end
-    for i = 1, i_segscount - len + 1 do
+    for i = 1, i_segcount - len + 1 do
         if segs[i] < worst then
             seg = i
             worst = segs[i]
@@ -1093,7 +1093,7 @@ local function _index(a)
 end
 
 local function _all()
-    for i = 1, i_segscount do
+    for i = 1, i_segcount do
         selected[i] = true
     end
     select_all()
@@ -1186,7 +1186,7 @@ function _quake(ii)
     end -- if s3 < 0
     local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
     local strength = 0.1 + 0.1 * i_pp_loss
-    local bands = get.bandcount()
+    local cbands = get.bandcount()
     local quake = sl.request()
     local quake2 = sl.request()
     if seg or r then
@@ -1196,8 +1196,8 @@ function _quake(ii)
     end -- if seg
     if b_pp then
         if b_pp_pre_local then
-            s3 = math.floor(s3 * 4 / bands, 4)
-            strength = math.floor(strength * 4 / bands, 4)
+            s3 = math.floor(s3 * 4 / cbands, 4)
+            strength = math.floor(strength * 4 / cbands, 4)
         end -- if
         if b_solo_quake then
             band.disable()
@@ -1224,7 +1224,7 @@ function _quake(ii)
         if b_solo_quake then
             band.strength(ii, strength)
         else -- if b_solo
-            for i = 1, bands do
+            for i = 1, cbands do
                 band.strength(i, strength)
             end -- for
         end -- if b_solo
@@ -1422,7 +1422,7 @@ local function _pl(_local, bandsp)
     end -- if b_pp_fixed
     for x = start, _end - 2 do
         if hydro[x] then
-            for y = x + 2, i_segscount do
+            for y = x + 2, i_segcount do
                 if hydro[y] then
                     math.randomseed(math.random() * distances[x][y] + 1)
                     if math.random() < bandsp then
@@ -1446,7 +1446,7 @@ local function _strong(_local)
     for i = start, _end do
         local max_str = 0
         local min_dist = 999
-        for ii = i + 2, i_segscount - 2 do
+        for ii = i + 2, i_segcount - 2 do
             if max_str <= strength[i][ii] then
                 if max_str ~= strength[i][ii] then
                     min_dist = 999
@@ -1457,7 +1457,7 @@ local function _strong(_local)
                 end -- if min_dist
             end -- if max_str <=
         end -- for ii
-        for ii = i + 2, i_segscount - 2 do
+        for ii = i + 2, i_segcount - 2 do
             if strength[i][ii] == max_str and min_dist == distances[i][ii] then
                 if get.checksame(i, ii) then
                     band.add(i , ii)
@@ -1474,12 +1474,12 @@ end -- function
 local function _one(_seg)
     get.dists()
     local max_str = 0
-    for ii = _seg + 2, i_segscount - 2 do
+    for ii = _seg + 2, i_segcount - 2 do
         if max_str <= strength[_seg][ii] then
             max_str = strength[_seg][ii]
         end -- if max_str <=
     end -- for ii
-    for ii = _seg + 2, i_segscount - 2 do
+    for ii = _seg + 2, i_segcount - 2 do
         if strength[_seg][ii] == max_str then
             if get.checksame(_seg, ii) then
                 band.add(_seg , ii)
@@ -1546,19 +1546,19 @@ local function _comp_sheet()
 end -- function
 
 local function _rndband()
-    local start  = math.floor(math.random() * (i_segscount - 1)) + 1
-    local finish = math.floor(math.random() * (i_segscount - 1)) + 1
+    local start  = math.floor(math.random() * (i_segcount - 1)) + 1
+    local finish = math.floor(math.random() * (i_segcount - 1)) + 1
     if start ~= finish and math.abs(start - finish) >= 5 and get.distance(start, finish) <= 30 then
         band.add(start, finish)
-        local n = get_band_count()
+        local n = get.bandcount()
         local length = 4 + (math.random() * (30 - 4))
         if hydro[start] and hydro[finish] then 
             length = 4 + (math.random() * (get.distance(start, finish) - 4))
         end
         if length < 0 then length = 0 end
-        if n > 0 then band.length(n, length) end                
+        if n > 0 then band.length(n, length) end
     else
-        math.randomseed(get.distance(start, finish) + math.random() * i_segscount)
+        math.randomseed(get.distance(start, finish) + math.random() * i_segcount)
         bonding.rnd()
     end
 end
@@ -1757,7 +1757,7 @@ local function _getdata()
     local loop
     local i = 1
     local ui
-    while i < i_segscount do
+    while i < i_segcount do
         ui = i
         loop = false
         if hydro[i] then
@@ -1803,10 +1803,10 @@ local function _getdata()
             p_he[#p_he][#p_he[#p_he] + 1] = i
             if loop or sheet then
                 helix = false
-                if i + 1 < i_segscount then
+                if i + 1 < i_segcount then
                     if aa[i + 1] ~= "p" then
                         p_he[#p_he][#p_he[#p_he] + 1] = i + 1
-                        if i + 2 < i_segscount then
+                        if i + 2 < i_segcount then
                             if aa[i + 2] ~= "p" then
                                 p_he[#p_he][#p_he[#p_he] + 1] = i + 2
                                 i = i + 1
@@ -1822,10 +1822,10 @@ local function _getdata()
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
             if loop then
                 sheet = false
-                if i + 1 < i_segscount then
+                if i + 1 < i_segcount then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 1
                 end -- if i + 1
-                if i + 2 < i_segscount then
+                if i + 2 < i_segcount then
                     p_sh[#p_sh][#p_sh[#p_sh] + 1] = i + 2
                 end -- if i + 2
                 ui = i + 2
@@ -1857,7 +1857,7 @@ local function _getdata()
 end
 
 local function _combine()
-    for i = 1, i_segscount - 1 do
+    for i = 1, i_segcount - 1 do
         get.struct()
         deselect.all()
         if ss[i] == "L" then
@@ -1874,7 +1874,7 @@ local function _combine()
                 for ii = 1, #he do
                     if b_pre_add_pref then
                         for iii = he[ii][1] - 1, he[ii][#he[ii]] + 1, he[ii][#he[ii]] - he[ii][1] + 1 do
-                            if iii > 0 and iii <= i_segscount then
+                            if iii > 0 and iii <= i_segcount then
                                 if amino.preffered(iii) == "H" then
                                     select.segs(iii)
                                 end -- if iii
@@ -1897,7 +1897,7 @@ local function _combine()
             if b_pre_add_pref then
                 for ii = 1, #sh do
                     for iii = sh[ii][1] - 1, sh[ii][#sh[ii]] + 1, sh[ii][#sh[ii]] - sh[ii][1] + 1 do
-                        if iii > 0 and iii <= i_segscount then
+                        if iii > 0 and iii <= i_segcount then
                             if amino.preffered(iii) == "E" then
                                 select.segs(iii)
                             end -- if iii
@@ -1974,8 +1974,8 @@ function struct_rebuild()
                 seg = 1
             end -- if seg
             r = he[i][#he[i]] + 2
-            if r > i_segscount then
-                r = i_segscount
+            if r > i_segcount then
+                r = i_segcount
             end -- if r
             bonding.helix(i)
             deselect.all()
@@ -2019,8 +2019,8 @@ function struct_rebuild()
                 seg = 1
             end -- if seg
             r = sh[i][#sh[i]] + 2
-            if r > i_segscount then
-                r = i_segscount
+            if r > i_segcount then
+                r = i_segcount
             end -- if r
             bonding.sheet(i)
             deselect.all()
@@ -2167,8 +2167,8 @@ for i = i_start_seg, i_end_seg do
     end
     for ii = i_start_walk, i_end_walk do
         r = i + ii
-        if r > i_segscount then
-            r = i_segscount
+        if r > i_segcount then
+            r = i_segcount
             break
         end -- if r
         if b_rebuild then
