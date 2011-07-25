@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1197
+i_vers          = 1198
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -31,7 +31,7 @@ b_explore       = false         -- false        if true then the overall score w
 
 --#Working                      default         description
 i_start_seg     = 1             -- 1            the first segment to work with
-i_end_seg       = i_segcount   -- i_segcount  the last segment to work with
+i_end_seg       = i_segcount    -- i_segcount   the last segment to work with
 i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
 i_end_walk      = 4             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
@@ -52,9 +52,9 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 0.5             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.75             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
-b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
+b_pp_struct     = false          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
 i_pp_len        = 4
 b_pp_fixed      = false         -- false
@@ -67,7 +67,7 @@ b_pp_local      = false         -- false
 b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_evo        = true          -- true
-i_pp_evos       = 10
+i_pp_evos       = 100
 b_pp_push_pull  = false          -- true
 b_pp_pull       = false          -- true         hydrophobic segs are pulled together
 b_pp_c_pushpull = false          -- true
@@ -84,10 +84,11 @@ b_fuze_qstab    = false         -- false        Use Qstab
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
-b_worst_len     = 3
+b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_len     = 7
+i_re_trys       = 10
 b_re_str        = false
-b_re_walk       = true
+b_re_walk       = false
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -114,7 +115,11 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-sls             = {1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+sls             = {}
+for _i = 1, 100 do
+    sls[#sls + 1] = _i
+end
+_i              = nil
 b_sphering      = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
@@ -1177,7 +1182,6 @@ function _quake(ii)
     local strength = 0.1 + 0.1 * i_pp_loss
     local cbands = get.bandcount()
     local quake = sl.request()
-    local quake2 = sl.request()
     if seg or r then
         select.segs(seg, r)
     else -- if seg
@@ -1205,11 +1209,9 @@ function _quake(ii)
         strength = 0.2 * i_pp_loss
     end -- if strength
     p("Pulling until a loss of more than ", s3, " points")
-    sl.save(quake2)
+    local s1 = get.score()
     repeat
-        sl.load(quake2)
         p("Band strength: ", strength)
-        local s1 = get.score()
         if b_solo_quake then
             band.strength(ii, strength)
         else -- if b_solo
@@ -1227,7 +1229,7 @@ function _quake(ii)
         local s2 = get.score()
         if s2 > s1 then
             reset.recent()
-            sl.save(quake2)
+            sl.save(sl_overall)
         end -- if >
         sl.load(quake)
         local s2 = get.score()
@@ -1240,11 +1242,9 @@ function _quake(ii)
         end -- if strength
     until s1 - s2 > s3
     sl.release(quake)
-    sl.release(quake2)
 end -- function
 
 local function _dist()
-    p("Quaker")
     select.segs()
     local ps_1 = get.score()
     sl.save(sl_overall)
@@ -1290,8 +1290,9 @@ end -- function
 
 local function _rebuild(trys, str)
     local iter = 1
+    p("Rebuilding ", trys, " times")
     for i = 1, trys do
-        p("Try ", i, "/", trys)
+        p(i, ". Shape")
         local re1 = get.score()
         local re2 = re1
         while re1 == re2 do
@@ -1701,10 +1702,10 @@ function evolution()
     band.disable()
     for i = 1, i_pp_evos do
         local bandcount = get.bandcount()
-        local rnd = math.floor(math.random() * (6 - 1)) + 1
-        for ii = 2, rnd do
+        local rnd = math.floor(math.random() * 5) + 2
+        for ii = 1, rnd do
             local cband = math.floor(math.random() * (bandcount - 1)) + 1
-            if band.table[cband][enabled] == true then
+            if band.table[cband][band.part.enabled] == true then
                 ii = ii - 1
             end
             math.randomseed(ii * rnd)
