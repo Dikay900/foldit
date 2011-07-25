@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1196
+i_vers          = 1197
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
