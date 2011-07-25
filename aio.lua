@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1195
+i_vers          = 1196
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -1535,14 +1535,18 @@ local function _comp_sheet()
 end -- function
 
 local function _rndband()
+    get.dists()
     local start  = math.floor(math.random() * (i_segcount - 1)) + 1
     local finish = math.floor(math.random() * (i_segcount - 1)) + 1
-    if start ~= finish and math.abs(start - finish) >= 5 and get.distance(start, finish) <= 30 then
+    if start > finish then
+        start, finish = finish, start
+    end
+    if start ~= finish and math.abs(start - finish) >= 5 then
         band.add(start, finish)
         local n = get.bandcount()
-        local length = 3 + (math.random() * (30 - 3))
+        local length = 3 + (math.random() * (distances[start][finish] + 2))
         if hydro[start] and hydro[finish] then 
-            length = 3 + (math.random() * (get.distance(start, finish) - 3))
+            length = 2 + (math.random() * (get.distance(start, finish) / 2))
         end
         if length < 0 then length = 0 end
         if n > 0 then band.length(n, length) end
@@ -1697,9 +1701,12 @@ function evolution()
     band.disable()
     for i = 1, i_pp_evos do
         local bandcount = get.bandcount()
-        local rnd = math.floor(math.random() * (5 - 1)) + 1
-        for ii = 1, rnd do
+        local rnd = math.floor(math.random() * (6 - 1)) + 1
+        for ii = 2, rnd do
             local cband = math.floor(math.random() * (bandcount - 1)) + 1
+            if band.table[cband][enabled] == true then
+                ii = ii - 1
+            end
             math.randomseed(ii * rnd)
             band.enable(cband)
         end
