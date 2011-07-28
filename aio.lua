@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1198
+i_vers          = 1199
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -52,9 +52,9 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 0.75             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 2             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
-b_pp_struct     = false          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
+b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
 i_pp_len        = 4
 b_pp_fixed      = false         -- false
@@ -66,16 +66,16 @@ b_solo_quake    = false         -- false        just one seg is used on every me
 b_pp_local      = false         -- false
 b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_evo        = true          -- true
+b_pp_evo        = false          -- true
 i_pp_evos       = 100
 b_pp_push_pull  = false          -- true
-b_pp_pull       = false          -- true         hydrophobic segs are pulled together
+b_pp_pull       = true          -- true         hydrophobic segs are pulled together
 b_pp_c_pushpull = false          -- true
 b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
 --Pull
 
 --#Fuzing
-b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
@@ -102,7 +102,7 @@ b_pre_comb_str  = false
 
 --#Curler
 b_cu_he         = true          -- true
-b_cu_sh         = false          -- true
+b_cu_sh         = true          -- true
 --Curler#
 
 --#Structed rebuilding
@@ -125,7 +125,7 @@ b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
 selected        = {}
 b_changed       = true
-b_ss_changed    = false
+b_ss_changed    = true
 b_evo           = false
 --Constants | Game vars#
 
@@ -1580,7 +1580,7 @@ function snap()
     b_sphering = true
     snaps = sl.request()
     cs = get.score()
-    c_snap = get.score()
+    c_snap = cs
     local s_1
     local s_2
     local c_s
@@ -1594,7 +1594,7 @@ function snap()
         while ii < iii do
             sl.load(snaps)
             c_s = get.score()
-            c_s2 = get.score()
+            c_s2 = c_s
             while c_s2 == c_s do
                 ii = ii + 1
                 p("Snap ", ii, "/ ", iii)
@@ -1938,8 +1938,14 @@ function struct_curler()
         for i = 1, #he do
             if #he[i] > 3 then
                 p("Working on Helix ", i)
-                seg = he[i][1]
-                r = he[i][#he[i]]
+                seg = he[i][1] - 2
+                if seg < 1 then
+                    seg = 1
+                end -- if seg
+                r = he[i][#he[i]] + 2
+                if r > i_segcount then
+                    r = i_segcount
+                end -- if r
                 select.segs(seg, r)
                 bonding.helix(i)
                 b_sphering = true
@@ -1953,8 +1959,14 @@ function struct_curler()
         for i = 1, #sh do
             if #sh[i] > 2 then
                 p("Working on Sheet ", i)
-                seg = sh[i][1]
-                r = sh[i][#sh[i]]
+                seg = sh[i][1] - 2
+                if seg < 1 then
+                    seg = 1
+                end -- if seg
+                r = sh[i][#sh[i]] + 2
+                if r > i_segcount then
+                    r = i_segcount
+                end -- if r
                 bonding.sheet(i)
                 select.segs(seg, r)
                 b_sphering = true
