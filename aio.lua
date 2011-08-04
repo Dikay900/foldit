@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1199
+i_vers          = 1200
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -18,11 +18,11 @@ i_release_vers  = 3
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
-b_fuze          = false         -- false        should we fuze | see #Fuzing
+b_fuze          = true         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
@@ -32,7 +32,7 @@ b_explore       = false         -- false        if true then the overall score w
 --#Working                      default         description
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segcount    -- i_segcount   the last segment to work with
-i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
+i_start_walk    = 0             -- 1            with how many segs shall we work - Walker
 i_end_walk      = 4             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
 
@@ -52,7 +52,7 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 2             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.05          -- 0.05
@@ -64,14 +64,15 @@ b_pp_soft       = false
 b_pp_fuze       = true
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_evo        = false          -- true
 i_pp_evos       = 100
-b_pp_push_pull  = false          -- true
+b_pp_push_pull  = true          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
-b_pp_c_pushpull = false          -- true
-b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
+b_pp_c_pushpull = true          -- true
+b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
+b_pp_vibrator   = false
 --Pull
 
 --#Fuzing
@@ -85,8 +86,8 @@ b_fuze_qstab    = false         -- false        Use Qstab
 
 --#Rebuilding
 b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
-b_worst_len     = 7
-i_re_trys       = 10
+b_worst_len     = 3
+i_re_trys       = 5
 b_re_str        = false
 b_re_walk       = false
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
@@ -367,9 +368,6 @@ local function _calc()
             hci_table[amino.segs[i]][amino.segs[ii]] = calc.hci(i, ii)
             cci_table[amino.segs[i]][amino.segs[ii]] = calc.cci(i, ii)
             sci_table[amino.segs[i]][amino.segs[ii]] = calc.sci(i, ii)
-            p(amino.segs[i],":",amino.segs[ii]," HCI ",hci_table[amino.segs[i]][amino.segs[ii]])
-            p(amino.segs[i],":",amino.segs[ii]," CCI ",cci_table[amino.segs[i]][amino.segs[ii]])
-            p(amino.segs[i],":",amino.segs[ii]," SCI ",sci_table[amino.segs[i]][amino.segs[ii]])
         end -- for ii
     end -- for i
     p("Getting Segment Score out of the Matrix")
@@ -1132,12 +1130,12 @@ local function _step(a, iter, cl)
     elseif a == "wl" then
         select.segs(seg, r)
         reset.score()
-        repeat
-            s1 = get.score()
-            wiggle._local(i)
-            s2 = get.score()
-        until s_s2 < s_s1
-        reset.recent()
+        s1 = get.score()
+        wiggle._local(iter)
+        s2 = get.score()
+        if s2 < s1 then
+            reset.recent()
+        end
     end -- if a
 end -- function
 
@@ -1306,7 +1304,7 @@ local function _rebuild(trys, str)
 end -- function
 
 work =
-{   gain    = _gain,
+{   flow    = _flow,
     step    = _step,
     quake   = _quake,
     dist    = _dist,
@@ -1557,6 +1555,29 @@ local function _rndband()
     end
 end
 
+local function _vib()
+    get.dists()
+    local i
+    local ii
+    local iii
+    for i = 1, i_segcount - 4 do
+        for ii = i, i_segcount - 2 do
+            for iii = ii, i_segcount do
+                if i ~= ii and ii ~= iii and iii ~= i then
+                    if distances[i][iii] + 0.5 > distances[i][ii] + distances[ii][iii] and distances[i][iii] < 4.5 then
+                        band.add(i, iii)
+                        band.length(get.bandcount(), distances[i][ii] + 1)
+                        band.add(i, ii)
+                        band.length(get.bandcount(), distances[i][ii] - 1.5)
+                        band.add(ii, iii)
+                        band.length(get.bandcount(), distances[i][ii] - 1.5)
+                    end
+                end
+            end
+        end
+    end
+end
+
 bonding =
 {   centerpull  = _cpl,
     centerpush  = _cps,
@@ -1567,6 +1588,7 @@ bonding =
     sheet       = _sheet,
     comp_sheet  = _comp_sheet,
     rnd         = _rndband,
+    vib         = _vib,
     matrix      =
     {   strong  = _strong,
         one     = _one
@@ -1667,7 +1689,7 @@ function rebuild()
     end -- if r
     rs_0 = get.score()
     sl_r = {}
-    for ii = 1, #sls - 1 do
+    for ii = 1, i_re_trys do
         work.rebuild(i_max_rebuilds, i_rebuild_str)
         sl_r[ii] = sl.request()
         sl.save(sl_r[ii])
@@ -1758,6 +1780,11 @@ function dists()
         work.dist()
         band.delete()
     end -- if b_pp_centerpull
+    if b_pp_vibrator then
+        bonding.vib()
+        work.dist()
+        band.delete()
+    end
 end -- function
 --Pull#
 
