@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1200
+i_vers          = 1201
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -22,7 +22,7 @@ b_pp            = false         -- false        pull hydrophobic amino acids in 
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
-b_fuze          = true         -- false        should we fuze | see #Fuzing
+b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
@@ -32,8 +32,8 @@ b_explore       = false         -- false        if true then the overall score w
 --#Working                      default         description
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segcount    -- i_segcount   the last segment to work with
-i_start_walk    = 0             -- 1            with how many segs shall we work - Walker
-i_end_walk      = 4             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
+i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -61,22 +61,23 @@ b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
 b_pp_soft       = false
-b_pp_fuze       = true
+b_pp_fuze       = false
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_evo        = false          -- true
 i_pp_evos       = 100
-b_pp_push_pull  = true          -- true
-b_pp_pull       = true          -- true         hydrophobic segs are pulled together
-b_pp_c_pushpull = true          -- true
-b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
-b_pp_vibrator   = false
+b_pp_push_pull  = false          -- true
+b_pp_pull       = false          -- true         hydrophobic segs are pulled together
+b_pp_c_pushpull = false          -- true
+b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
+b_pp_vibrator   = true          -- false
+b_pp_bonds      = true          -- false        pulls already bonded segments to maybe strengthen them
 --Pull
 
 --#Fuzing
-b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
@@ -85,11 +86,11 @@ b_fuze_qstab    = false         -- false        Use Qstab
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 3
 i_re_trys       = 5
 b_re_str        = false
-b_re_walk       = false
+b_re_walk       = true          -- true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -156,7 +157,7 @@ local function _add(a, b)
     if bandcount == bandcount2 then
         return false
     end
-    band.table[bandcount2] = {3, 1, a, b, true}
+    band.table[bandcount2] = {3.5, 1, a, b, true}
 end
 
 local function _length(a, b)
@@ -1560,11 +1561,11 @@ local function _vib()
     local i
     local ii
     local iii
-    for i = 1, i_segcount - 4 do
-        for ii = i, i_segcount - 2 do
+    for i = 1, i_segcount - 2 do
+        for ii = i, i_segcount - 1 do
             for iii = ii, i_segcount do
-                if i ~= ii and ii ~= iii and iii ~= i then
-                    if distances[i][iii] + 0.5 > distances[i][ii] + distances[ii][iii] and distances[i][iii] < 4.5 then
+                if i ~= ii and ii ~= iii and i ~= iii then
+                    if distances[i][iii] - 0.4 < distances[i][ii] + distances[ii][iii] and distances[i][iii] < 4.5 then
                         band.add(i, iii)
                         band.length(get.bandcount(), distances[i][ii] + 1)
                         band.add(i, ii)
@@ -1572,6 +1573,27 @@ local function _vib()
                         band.add(ii, iii)
                         band.length(get.bandcount(), distances[i][ii] - 1.5)
                     end
+                end
+            end
+        end
+    end
+end
+
+local function _bonds()
+    local i
+    local _i
+    local ii
+    local list
+    get.dists()
+    for i = 1, i_segcount do
+        list = get.sphere(i, 3.5)
+        for ii = 1, #list do
+            if list[ii] < i then
+                _i, list[ii] = list[ii], i
+            end
+            if distances[_i][list[ii]] <= 3.5 then
+                if score.segp(_i ,"Bonding") > 0 and score.segp(list[ii] ,"Bonding") > 0 then
+                    band.add(_i, list[ii])
                 end
             end
         end
@@ -1589,6 +1611,7 @@ bonding =
     comp_sheet  = _comp_sheet,
     rnd         = _rndband,
     vib         = _vib,
+    bonds       = _bonds,
     matrix      =
     {   strong  = _strong,
         one     = _one
@@ -1782,6 +1805,11 @@ function dists()
     end -- if b_pp_centerpull
     if b_pp_vibrator then
         bonding.vib()
+        work.dist()
+        band.delete()
+    end
+    if b_pp_bonds then
+        bonding.bonds()
         work.dist()
         band.delete()
     end
