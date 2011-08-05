@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1201
+i_vers          = 1202
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -18,7 +18,7 @@ i_release_vers  = 3
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -72,7 +72,7 @@ b_pp_push_pull  = false          -- true
 b_pp_pull       = false          -- true         hydrophobic segs are pulled together
 b_pp_c_pushpull = false          -- true
 b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
-b_pp_vibrator   = true          -- false
+b_pp_vibrator   = false          -- false
 b_pp_bonds      = true          -- false        pulls already bonded segments to maybe strengthen them
 --Pull
 
@@ -1579,21 +1579,35 @@ local function _vib()
     end
 end
 
-local function _bonds()
+local function _bonds(range, pts)
     local i
     local _i
     local ii
     local list
+    local bandcount
+    local iii
+    local bool
     get.dists()
     for i = 1, i_segcount do
-        list = get.sphere(i, 3.5)
+        list = get.sphere(i, range)
         for ii = 1, #list do
-            if list[ii] < i then
-                _i, list[ii] = list[ii], i
-            end
-            if distances[_i][list[ii]] <= 3.5 then
-                if score.segp(_i ,"Bonding") > 0 and score.segp(list[ii] ,"Bonding") > 0 then
-                    band.add(_i, list[ii])
+            if list[ii] ~= i and list[ii] + 1 ~= i and list[ii] - 1 ~= i then
+                if list[ii] < i then
+                    _i, list[ii] = list[ii], i
+                else
+                    _i = i
+                end
+                if score.segp("bonding" , _i) > pts and score.segp("bonding" , list[ii]) > pts then
+                    bandcount = get.bandcount()
+                    bool = true
+                    for iii = 1 , bandcount do
+                        if bands.table[iii][start] == _i and bands.table[iii][_end] == list[ii] or bands.table[iii][_end] == _i and bands.table[iii][start] == list[ii] then
+                            bool = false
+                        end
+                        if bool then
+                            band.add(_i, list[ii])
+                        end
+                    end
                 end
             end
         end
@@ -1809,7 +1823,8 @@ function dists()
         band.delete()
     end
     if b_pp_bonds then
-        bonding.bonds()
+        bonding.bonds(12, 10)
+        bonding.bonds(5, 2)
         work.dist()
         band.delete()
     end
