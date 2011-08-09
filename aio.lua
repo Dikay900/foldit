@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1202
+i_vers          = 1203
 i_segcount      = get_segment_count()
 --#Release
 b_release       = false
@@ -18,9 +18,9 @@ i_release_vers  = 3
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
-b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
+b_cu            = true         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -61,19 +61,19 @@ b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
 i_pp_fix_end    = 0             -- 0
 b_pp_soft       = false
-b_pp_fuze       = false
+b_pp_fuze       = true
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
 b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_evo        = false          -- true
+b_pp_evo        = true          -- true
 i_pp_evos       = 100
 b_pp_push_pull  = false          -- true
 b_pp_pull       = false          -- true         hydrophobic segs are pulled together
 b_pp_c_pushpull = false          -- true
 b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
 b_pp_vibrator   = false          -- false
-b_pp_bonds      = true          -- false        pulls already bonded segments to maybe strengthen them
+b_pp_bonds      = false          -- false        pulls already bonded segments to maybe strengthen them
 --Pull
 
 --#Fuzing
@@ -117,15 +117,14 @@ b_str_re_fuze   = false         -- false        should we fuze after one rebuild
 --Settings#
 
 --#Constants | Game vars
-sls             = {}
+t_sls             = {}
 for _i = 1, 100 do
-    sls[#sls + 1] = _i
+    t_sls[#t_sls + 1] = _i
 end
-_i              = nil
 b_sphering      = false
 b_mutating      = false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
-selected        = {}
+t_selected      = {}
 b_changed       = true
 b_ss_changed    = true
 b_evo           = false
@@ -150,61 +149,80 @@ reset =
     puzzle  = reset_puzzle
 }
 
-local function _add(a, b)
-    local bandcount = get.bandcount()
-    band_add_segment_segment(a, b)
-    bandcount2 = get.bandcount()
-    if bandcount == bandcount2 then
+local function _add(seg1, seg2)
+    local count = get.bandcount()
+    band_add_segment_segment(seg1, seg2)
+    local count2 = get.bandcount()
+    if count == count2 then
         return false
     end
-    band.table[bandcount2] = {3.5, 1, a, b, true}
+    band.table[count2] = {3.5, 1, seg1, seg2, true}
 end
 
-local function _length(a, b)
-    local bandcount = get.bandcount()
-    band_set_length(a, b)
-    band.table[a][band.part.length] = b
+local function _length(_band, len)
+    band_set_length(_band, len)
+    band.table[_band][band.part.length] = len
 end
 
-local function _strength(a, b)
-    band_set_strength(a, b)
-    band.table[a][band.part.strength] = b
+local function _strength(_band, str)
+    band_set_strength(_band, str)
+    band.table[_band][band.part.strength] = str
 end
 
-local function _disable(a)
-    if not a then
+local function _disable(_band)
+    if not _band then
         band_disable()
-        local bandcount = get.bandcount()
-        for i = 1, bandcount do
+        local count = get.bandcount()
+        for i = 1, count do
             band.table[i][band.part.enabled] = false
         end
     else
-        band_disable(a)
-        band.table[a][band.part.enabled] = false
+        band_disable(_band)
+        band.table[_band][band.part.enabled] = false
     end
 end
 
-local function _enable(a)
-    if not a then
+local function _enable(_band)
+    if not _band then
         band_enable()
         local bandcount = get.bandcount()
         for i = 1, bandcount do
             band.table[i][band.part.enabled] = true
         end
     else
-        band_enable(a)
-        band.table[a][band.part.enabled] = true
+        band_enable(_band)
+        band.table[_band][band.part.enabled] = true
     end
 end
 
-local function _delete(a)
-    if not a then
+local function _delete(_band)
+    if not _band then
         band_delete()
         band.table = {}
     else
-        band_delete(a)
-        band.table[a] = {}
+        band_delete(_band)
+        band.table[_band] = {}
     end
+end
+
+local function _enabled(_band)
+    return band.table[_band][band.part.enabled]
+end
+
+local function _endseg(_band)
+    return band.table[_band][band.part._end]
+end
+
+local function _startseg(_band)
+    return band.table[_band][band.part.start]
+end
+
+local function _getstrength(_band)
+    return band.table[_band][band.part.strength]
+end
+
+local function _getlength(_band)
+    return band.table[_band][band.part.strength]
 end
 
 band =
@@ -215,6 +233,13 @@ band =
     disable     = _disable,
     enable      = _enable,
     delete      = _delete,
+    get         = {
+        length  = _getlength,
+        strength= _getstrength,
+        start   = _startseg,
+        _end    = _endseg,
+        enabled = _enabled
+        }
     table       = {},
     part        = {length = 1, strength = 2, start = 3, _end = 4, enabled = 5}
 }
@@ -227,16 +252,16 @@ wiggle =
     backbone    = do_global_wiggle_backbone
 }
 
-local function _deindex(a)
-    if selected[a] then
-        deselect_index(a)
-        selected[a] = false
+local function _deindex(seg)
+    if t_selected[seg] then
+        deselect_index(seg)
+        t_selected[seg] = false
     end
 end
 
 local function _deall()
     deselect_all()
-    selected = {}
+    t_selected = {}
 end
 
 deselect =
@@ -476,13 +501,13 @@ math =
 
 --#Saveslot manager
 local function _release(slot)
-    sls[#sls + 1] = slot
+    t_sls[#t_sls + 1] = slot
 end -- function
 
 local function _request()
-    assert(#sls > 0, "Out of save slots")
-    local slot = sls[#sls]
-    sls[#sls] = nil
+    assert(#t_sls > 0, "Out of save slots")
+    local slot = t_sls[#t_sls]
+    t_sls[#t_sls] = nil
     return slot
 end -- function
 
@@ -526,7 +551,7 @@ local function _sphere(seg, radius)
             if _i > seg then
                 _i, _seg = seg, i
             end
-            if distances[_i][_seg] <= radius and not selected[i] then
+            if distances[_i][_seg] <= radius and not t_selected[i] then
                 sphere[#sphere + 1] = i
             end -- if get
         end -- if seg
@@ -1066,28 +1091,28 @@ local function _range(a, b)
     local i
     local bool
     for i = a, b do 
-        if not selected[i] then
+        if not t_selected[i] then
             bool = true
         end
     end
     if bool then
         select_index_range(a, b)
         for i = a, b do
-            selected[i] = true
+            t_selected[i] = true
         end
     end
 end
 
 local function _index(a)
-    if not selected[a] then
+    if not t_selected[a] then
         select_index(a)
-        selected[a] = true
+        t_selected[a] = true
     end
 end
 
 local function _all()
     for i = 1, i_segcount do
-        selected[i] = true
+        t_selected[i] = true
     end
     select_all()
 end
@@ -1534,7 +1559,7 @@ local function _comp_sheet()
     end -- for i
 end -- function
 
-local function _rndband()
+local function _rndband(vib)
     get.dists()
     local start  = math.floor(math.random() * (i_segcount - 1)) + 1
     local finish = math.floor(math.random() * (i_segcount - 1)) + 1
@@ -1559,21 +1584,29 @@ end
 local function _vib()
     get.dists()
     local i
+    local _i
     local ii
     local iii
-    for i = 1, i_segcount - 2 do
-        for ii = i, i_segcount - 1 do
-            for iii = ii, i_segcount do
-                if i ~= ii and ii ~= iii and i ~= iii then
-                    if distances[i][iii] - 0.4 < distances[i][ii] + distances[ii][iii] and distances[i][iii] < 4.5 then
-                        band.add(i, iii)
-                        band.length(get.bandcount(), distances[i][ii] + 1)
-                        band.add(i, ii)
-                        band.length(get.bandcount(), distances[i][ii] - 1.5)
-                        band.add(ii, iii)
-                        band.length(get.bandcount(), distances[i][ii] - 1.5)
-                    end
+    local list
+    local bandcount
+    for i = 1, i_segcount do
+        list = get.sphere(i, 15)
+        for ii = 1, #list do
+            _i = i
+            bandcount = get.bandcount()
+            bool = true
+            for iii = 1, bandcount do
+                if (band.table[iii][start] == i and band.table[iii][_end] == list[ii]) or (band.table[iii][_end] == i and band.table[iii][start] == list[ii]) then
+                    bool = false
                 end
+            end
+            if bool then
+                band.add(i, list[ii])
+                if list[ii] < i then
+                list[ii], _i = i, list[ii]
+            end
+            bandcount = get.bandcount()
+            band.length(bandcount, distances[_i][list[ii]] + math.random(-0.1, 0.1))
             end
         end
     end
