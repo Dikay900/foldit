@@ -5,12 +5,12 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1203
-i_segcount      = get_segment_count()
+i_vers          = 1204
+i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
-i_release_date  = "16. July 2011"
-i_release_vers  = 3
+i_release_date  = "1xth August 2011"
+i_release_vers  = 4
 --Release#
 --Game vars#
 
@@ -18,9 +18,9 @@ i_release_vers  = 3
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
-b_cu            = true         -- false        Do bond the structures and curl it, try to improve it and get some points
+b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -64,14 +64,14 @@ b_pp_soft       = false
 b_pp_fuze       = true
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
-b_pp_evo        = true          -- true
+b_pp_evo        = false          -- true
 i_pp_evos       = 100
-b_pp_push_pull  = false          -- true
-b_pp_pull       = false          -- true         hydrophobic segs are pulled together
-b_pp_c_pushpull = false          -- true
-b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
+b_pp_push_pull  = true          -- true
+b_pp_pull       = true          -- true         hydrophobic segs are pulled together
+b_pp_c_pushpull = true          -- true
+b_pp_centerpull = true         -- true          hydrophobic segs are pulled to the center segment
 b_pp_vibrator   = false          -- false
 b_pp_bonds      = false          -- false        pulls already bonded segments to maybe strengthen them
 --Pull
@@ -130,102 +130,93 @@ b_ss_changed    = true
 b_evo           = false
 --Constants | Game vars#
 
---#Securing for changes that will be made at Fold.it
-assert  = nil
-error   = nil
-debug   = nil
-math    = nil
-table   = nil
---Securing#
-
 --#Optimizing
 p   = print
 
 reset =
 {   -- renaming
-    best    = restore_abs_best,
-    score   = reset_recent_best,
-    recent  = restore_recent_best,
-    puzzle  = reset_puzzle
+    score   = recentbest.Save,
+    recent  = recentbest.Restore,
+    puzzle  = puzzle.StartOver
 }
 
 local function _add(seg1, seg2)
     local count = get.bandcount()
-    band_add_segment_segment(seg1, seg2)
+    band.AddBetweenSegments(seg1, seg2)
     local count2 = get.bandcount()
     if count == count2 then
         return false
     end
-    band.table[count2] = {3.5, 1, seg1, seg2, true}
+    bands.info[count2] = {3.5, 1, seg1, seg2, true}
 end
 
 local function _length(_band, len)
-    band_set_length(_band, len)
-    band.table[_band][band.part.length] = len
+    band.SetGoalLength(_band, len)
+    bands.info[_band][bands.part.length] = len
 end
 
 local function _strength(_band, str)
-    band_set_strength(_band, str)
-    band.table[_band][band.part.strength] = str
+    band.SetStrength(_band, str)
+    bands.info[_band][bands.part.strength] = str
 end
 
 local function _disable(_band)
     if not _band then
-        band_disable()
+        band.DisableAll()
         local count = get.bandcount()
         for i = 1, count do
-            band.table[i][band.part.enabled] = false
+            bands.info[i][bands.part.enabled] = false
         end
     else
-        band_disable(_band)
-        band.table[_band][band.part.enabled] = false
+        band.Disable(_band)
+        bands.info[_band][bands.part.enabled] = false
     end
 end
 
 local function _enable(_band)
     if not _band then
-        band_enable()
+        band.EnableAll()
         local bandcount = get.bandcount()
         for i = 1, bandcount do
-            band.table[i][band.part.enabled] = true
+            bands.info[i][bands.part.enabled] = true
         end
     else
-        band_enable(_band)
-        band.table[_band][band.part.enabled] = true
+        band.Enable(_band)
+        bands.info[_band][bands.part.enabled] = true
     end
 end
 
 local function _delete(_band)
     if not _band then
-        band_delete()
-        band.table = {}
+        band.DeleteAll()
+        bands.info = {}
     else
-        band_delete(_band)
-        band.table[_band] = {}
+        band.Delete(_band)
+        bands.info[_band] = {}
     end
 end
 
 local function _enabled(_band)
-    return band.table[_band][band.part.enabled]
+    return bands.info[_band][bands.part.enabled]
 end
 
 local function _endseg(_band)
-    return band.table[_band][band.part._end]
+    return bands.info[_band][bands.part._end]
 end
 
 local function _startseg(_band)
-    return band.table[_band][band.part.start]
+    return bands.info[_band][bands.part.start]
 end
 
 local function _getstrength(_band)
-    return band.table[_band][band.part.strength]
+    return bands.info[_band][bands.part.strength]
 end
 
 local function _getlength(_band)
-    return band.table[_band][band.part.strength]
+    return bands.info[_band][bands.part.strength]
 end
 
-band =
+bands =
 {   -- Band Mod
     add         = _add,
     length      = _length,
@@ -239,28 +230,75 @@ band =
         start   = _startseg,
         _end    = _endseg,
         enabled = _enabled
-        }
-    table       = {},
+        },
+    info        = {},
     part        = {length = 1, strength = 2, start = 3, _end = 4, enabled = 5}
 }
 
+local function _l_all(a)
+    structure.LocalWiggleAll(a, true, true)
+end
+local function _l_all_b(a)
+    structure.LocalWiggleAll(a, true, false)
+end
+local function _l_all_s(a)
+    structure.LocalWiggleAll(a, false, true)
+end
+local function _l_sel(a)
+    structure.LocalWiggleSelected(a, true, true)
+end
+local function _l_sel_b(a)
+    structure.LocalWiggleSelected(a, true, false)
+end
+local function _l_sel_s(a)
+    structure.LocalWiggleSelected(a, false, true)
+end
+local function _all(a)
+    structure.WiggleAll(a, true, true)
+end
+local function _all_sel(a)
+    structure.WiggleSelected(a, true, true)
+end
+local function _side(a)
+    structure.WiggleAll(a, false, true)
+end
+local function _side_sel(a)
+    structure.WiggleSelected(a, false, true)
+end
+local function _back(a)
+    structure.WiggleAll(a, true, false)
+end
+local function _back_sel(a)
+    structure.WiggleSelected(a, true, false)
+end
+
 wiggle =
 {   -- renaming
-    _local      = do_local_wiggle,
-    all         = do_global_wiggle_all,
-    sidechains  = do_global_wiggle_sidechains,
-    backbone    = do_global_wiggle_backbone
+    shake       = structure.ShakeSidechainsAll,
+    shake_sel   = structure.ShakeSidechainsSelected,
+    l_all       = _l_all,
+    l_all_b     = _l_all_b,
+    l_all_s     = _l_all_s,
+    l_sel       = _l_sel,
+    l_sel_b     = _l_sel_b,
+    l_sel_s     = _l_sel_s,
+    all         = _all,
+    all_sel     = _all_sel,
+    side        = _side,
+    side_sel    = _side_sel,
+    back        = _back,
+    back_sel    = _back_sel
 }
 
 local function _deindex(seg)
     if t_selected[seg] then
-        deselect_index(seg)
+        selection.Deselect(seg)
         t_selected[seg] = false
     end
 end
 
 local function _deall()
-    deselect_all()
+    selection.DeselectAll()
     t_selected = {}
 end
 
@@ -272,27 +310,19 @@ deselect =
 
 set =
 {   -- Selection Mod
-    cl  = set_behavior_clash_importance,
-    ss  = replace_ss,
-    aa  = replace_aa
+    cl  = behavior.SetClashImportance,
+    ss  = structure.SetSecondaryStructure,
+    aa  = structure.SetAminoAcid
 }
 
 score =
 {   -- renaming
-    stab    = get_score,
-    rank    = get_ranked_score,
-    expl    = get_exploration_score,
-    seg     = get_segment_score,
-    segp    = get_segment_score_part
+    stab    = current.GetEnergyScore,
+    rank    = current.GetScore,
+    seg     = current.GetSegmentEnergyScore,
+    segp    = current.GetSegmentEnergySubscore
 }
 --Optimizing#
-
-function assert(b, m)
-    if not b then
-        p(m)
-        error()
-    end -- if
-end -- function
 
 --#Amino
 local function _short(seg)
@@ -416,96 +446,13 @@ calc =
 --Amino#
 
 --#External functions
---#Math library
---[[
-The original random script this was ported from has the following notices:
-Copyright (c) 2007 Richard L. Mueller
-Hilltop Lab web site - http://www.rlmueller.net
-Version 1.0 - January 2, 2007
-You have a royalty-free right to use, modify, reproduce, and distribute this script file in any
-way you find useful, provided that you agree that the copyright owner above has no warranty,
-obligations, or liability for such use.
-This function is not covered by the Creative Commons license given at the start of the script,
-and is instead covered by the comment given here.
-]]
-lngX = 1000 + score.stab()
-lngC = 48313 + lngX
-local function _MWC()
-    local A_Hi = 63551
-    local A_Lo = 25354
-    local M = 4294967296
-    local H = 65536
-    local S_Hi = math.floor(lngX / H)
-    local S_Lo = lngX - (S_Hi * H)
-    local C_Hi = math.floor(lngC / H)
-    local C_Lo = lngC - (C_Hi * H)
-    local F1 = A_Hi * S_Hi
-    local F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
-    local F3 = (A_Lo * S_Lo) + C_Lo
-    local T1 = math.floor(F2 / H)
-    local T2 = F2 - (T1 * H)
-    lngX = (T2 * H) + F3
-    local T3 = math.floor(lngX / M)
-    lngX = lngX - (T3 * M)
-    lngC = math.floor((F2 / H) + F1)
-    return lngX
-end -- function
-
-local function _floor(value, _n)
-    local n
-    if _n then
-        n = 1 * 10 ^ (-_n)
-    else -- if
-        n = 1
-    end -- if
-    return value - (value % n)
-end -- function
-
-local function _randomseed(x)
-    if x then
-        lngX = x
-    end -- if
-end -- function
-
-local function _random(m, n)
-    if not n then
-        if m then
-            n = m
-            m = 1
-        else
-            return _MWC() / 4294967296
-        end
-    else
-        if n < m then
-            n, m = m, n
-        end -- if n < m
-        return math.floor((_MWC() / 4294967296) * (n - m + 1)) + m
-    end -- if m
-end -- function
-
-local function _abs(x)
-    if x < 0 then
-        return -x
-    else -- if
-        return x
-    end -- if
-end -- function
-
-math =
-{   floor       = _floor,
-    random      = _random,
-    randomseed  = _randomseed,
-    abs         = _abs
-}
---Math library#
-
 --#Saveslot manager
 local function _release(slot)
     t_sls[#t_sls + 1] = slot
 end -- function
 
 local function _request()
-    assert(#t_sls > 0, "Out of save slots")
+    assert(#t_sls > 0 .. "Out of save slots")
     local slot = t_sls[#t_sls]
     t_sls[#t_sls] = nil
     return slot
@@ -515,8 +462,8 @@ sl =
 {   release = _release,
     request = _request,
     -- renaming
-    save    = quicksave,
-    load    = quickload
+    save    = save.Quicksave,
+    load    = save.Quickload
 }
 --Saveslot manager#
 --External functions#
@@ -606,11 +553,11 @@ local function _increase(sc1, sc2, slot, step)
         sl.save(slot)
         sc = sc2 - sc1
         if slot == 3 then
-            p("Gain: ", sc)
+            p("Gain: " .. sc)
             sc = get.score()
-            p("==", sc, "==")
+            p("==" .. sc .. "==")
         else
-            p("+", sc, "+")
+            p("+" .. sc .. "+")
         end
         return true
     else -- if
@@ -641,7 +588,7 @@ local function _mutable()
             mutable[#mutable + 1] = i
         end -- if aa
     end -- for j
-    p(#mutable, " mutables found")
+    p(#mutable .. " mutables found")
     if #mutable > 0 then
         b_mutable  = true
     end
@@ -653,9 +600,9 @@ end -- function
 local function _score()
     local s = 0
     if b_explore then
-        s = score.rank(true)
+        s = score.rank()
     else -- if
-        s = score.stab(true)
+        s = score.stab()
     end -- if
     return s
 end -- function
@@ -806,7 +753,7 @@ end
 --Structurecheck#
 
 local function _void(a)
-    p("Banding segment ", a)
+    p("Banding segment " .. a)
     getDist()
     local t = {}
     for b = 1, segCnt do
@@ -831,7 +778,7 @@ local function _void(a)
         end
     end
     if #t > 0 then
-        p("Found ", #t, " possible bands across voids")
+        p("Found " .. #t .. " possible bands across voids")
         for i = 1, #t do
             band_add_segment_segment(t[i][1], t[i][2])
         end
@@ -884,24 +831,24 @@ get =
     segscores   = _segscores,
     worst       = _worst,
     -- renaming
-    distance    = get_segment_distance,
-    ss          = get_ss,
-    aa          = get_aa,
-    segcount    = get_segment_count,
-    bandcount   = get_band_count,
-    hydrophobic = is_hydrophobic,
-    snapcount   = get_sidechain_snap_count
+    distance    = structure.GetDistance,
+    ss          = structure.GetSecondaryStructure,
+    aa          = structure.GetAminoAcid,
+    segcount    = structure.GetCount,
+    bandcount   = band.GetCount,
+    hydrophobic = structure.IsHydrophobic,
+    snapcount   = rotamer.GetCount
 }
 --Getters#
 
 --#Doers
 local function _freeze(f)
     if f == "b" then
-        do_freeze(true, false)
+        freeze.FreezeSelected(true, false)
     elseif f == "s" then
-        do_freeze(false, true)
+        freeze.FreezeSelected(false, true)
     else -- if
-        do_freeze(true, true)
+        freeze.FreezeSelected(true, true)
     end -- if
 end -- function
 
@@ -910,11 +857,11 @@ local function _mutate(mut, aa, more)
     select.segs(mutable[mut])
     set.aa(amino.segs[aa])
     get.aacid()
-    p(#amino.segs - aa, " Mutations left")
-    p("Mutating seg ", mutable[mut], " to ", amino.long(mutable[mut]))
+    p(#amino.segs - aa .. " Mutations left")
+    p("Mutating seg " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
     if b_m_after then
         select.list(mutable)
-        deselect_index(mutable[mut])
+        deselect.index(mutable[mut])
         for i = 1, #mutable do
             local temp = false
             if i ~= mut then
@@ -926,14 +873,14 @@ local function _mutate(mut, aa, more)
                     temp = true
                 end
                 if temp then
-                    deselect_index(mutable[i])
+                    deselect.index(mutable[i])
                 end
             end
         end
         set.cl(i_m_cl_mut)
-        do_mutate(1)
+        structure.MutateSidechainsSelected(1)
         set.cl(1)
-        select_index(mutable[mut])
+        select.index(mutable[mut])
         do_shake(2)
     end
     select.segs()
@@ -958,40 +905,39 @@ do_ =
     mutate      = _mutate,
     mut         = _mut,
     -- renaming
-    shake       = do_shake,
-    rebuild     = do_local_rebuild,
-    snap        = do_sidechain_snap,
-    unfreeze    = do_unfreeze_all
+    rebuild     = structure.RebuildSelected,
+    snap        = rotamer.SetRotamer,
+    unfreeze    = freeze.UnfreezeAll
 }
 --Doers#
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
-    p("cl1 ", cl1, ", cl2 ", cl2)
+    p("cl1 " .. cl1 .. " .. cl2 " .. cl2)
     reset.score()
     if option == 1 then
         p("Wiggle Out cl1-wa-cl=1-wa-s-cl1-wa")
-        work.step("s", 1, cl1)
-        work.step("wa", 2, cl2)
-        work.step("wa", 1, 1)
-        work.step("s", 1, 1)
-        work.step("wa", 1, cl2)
-        work.step("wa", 2, 1)
+        work.step("s" .. 1, cl1)
+        work.step("wa" .. 2, cl2)
+        work.step("wa" .. 1, 1)
+        work.step("s" .. 1, 1)
+        work.step("wa" .. 1, cl2)
+        work.step("wa" .. 2, 1)
     elseif option == 2 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step("s", 1, cl1)
-        work.step("wa", 2, cl2)
-        work.step("s", 1, 1)
-        work.step("wa", 3, 1)
+        work.step("s" .. 1, cl1)
+        work.step("wa" .. 2, cl2)
+        work.step("s" .. 1, 1)
+        work.step("wa" .. 3, 1)
         reset.recent()
     else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
-        work.step("s", 1, cl1)
-        work.step("wa", 2, 1)
-        work.step("s", 1, cl2)
-        work.step("wa", 2, 1)
-        work.step("s", 1, cl1 - 0.02)
-        work.step("wa", 2, 1)
+        work.step("s" .. 1, cl1)
+        work.step("wa" .. 2, 1)
+        work.step("s" .. 1, cl2)
+        work.step("wa" .. 2, 1)
+        work.step("s" .. 1, cl1 - 0.02)
+        work.step("wa" .. 2, 1)
     end -- if option
     reset.recent()
 end -- function
@@ -1096,7 +1042,7 @@ local function _range(a, b)
         end
     end
     if bool then
-        select_index_range(a, b)
+        selection.SelectRange(a, b)
         for i = a, b do
             t_selected[i] = true
         end
@@ -1105,7 +1051,7 @@ end
 
 local function _index(a)
     if not t_selected[a] then
-        select_index(a)
+        selection.Select(a)
         t_selected[a] = true
     end
 end
@@ -1114,7 +1060,7 @@ local function _all()
     for i = 1, i_segcount do
         t_selected[i] = true
     end
-    select_all()
+    selection.SelectAll()
 end
 
 select =
@@ -1146,18 +1092,18 @@ local function _step(a, iter, cl)
         b_changed = true
     end -- if a
     if a == "wa" then
-        wiggle.all(iter)
+        wiggle.all_sel(iter)
     elseif a == "s" then
-        do_.shake(2)
+        wiggle.shake_sel(2)
     elseif a == "wb" then
-        wiggle.backbone(iter)
+        wiggle.back_sel(iter)
     elseif a == "ws" then
-        wiggle.sidechains(iter)
+        wiggle.side_sel(iter)
     elseif a == "wl" then
         select.segs(seg, r)
         reset.score()
         s1 = get.score()
-        wiggle._local(iter)
+        wiggle._local_sel(iter)
         s2 = get.score()
         if s2 < s1 then
             reset.recent()
@@ -1198,9 +1144,9 @@ end -- function
 
 function _quake(ii)
     if get.score() < 0 then
-        band.disable()
+        bands.disable()
         fuze.start(sl_overall)
-        band.enable()
+        bands.enable()
     end -- if s3 < 0
     local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
     local strength = 0.1 + 0.1 * i_pp_loss
@@ -1217,8 +1163,8 @@ function _quake(ii)
             strength = math.floor(strength * 4 / cbands, 4)
         end -- if
         if b_solo_quake then
-            band.disable()
-            band.enable(ii)
+            bands.disable()
+            bands.enable(ii)
             s3 = math.floor(s3 * 2, 4)
             strength = math.floor(strength * 2, 4)
         end -- if b_solo_quake
@@ -1232,22 +1178,22 @@ function _quake(ii)
     if strength > 0.2 * i_pp_loss then
         strength = 0.2 * i_pp_loss
     end -- if strength
-    p("Pulling until a loss of more than ", s3, " points")
+    p("Pulling until a loss of more than " .. s3 .. " points")
     local s1 = get.score()
     repeat
-        p("Band strength: ", strength)
+        p("Band strength: " .. strength)
         if b_solo_quake then
-            band.strength(ii, strength)
+            bands.strength(ii, strength)
         else -- if b_solo
             for i = 1, cbands do
-                if band.table[i][band.part.enabled] then
-                    band.strength(i, strength)
+                if bands.info[i][bands.part.enabled] then
+                    bands.strength(i, strength)
                 end
             end -- for
         end -- if b_solo
         reset.score()
         set.cl(0.9)
-        wiggle.backbone(1)
+        wiggle.back_sel(1)
         sl.save(quake)
         reset.recent()
         local s2 = get.score()
@@ -1283,13 +1229,13 @@ local function _dist()
             work.quake(ii)
             if b_pp_mutate then
                 select.all()
-                do_mutate(1)
+                structure.MutateSidechainsSelected(1)
             end -- if b_pp_mutate
-            band.delete(ii)
+            bands.delete(ii)
             if b_pp_fuze then
                 fuze.start(dist)
             else
-                work.step("wa", 3)
+                work.step("wa" .. 3)
             end
             ps_2 = get.score()
             get.increase(ps_1, ps_2, sl_overall)
@@ -1298,11 +1244,11 @@ local function _dist()
     else -- if b_solo_quake
         sl.save(dist)
         work.quake()
-        band.disable()
+        bands.disable()
         if b_pp_fuze then
             fuze.start(dist)
         else
-            work.step("wa", 3)
+            work.step("wa" .. 3)
         end
         ps_2 = get.score()
         if not b_evo then
@@ -1314,9 +1260,9 @@ end -- function
 
 local function _rebuild(trys, str)
     local iter = 1
-    p("Rebuilding ", trys, " times")
+    p("Rebuilding " .. trys .. " times")
     for i = 1, trys do
-        p(i, ". Shape")
+        p(i .. ". Shape")
         local re1 = get.score()
         local re2 = re1
         while re1 == re2 do
@@ -1352,10 +1298,10 @@ local function _cpl(_local)
             end -- if x
             if hydro[i] then
                 if get.checksame(x, y) then
-                    band.add(x, y)
+                    bands.add(x, y)
                     if b_pp_soft then
                         local cband = get.bandcount()
-                        band.length(cband, distances[x][y] - i_pp_len)
+                        bands.length(cband, distances[x][y] - i_pp_len)
                     end -- if b_pp_soft
                 end -- if checksame
             end -- if hydro
@@ -1377,9 +1323,9 @@ local function _cps(_local)
             if not hydro[i] then
                 if distances[x][y] <= (20 - i_pp_len) then
                     if get.checksame(x, y) then
-                        band.add(x, y)
+                        bands.add(x, y)
                         local cband = get.bandcount()
-                        band.length(cband, distances[x][y] + i_pp_len)
+                        bands.length(cband, distances[x][y] + i_pp_len)
                     end -- if checksame
                 end -- if distances
             end -- if hydro
@@ -1399,9 +1345,9 @@ local function _ps(_local, bandsp)
                     if math.random() <= bandsp then
                         if distances[x][y] <= (20 - i_pp_len) then
                             if get.checksame(x, y) then
-                                band.add(x, y)
+                                bands.add(x, y)
                                 local cband = get.bandcount()
-                                band.length(cband, distances[x][y] + i_pp_len)
+                                bands.length(cband, distances[x][y] + i_pp_len)
                             end
                         end
                     end
@@ -1422,10 +1368,10 @@ local function _pl(_local, bandsp)
                         math.randomseed(math.random() * distances[x][y] + 1)
                         if math.random() < bandsp * 4 then
                             if get.checksame(x, y) then
-                                band.add(x, y)
+                                bands.add(x, y)
                                 if b_pp_soft then
                                     local cband = get.bandcount()
-                                    band.length(cband, distances[x][y] - i_pp_len)
+                                    bands.length(cband, distances[x][y] - i_pp_len)
                                 end -- b_pp_soft
                             end -- if checksame
                         end -- if random
@@ -1441,10 +1387,10 @@ local function _pl(_local, bandsp)
                     math.randomseed(math.random() * distances[x][y] + 1)
                     if math.random() < bandsp then
                         if get.checksame(x, y) then
-                            band.add(x, y)
+                            bands.add(x, y)
                             if b_pp_soft then
                                 local cband = get.bandcount()
-                                band.length(cband, distances[x][y] - i_pp_len)
+                                bands.length(cband, distances[x][y] - i_pp_len)
                             end -- if b_pp_soft
                         end -- if checksame
                     end -- if random
@@ -1474,10 +1420,10 @@ local function _strong(_local)
         for ii = i + 2, i_segcount - 2 do
             if strength[i][ii] == max_str and min_dist == distances[i][ii] then
                 if get.checksame(i, ii) then
-                    band.add(i , ii)
+                    bands.add(i , ii)
                     if b_pp_soft then
                         local cband = get.bandcount()
-                        band.length(cband, distances[i][ii] - i_pp_len)
+                        bands.length(cband, distances[i][ii] - i_pp_len)
                     end -- if pp_soft
                 end -- if get.checksame
             end -- if strength
@@ -1496,10 +1442,10 @@ local function _one(_seg)
     for ii = _seg + 2, i_segcount - 2 do
         if strength[_seg][ii] == max_str then
             if get.checksame(_seg, ii) then
-                band.add(_seg , ii)
+                bands.add(_seg , ii)
                 if b_pp_soft then
                     local cband = get.bandcount()
-                    band.length(cband, distances[_seg][ii] - i_pp_len)
+                    bands.length(cband, distances[_seg][ii] - i_pp_len)
                 end
             end
         end -- if strength
@@ -1511,18 +1457,18 @@ local function _helix(_he)
     local ii
     if _he then
         for i = he[_he][1], he[_he][#he[_he]] - 4 do
-            band.add(i, i + 4)
+            bands.add(i, i + 4)
         end -- for i
         for i = he[_he][1], he[_he][#he[_he]] - 3 do
-            band.add(i, i + 3)
+            bands.add(i, i + 3)
         end -- for i
     else
         for i = 1, #he do
             for ii = he[i][1], he[i][#he[i]] - 4 do
-                band.add(ii, ii + 4)
+                bands.add(ii, ii + 4)
             end -- for ii
             for ii = he[i][1], he[i][#he[i]] - 3 do
-                band.add(ii, ii + 3)
+                bands.add(ii, ii + 3)
             end -- for ii
         end -- for i
     end -- if _he
@@ -1531,18 +1477,18 @@ end -- function
 local function _sheet(_sh)
     if _sh then
         for ii = sh[_sh][1], sh[_sh][#sh[_sh]] - 1 do
-            band.add(ii - 1, ii + 2)
+            bands.add(ii - 1, ii + 2)
             local cbands = get.bandcount()
-            band.strength(cbands, 10)
-            band.length(cbands, 100)
+            bands.strength(cbands, 10)
+            bands.length(cbands, 100)
         end -- for ii
     else
         for i = 1, #sh do
             for ii = 1, #sh[i] - 1 do
-                band.add(sh[i][ii] - 1, sh[i][ii] + 2)
+                bands.add(sh[i][ii] - 1, sh[i][ii] + 2)
                 local cbands = get.bandcount()
-                band.strength(cbands, 10)
-                band.length(cbands, 100)
+                bands.strength(cbands, 10)
+                bands.length(cbands, 100)
             end -- for ii
         end -- for i
     end
@@ -1550,12 +1496,12 @@ end -- function
 
 local function _comp_sheet()
     for i = 1, #sh - 1 do
-        band.add(sh[i][1], sh[i + 1][#sh[i + 1]])
+        bands.add(sh[i][1], sh[i + 1][#sh[i + 1]])
         local cbands = get.bandcount()
-        band.strength(cbands, 10)
-        band.add(sh[i][#sh[i]], sh[i + 1][1])
+        bands.strength(cbands, 10)
+        bands.add(sh[i][#sh[i]], sh[i + 1][1])
         local cbands = get.bandcount()
-        band.strength(cbands, 10)
+        bands.strength(cbands, 10)
     end -- for i
 end -- function
 
@@ -1567,14 +1513,14 @@ local function _rndband(vib)
         start, finish = finish, start
     end
     if start ~= finish and math.abs(start - finish) >= 5 then
-        band.add(start, finish)
+        bands.add(start, finish)
         local n = get.bandcount()
         local length = 3 + (math.random() * (distances[start][finish] + 2))
         if hydro[start] and hydro[finish] then 
             length = 2 + (math.random() * (get.distance(start, finish) / 2))
         end
         if length < 0 then length = 0 end
-        if n > 0 then band.length(n, length) end
+        if n > 0 then bands.length(n, length) end
     else
         math.randomseed(get.distance(start, finish) + math.random() * i_segcount)
         bonding.rnd()
@@ -1596,17 +1542,17 @@ local function _vib()
             bandcount = get.bandcount()
             bool = true
             for iii = 1, bandcount do
-                if (band.table[iii][start] == i and band.table[iii][_end] == list[ii]) or (band.table[iii][_end] == i and band.table[iii][start] == list[ii]) then
+                if (bands.info[iii][start] == i and bands.info[iii][_end] == list[ii]) or (bands.info[iii][_end] == i and bands.info[iii][start] == list[ii]) then
                     bool = false
                 end
             end
             if bool then
-                band.add(i, list[ii])
+                bands.add(i, list[ii])
                 if list[ii] < i then
                 list[ii], _i = i, list[ii]
             end
             bandcount = get.bandcount()
-            band.length(bandcount, distances[_i][list[ii]] + math.random(-0.1, 0.1))
+            bands.length(bandcount, distances[_i][list[ii]] + math.random(-0.1, 0.1))
             end
         end
     end
@@ -1634,11 +1580,11 @@ local function _bonds(range, pts)
                     bandcount = get.bandcount()
                     bool = true
                     for iii = 1 , bandcount do
-                        if bands.table[iii][start] == _i and bands.table[iii][_end] == list[ii] or bands.table[iii][_end] == _i and bands.table[iii][start] == list[ii] then
+                        if bands.info[iii][start] == _i and bands.info[iii][_end] == list[ii] or bands.info[iii][_end] == _i and bands.info[iii][start] == list[ii] then
                             bool = false
                         end
                         if bool then
-                            band.add(_i, list[ii])
+                            bands.add(_i, list[ii])
                         end
                     end
                 end
@@ -1679,7 +1625,7 @@ function snap()
     local c_s2
     sl.save(snaps)
     iii = get.snapcount(seg)
-    p("Snapcount: ", iii, " - Segment ", seg)
+    p("Snapcount: " .. iii .. " - Segment " .. seg)
     if iii > 1 then
         snapwork = sl.request()
         ii = 0
@@ -1689,7 +1635,7 @@ function snap()
             c_s2 = c_s
             while c_s2 == c_s do
                 ii = ii + 1
-                p("Snap ", ii, "/ ", iii)
+                p("Snap " .. ii .. "/ " .. iii)
                 do_.snap(seg, ii)
                 c_s2 = get.score()
                 p(c_s2 - c_s)
@@ -1706,8 +1652,8 @@ function snap()
                 do_.freeze("s")
                 fuze.start(snapwork)
                 do_.unfreeze()
-                work.step("s", 1)
-                work.step("wa", 3)
+                work.step("s" .. 1)
+                work.step("wa" .. 3)
                 sl.save(snapwork)
                 if c_snap < get.score() then
                     c_snap = get.score()
@@ -1753,9 +1699,9 @@ function rebuild()
         select.segs(seg, r)
     end
     if r == seg then
-        p("Rebuilding Segment ", seg)
+        p("Rebuilding Segment " .. seg)
     else -- if r
-        p("Rebuilding Segment ", seg, "-", r)
+        p("Rebuilding Segment " .. seg .. "-" .. r)
     end -- if r
     rs_0 = get.score()
     sl_r = {}
@@ -1771,7 +1717,7 @@ function rebuild()
         rs_1 = get.score()
         if b_re_mutate then
             select.all()
-            do_mutate(1)
+            structure.MutateSidechainsSelected(1)
         end
         p(rs_1 - rs_0)
         fuze.start(sl_re)
@@ -1791,17 +1737,17 @@ function evolution()
     for i = 1, 50 do
         bonding.rnd()
     end
-    band.disable()
+    bands.disable()
     for i = 1, i_pp_evos do
         local bandcount = get.bandcount()
         local rnd = math.floor(math.random() * 5) + 2
         for ii = 1, rnd do
             local cband = math.floor(math.random() * (bandcount - 1)) + 1
-            if band.table[cband][band.part.enabled] == true then
+            if bands.info[cband][bands.part.enabled] == true then
                 ii = ii - 1
             end
             math.randomseed(ii * rnd)
-            band.enable(cband)
+            bands.enable(cband)
         end
         work.dist()
     end
@@ -1812,24 +1758,24 @@ end
 function dists()
     sl.save(sl_overall)
     dist_score = get.score()
-    band.delete()
+    bands.delete()
     if b_pp_pre_strong then
         bonding.matrix.strong()
         work.dist()
-        band.delete()
+        bands.delete()
     end -- if b_pp_predicted
     if b_pp_pre_local then
         for i = i_start_seg, i_end_seg do
             bonding.matrix.one(i)
             work.dist()
-            band.delete()
+            bands.delete()
         end
     end -- if b_pp_predicted
     if b_pp_push_pull then
         bonding.pull(b_pp_local, i_pp_bandperc / 2)
         bonding.push(b_pp_local, i_pp_bandperc)
         work.dist()
-        band.delete()
+        bands.delete()
     end -- if b_pp_combined
     if b_pp_evo then
         evolution()
@@ -1837,29 +1783,29 @@ function dists()
     if b_pp_pull then
         bonding.pull(b_pp_local, i_pp_bandperc)
         work.dist()
-        band.delete()
+        bands.delete()
     end -- if b_pp_pull
     if b_pp_centerpull then
         bonding.centerpull(b_pp_local)
         work.dist()
-        band.delete()
+        bands.delete()
     end -- if b_pp_centerpull
     if b_pp_c_push_pull then
         bonding.centerpush(b_pp_local)
         bonding.centerpull(b_pp_local)
         work.dist()
-        band.delete()
+        bands.delete()
     end -- if b_pp_centerpull
     if b_pp_vibrator then
         bonding.vib()
         work.dist()
-        band.delete()
+        bands.delete()
     end
     if b_pp_bonds then
         bonding.bonds(12, 10)
         bonding.bonds(5, 2)
         work.dist()
-        band.delete()
+        bands.delete()
     end
 end -- function
 --Pull#
@@ -1954,7 +1900,7 @@ local function _getdata()
             i = i + 1
         end -- if b_predict_full    
     end -- while
-    p("Found ", #p_he, " Helix and ", #p_sh, " Sheet parts... Combining...")
+    p("Found " .. #p_he .. " Helix and " .. #p_sh .. " Sheet parts... Combining...")
     select.segs()
     set.ss("L")
     deselect.all()
@@ -2036,11 +1982,11 @@ function struct_curler()
     local i
     str_re_best = sl.request()
     get.struct()
-    p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
+    p("Found " .. #he .. " Helixes " .. #sh .. " Sheets and " .. #lo .. " Loops")
     if b_cu_he then
         for i = 1, #he do
             if #he[i] > 3 then
-                p("Working on Helix ", i)
+                p("Working on Helix " .. i)
                 seg = he[i][1] - 2
                 if seg < 1 then
                     seg = 1
@@ -2053,7 +1999,7 @@ function struct_curler()
                 bonding.helix(i)
                 b_sphering = true
                 work.dist()
-                band.delete()
+                bands.delete()
                 b_sphering = false
             end
         end -- for i
@@ -2061,7 +2007,7 @@ function struct_curler()
     if b_cu_sh then
         for i = 1, #sh do
             if #sh[i] > 2 then
-                p("Working on Sheet ", i)
+                p("Working on Sheet " .. i)
                 seg = sh[i][1] - 2
                 if seg < 1 then
                     seg = 1
@@ -2074,7 +2020,7 @@ function struct_curler()
                 select.segs(seg, r)
                 b_sphering = true
                 work.dist()
-                band.delete()
+                bands.delete()
                 b_sphering = false
             end
         end -- for i
@@ -2088,7 +2034,7 @@ function struct_rebuild()
     local str_rs2
     str_re_best = sl.request()
     get.struct()
-    p("Found ", #he, " Helixes ", #sh, " Sheets and ", #lo, " Loops")
+    p("Found " .. #he .. " Helixes " .. #sh .. " Sheets and " .. #lo .. " Loops")
     if b_re_he then
         deselect.all()
         for i = 1, #sh do
@@ -2096,7 +2042,7 @@ function struct_rebuild()
         end -- for i
         set.ss("L")
         for i = 1, #he do
-            p("Working on Helix ", i)
+            p("Working on Helix " .. i)
             seg = he[i][1] - 2
             if seg < 1 then
                 seg = 1
@@ -2109,16 +2055,16 @@ function struct_rebuild()
             deselect.all()
             select.range(seg, r)
             set.cl(0.4)
-            wiggle.backbone(1)
+            wiggle.back_sel(1)
             set.cl(0)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
             set.cl(0.4)
-            wiggle.backbone(1)
+            wiggle.back_sel(1)
             set.cl(1)
             work.rebuild(i_str_re_max_re, i_str_re_re_str)
             set.cl(0.4)
-            wiggle.backbone(1)
-            band.delete()
+            wiggle.back_sel(1)
+            bands.delete()
             if b_str_re_fuze then
                 b_sphering = true
                 fuze.start(str_re_best)
@@ -2141,7 +2087,7 @@ function struct_rebuild()
         end -- for i
         set.ss("L")
         for i = 1, #sh do
-            p("Working on Sheet ", i)
+            p("Working on Sheet " .. i)
             seg = sh[i][1] - 2
             if seg < 1 then
                 seg = 1
@@ -2154,10 +2100,10 @@ function struct_rebuild()
             deselect.all()
             select.range(seg, r)
             set.cl(0.1)
-            wiggle.backbone(1)
+            wiggle.back_sel(1)
             set.cl(0.4)
-            wiggle.backbone(1)
-            band.delete()
+            wiggle.back_sel(1)
+            bands.delete()
             if b_str_re_fuze then
                 b_sphering = true
                 fuze.start(str_re_best)
@@ -2204,7 +2150,7 @@ function mutate()
     end
     if b_m_testall then
         for i = 1, #mutable do
-            p("Mutating segment ", i)
+            p("Mutating segment " .. i)
             sl.save(sl_overall)
             sc_mut = get.score()
             for ii = i, #mutable do
@@ -2215,7 +2161,7 @@ function mutate()
     end
     if b_m_normal then
         for i = 1, #mutable do
-            p("Mutating segment ", i)
+            p("Mutating segment " .. i)
             sl.save(sl_overall)
             sc_mut = get.score()
             for ii = 1, #amino.segs do
@@ -2230,16 +2176,16 @@ end
 
 i_s0 = get.score()
 sl_overall = 3
-p("v", i_vers)
+p("v" .. i_vers)
 if b_release then
-    p("Release Version ", i_release_vers)
-    p("Released on ", i_release_date)
+    p("Release Version " .. i_release_vers)
+    p("Released on " .. i_release_date)
 else -- if b_release
     p("No Released script so it's probably unsafe!")
-    p("Last version released on ", i_release_date)
-    p("It was release version ", i_release_vers)
+    p("Last version released on " .. i_release_date)
+    p("It was release version " .. i_release_vers)
 end -- if b_release
-p("Starting Score: ", i_s0)
+p("Starting Score: " .. i_s0)
 sl.save(sl_overall)
 get.secstr()
 get.ligand()
@@ -2249,7 +2195,7 @@ get.mutated()
 if b_predict then
     predict.getdata()
 end -- if b_predict
-save_structure()
+save.SaveSecondaryStructure()
 if b_str_re then
     struct_rebuild()
 end -- if b_str_re
@@ -2273,9 +2219,9 @@ end
 if b_rebuild then
     if b_worst_rebuild then
         get.worst(b_worst_len)
-        p(seg, " - ", r)
+        p(seg .. " - " .. r)
         select.segs(seg, r)
-        replace_ss("L")
+        set.ss("L")
         rebuild()
     end
     if b_re_str then
@@ -2283,7 +2229,7 @@ if b_rebuild then
         for i = 1, #lo do
             seg = lo[i][1]
             r = lo[i][#lo[i]]
-            p(seg, " - ", r)
+            p(seg .. " - " .. r)
             rebuild()
         end
     end
@@ -2302,12 +2248,12 @@ for i = i_start_seg, i_end_seg do
         if b_rebuild then
             if b_re_walk then
                 select.segs()
-                replace_ss("L")
+                set.ss("L")
                 rebuild()
             end
         end -- if b_rebuild
         if b_lws then
-            p(seg, "-", r)
+            p(seg .. "-" .. r)
             work.flow("wl")
         end -- if b_lws
     end -- for ii
@@ -2316,8 +2262,8 @@ if b_fuze then
     fuze.start(sl_overall)
 end -- if b_fuze
 sl.load(sl_overall)
-load_structure()
+save.LoadSecondaryStructure()
 sl.release(sl_overall)
 s_1 = get.score()
 p("+++ overall gain +++")
-p("+++", s_1 - i_s0, "+++")
+p("+++" .. s_1 - i_s0 .. "+++")
