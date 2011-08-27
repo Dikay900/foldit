@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1204
+i_vers          = 1205
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -18,11 +18,11 @@ i_release_vers  = 4
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
-b_fuze          = false         -- false        should we fuze | see #Fuzing
+b_fuze          = true         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
@@ -452,7 +452,7 @@ local function _release(slot)
 end -- function
 
 local function _request()
-    assert(#t_sls > 0 .. "Out of save slots")
+    assert(#t_sls > 0, "Out of save slots")
     local slot = t_sls[#t_sls]
     t_sls[#t_sls] = nil
     return slot
@@ -573,14 +573,23 @@ local function _mutable()
     local i
     local j
     select.all()
-    set.aa("a")
+    -- REPLACEMENT
+    for i = 1, #t_selected do
+        if t_selected[i] then
+            set.aa(i, "a")
+        end
+    end
     get.aacid()
     for i = 1, i_segcount do
         if aa[i] == "a" then
             isA[#isA + 1] = i
         end -- if aa
     end -- for i
-    set.aa("g")
+    for i = 1, #t_selected do
+        if t_selected[i] then
+            set.aa(i, "g")
+        end
+    end
     get.aacid()
     for j = 1, #isA do
         i = isA[j]
@@ -854,8 +863,13 @@ end -- function
 
 local function _mutate(mut, aa, more)
     local sc_mut1 = get.score()
+    local i
     select.segs(mutable[mut])
-    set.aa(amino.segs[aa])
+    for i = 1, #t_selected do
+        if t_selected[i] then
+            set.aa(i, amino.segs[aa])
+        end
+    end
     get.aacid()
     p(#amino.segs - aa .. " Mutations left")
     p("Mutating seg " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
@@ -913,31 +927,31 @@ do_ =
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
-    p("cl1 " .. cl1 .. " .. cl2 " .. cl2)
+    p("cl1 " .. cl1 .. ", cl2 " .. cl2)
     reset.score()
     if option == 1 then
         p("Wiggle Out cl1-wa-cl=1-wa-s-cl1-wa")
-        work.step("s" .. 1, cl1)
-        work.step("wa" .. 2, cl2)
-        work.step("wa" .. 1, 1)
-        work.step("s" .. 1, 1)
-        work.step("wa" .. 1, cl2)
-        work.step("wa" .. 2, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 2, cl2)
+        work.step("wa", 1, 1)
+        work.step("s", 1, 1)
+        work.step("wa", 1, cl2)
+        work.step("wa", 2, 1)
     elseif option == 2 then
         p("qStab cl1-s-cl2-wa-cl=1-s")
-        work.step("s" .. 1, cl1)
-        work.step("wa" .. 2, cl2)
-        work.step("s" .. 1, 1)
-        work.step("wa" .. 3, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 2, cl2)
+        work.step("s", 1, 1)
+        work.step("wa", 3, 1)
         reset.recent()
     else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
-        work.step("s" .. 1, cl1)
-        work.step("wa" .. 2, 1)
-        work.step("s" .. 1, cl2)
-        work.step("wa" .. 2, 1)
-        work.step("s" .. 1, cl1 - 0.02)
-        work.step("wa" .. 2, 1)
+        work.step("s", 1, cl1)
+        work.step("wa", 2, 1)
+        work.step("s", 1, cl2)
+        work.step("wa", 2, 1)
+        work.step("s", 1, cl1 - 0.02)
+        work.step("wa", 2, 1)
     end -- if option
     reset.recent()
 end -- function
@@ -1235,7 +1249,7 @@ local function _dist()
             if b_pp_fuze then
                 fuze.start(dist)
             else
-                work.step("wa" .. 3)
+                work.step("wa", 3)
             end
             ps_2 = get.score()
             get.increase(ps_1, ps_2, sl_overall)
@@ -1248,7 +1262,7 @@ local function _dist()
         if b_pp_fuze then
             fuze.start(dist)
         else
-            work.step("wa" .. 3)
+            work.step("wa", 3)
         end
         ps_2 = get.score()
         if not b_evo then
@@ -1652,8 +1666,8 @@ function snap()
                 do_.freeze("s")
                 fuze.start(snapwork)
                 do_.unfreeze()
-                work.step("s" .. 1)
-                work.step("wa" .. 3)
+                work.step("s", 1)
+                work.step("wa", 3)
                 sl.save(snapwork)
                 if c_snap < get.score() then
                     c_snap = get.score()
@@ -1902,17 +1916,35 @@ local function _getdata()
     end -- while
     p("Found " .. #p_he .. " Helix and " .. #p_sh .. " Sheet parts... Combining...")
     select.segs()
-    set.ss("L")
+    -- REPLACEMENT
+    -- set.ss("L")
+    for i = 1, #t_selected do
+        if t_selected[i] then
+            set.ss(i, "L")
+        end
+    end
     deselect.all()
     for i = 1, #p_he do
         select.list(p_he[i])
     end -- for
-    set.ss("H")
+    -- REPLACEMENT
+    -- set.ss("H")
+    for i = 1, #t_selected do
+        if t_selected[i] then
+            set.ss(i, "H")
+        end
+    end
     deselect.all()
     for i = 1, #p_sh do
         select.list(p_sh[i])
     end -- for
-    set.ss("E")
+    -- REPLACEMENT
+    -- set.ss("E")
+    for i = 1, #t_selected do
+        if t_selected[i] then
+            set.ss(i, "E")
+        end
+    end
     predict.combine()
     b_ss_changed = true
     sl.save(sl_overall)
@@ -1944,7 +1976,12 @@ local function _combine()
                         end -- for iii
                     end -- if b_pre
                 end -- for ii
-                set.ss("H")
+                -- REPLACEMENT
+                for ii = 1, #t_selected do
+                    if t_selected[ii] then
+                        set.ss(ii, "H")
+                    end
+                end
                 deselect.all()
             end -- if aa
             if b_pre_comb_str then
@@ -1967,7 +2004,12 @@ local function _combine()
                     end -- for iii
                 end -- for ii
             end -- if b_pre
-            set.ss("E")
+            -- REPLACEMENT
+                for ii = 1, #t_selected do
+                    if t_selected[ii] then
+                        set.ss(ii, "E")
+                    end
+                end
         end -- if ss
     end -- for i
 end
@@ -2040,7 +2082,12 @@ function struct_rebuild()
         for i = 1, #sh do
             select.list(sh[i])
         end -- for i
-        set.ss("L")
+        -- REPLACEMENT
+        for i = 1, #t_selected do
+            if t_selected[i] then
+                set.ss(i, "L")
+            end
+        end
         for i = 1, #he do
             p("Working on Helix " .. i)
             seg = he[i][1] - 2
@@ -2078,14 +2125,24 @@ function struct_rebuild()
         for i = 1, #sh do
             select.list(sh[i])
         end -- for i
-        set.ss("E")
+        -- REPLACEMENT
+        for i = 1, #t_selected do
+            if t_selected[i] then
+                set.ss(i, "E")
+            end
+        end
     end -- if b_re_he
     if b_re_sh then
         deselect.all()
         for i = 1, #he do
             select.list(he[i])
         end -- for i
-        set.ss("L")
+        -- REPLACEMENT
+        for i = 1, #t_selected do
+            if t_selected[i] then
+                set.ss(i, "L")
+            end
+        end
         for i = 1, #sh do
             p("Working on Sheet " .. i)
             seg = sh[i][1] - 2
@@ -2115,7 +2172,12 @@ function struct_rebuild()
         for i = 1, #he do
             select.list(he[i])
         end -- for i
-        set.ss("H")
+        -- REPLACEMENT
+        for i = 1, #t_selected do
+            if t_selected[i] then
+                set.ss(i, "H")
+            end
+        end
         bonding.comp_sheet()
     end -- if b_re_sh
     sl.save(sl_overall)
@@ -2221,7 +2283,12 @@ if b_rebuild then
         get.worst(b_worst_len)
         p(seg .. " - " .. r)
         select.segs(seg, r)
-        set.ss("L")
+        -- REPLACEMENT
+        for i = 1, #t_selected do
+            if t_selected[i] then
+                set.ss(i, "L")
+            end
+        end
         rebuild()
     end
     if b_re_str then
@@ -2248,7 +2315,12 @@ for i = i_start_seg, i_end_seg do
         if b_rebuild then
             if b_re_walk then
                 select.segs()
-                set.ss("L")
+                -- REPLACEMENT
+                for iii = 1, #t_selected do
+                    if t_selected[iii] then
+                        set.ss(iii, "L")
+                    end
+                end
                 rebuild()
             end
         end -- if b_rebuild
