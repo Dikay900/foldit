@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1205
+i_vers          = 1206
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -18,11 +18,11 @@ i_release_vers  = 4
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
-b_fuze          = true         -- false        should we fuze | see #Fuzing
+b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
@@ -324,6 +324,19 @@ score =
 }
 --Optimizing#
 
+--#Math
+math.floor = nil
+function math.floor(value, _n)
+    local n
+    if _n then
+        n = 1 * 10 ^ (-_n)
+    else -- if
+        n = 1
+    end -- if
+    return value - (value % n)
+end -- function
+--Math#
+
 --#Amino
 local function _short(seg)
     return amino.table[aa[seg]][amino.part.short]
@@ -427,11 +440,11 @@ local function _calc()
         end -- for ii
     end -- for i
     p("Getting Segment Score out of the Matrix")
-    strength = {}
+    c_strength = {}
     for i = 1, i_segcount do
-        strength[i] = {}
+        c_strength[i] = {}
         for ii = i + 2, i_segcount - 2 do
-            strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
+            c_strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
         end -- for ii
     end -- for i
 end -- function
@@ -1163,7 +1176,7 @@ function _quake(ii)
         bands.enable()
     end -- if s3 < 0
     local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
-    local strength = 0.1 + 0.1 * i_pp_loss
+    local c_strength = 0.1 + 0.1 * i_pp_loss
     local cbands = get.bandcount()
     local quake = sl.request()
     if seg or r then
@@ -1174,13 +1187,13 @@ function _quake(ii)
     if b_pp then
         if b_pp_pre_local then
             s3 = math.floor(s3 * 4 / cbands, 4)
-            strength = math.floor(strength * 4 / cbands, 4)
+            c_strength = math.floor(c_strength * 4 / cbands, 4)
         end -- if
         if b_solo_quake then
             bands.disable()
             bands.enable(ii)
             s3 = math.floor(s3 * 2, 4)
-            strength = math.floor(strength * 2, 4)
+            c_strength = math.floor(c_strength * 2, 4)
         end -- if b_solo_quake
     end -- if b_pp
     if b_cu then
@@ -1189,19 +1202,19 @@ function _quake(ii)
     if s3 > 200 * i_pp_loss then
         s3 = 200 * i_pp_loss
     end -- if s3
-    if strength > 0.2 * i_pp_loss then
-        strength = 0.2 * i_pp_loss
-    end -- if strength
+    if c_strength > 0.2 * i_pp_loss then
+        c_strength = 0.2 * i_pp_loss
+    end -- if c_strength
     p("Pulling until a loss of more than " .. s3 .. " points")
     local s1 = get.score()
     repeat
-        p("Band strength: " .. strength)
+        p("Band strength: " .. c_strength)
         if b_solo_quake then
-            bands.strength(ii, strength)
+            bands.strength(ii, c_strength)
         else -- if b_solo
             for i = 1, cbands do
                 if bands.info[i][bands.part.enabled] then
-                    bands.strength(i, strength)
+                    bands.strength(i, c_strength)
                 end
             end -- for
         end -- if b_solo
@@ -1217,13 +1230,13 @@ function _quake(ii)
         end -- if >
         sl.load(quake)
         local s2 = get.score()
-        strength = math.floor(strength * 2 - strength * 10 / 11, 4)
+        c_strength = math.floor(c_strength * 2 - c_strength * 10 / 11, 4)
         if b_pp_pre_local or b_cu or b_solo_quake then
-            strength = math.floor(strength * 2 - strength * 6 / 7, 4)
+            c_strength = math.floor(c_strength * 2 - c_strength * 6 / 7, 4)
         end -- if b_solo
-        if strength > 10 then
+        if c_strength > 10 then
             break
-        end -- if strength
+        end -- if c_strength
     until s1 - s2 > s3
     sl.release(quake)
 end -- function
@@ -1421,18 +1434,18 @@ local function _strong(_local)
         local max_str = 0
         local min_dist = 999
         for ii = i + 2, i_segcount - 2 do
-            if max_str <= strength[i][ii] then
-                if max_str ~= strength[i][ii] then
+            if max_str <= c_strength[i][ii] then
+                if max_str ~= c_strength[i][ii] then
                     min_dist = 999
                 end -- if max_str ~=
-                max_str = strength[i][ii]
+                max_str = c_strength[i][ii]
                 if min_dist > distances[i][ii] then
                     min_dist = distances[i][ii]
                 end -- if min_dist
             end -- if max_str <=
         end -- for ii
         for ii = i + 2, i_segcount - 2 do
-            if strength[i][ii] == max_str and min_dist == distances[i][ii] then
+            if c_strength[i][ii] == max_str and min_dist == distances[i][ii] then
                 if get.checksame(i, ii) then
                     bands.add(i , ii)
                     if b_pp_soft then
@@ -1440,7 +1453,7 @@ local function _strong(_local)
                         bands.length(cband, distances[i][ii] - i_pp_len)
                     end -- if pp_soft
                 end -- if get.checksame
-            end -- if strength
+            end -- if c_strength
         end -- for ii
     end -- for i
 end -- function
@@ -1449,12 +1462,12 @@ local function _one(_seg)
     get.dists()
     local max_str = 0
     for ii = _seg + 2, i_segcount - 2 do
-        if max_str <= strength[_seg][ii] then
-            max_str = strength[_seg][ii]
+        if max_str <= c_strength[_seg][ii] then
+            max_str = c_strength[_seg][ii]
         end -- if max_str <=
     end -- for ii
     for ii = _seg + 2, i_segcount - 2 do
-        if strength[_seg][ii] == max_str then
+        if c_strength[_seg][ii] == max_str then
             if get.checksame(_seg, ii) then
                 bands.add(_seg , ii)
                 if b_pp_soft then
@@ -1462,7 +1475,7 @@ local function _one(_seg)
                     bands.length(cband, distances[_seg][ii] - i_pp_len)
                 end
             end
-        end -- if strength
+        end -- if c_strength
     end -- for ii
 end -- function
 
