@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1206
+i_vers          = 1207
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -18,9 +18,9 @@ i_release_vers  = 4
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
-b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
+b_cu            = true         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
@@ -55,7 +55,7 @@ i_pp_trys       = 1             -- 1            how often should the pull start 
 i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
-i_pp_bandperc   = 0.05          -- 0.05
+i_pp_bandperc   = 0.1           -- 0.1
 i_pp_len        = 4
 b_pp_fixed      = false         -- false
 i_pp_fix_start  = 0             -- 0
@@ -64,7 +64,7 @@ b_pp_soft       = false
 b_pp_fuze       = true
 b_solo_quake    = false         -- false        just one seg is used on every method and all segs are tested
 b_pp_local      = false         -- false
-b_pp_pre_strong = true          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+b_pp_pre_strong = false          -- true         bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 b_pp_pre_local  = false         -- false
 b_pp_evo        = false          -- true
 i_pp_evos       = 100
@@ -77,7 +77,7 @@ b_pp_bonds      = false          -- false        pulls already bonded segments t
 --Pull
 
 --#Fuzing
-b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 b_fuze_qstab    = false         -- false        Use Qstab
 --Fuzing#
@@ -128,6 +128,7 @@ t_selected      = {}
 b_changed       = true
 b_ss_changed    = true
 b_evo           = false
+math.randomseed(os.time())
 --Constants | Game vars#
 
 --#Optimizing
@@ -1362,13 +1363,13 @@ end -- function
 --Center#
 
 local function _ps(_local, bandsp)
+    local c_temp
     get.segs(_local)
     get.dists()
     for x = start, _end - 2 do
         if not hydro[x] then
             for y = x + 2, _end do
                 if not hydro[y] then
-                    math.randomseed(math.random() * distances[x][y] + 1)
                     if math.random() <= bandsp then
                         if distances[x][y] <= (20 - i_pp_len) then
                             if get.checksame(x, y) then
@@ -1392,7 +1393,6 @@ local function _pl(_local, bandsp)
             if hydro[x] then
                 for y = i_pp_fix_start, i_pp_fix_end do
                     if hydro[y] then
-                        math.randomseed(math.random() * distances[x][y] + 1)
                         if math.random() < bandsp * 4 then
                             if get.checksame(x, y) then
                                 bands.add(x, y)
@@ -1411,7 +1411,6 @@ local function _pl(_local, bandsp)
         if hydro[x] then
             for y = x + 2, i_segcount do
                 if hydro[y] then
-                    math.randomseed(math.random() * distances[x][y] + 1)
                     if math.random() < bandsp then
                         if get.checksame(x, y) then
                             bands.add(x, y)
@@ -1549,7 +1548,6 @@ local function _rndband(vib)
         if length < 0 then length = 0 end
         if n > 0 then bands.length(n, length) end
     else
-        math.randomseed(get.distance(start, finish) + math.random() * i_segcount)
         bonding.rnd()
     end
 end
@@ -1773,7 +1771,6 @@ function evolution()
             if bands.info[cband][bands.part.enabled] == true then
                 ii = ii - 1
             end
-            math.randomseed(ii * rnd)
             bands.enable(cband)
         end
         work.dist()
@@ -1800,6 +1797,7 @@ function dists()
     end -- if b_pp_predicted
     if b_pp_push_pull then
         bonding.pull(b_pp_local, i_pp_bandperc / 2)
+        p(i_pp_bandperc)
         bonding.push(b_pp_local, i_pp_bandperc)
         work.dist()
         bands.delete()
