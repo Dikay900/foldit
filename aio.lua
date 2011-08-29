@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1208
+i_vers          = 1209
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -17,8 +17,8 @@ i_release_vers  = 4
 --#Settings: default
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
-b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_rebuild       = true         -- false        rebuild | see #Rebuilding
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -77,7 +77,7 @@ b_pp_bonds      = false          -- false        pulls already bonded segments t
 --Pull
 
 --#Fuzing
-b_fuze_pf       = true          -- true         Use Pink Fuze / Wiggle out
+b_fuze_pf       = false          -- true         Use Pink Fuze / Wiggle out
 b_fuze_bf       = true          -- true         Use Bluefuse
 --Fuzing#
 
@@ -85,11 +85,11 @@ b_fuze_bf       = true          -- true         Use Bluefuse
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
-b_worst_len     = 3
+b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_len     = 5
 i_re_trys       = 5
 b_re_str        = false
-b_re_walk       = true          -- true
+b_re_walk       = false          -- true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 b_re_mutate     = false
@@ -328,11 +328,9 @@ score =
 --#Math
 math.floor = nil
 function math.floor(value, _n)
-    local n
+    local n = 1
     if _n then
         n = 1 * 10 ^ (-_n)
-    else -- if
-        n = 1
     end -- if
     return value - (value % n)
 end -- function
@@ -413,6 +411,14 @@ amino =
 }
 
 --#Precalculated Table
+hci_table = {}
+cci_table = {}
+sci_table = {}
+for _i = 1, #amino.segs do
+	hci_table[_i] = {}
+	cci_table[_i] = {}
+	sci_table[_i] = {}
+end
 hci_table[1][1]=20
 hci_table[1][2]=8.5283018867925
 hci_table[1][3]=14.084905660377
@@ -1616,18 +1622,6 @@ cci_table[20][20]=2.667825443787
 --Precalculated Table#
 
 --#Calculations
-local function _HCI(a, b) -- hydropathy
-    return 20 - math.abs((amino.hydroscale(a) - amino.hydroscale(b)) * 19 / 10.6)
-end
-
-local function _SCI(a, b) -- size
-    return 20 - math.abs((amino.size(a) + amino.size(b) - 123) * 19 / 135)
-end
-
-local function _CCI(a, b) -- charge
-    return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
-end
-
 local function _calc()
     p("Getting Segment Score out of the Matrix")
     c_strength = {}
@@ -1640,10 +1634,7 @@ local function _calc()
 end -- function
 
 calc =
-{   hci = _HCI,
-    sci = _SCI,
-    cci = _CCI,
-    run = _calc
+{   run = _calc
 }
 --Calculations#
 --Amino#
@@ -1685,7 +1676,7 @@ local function _dists()
             end -- for j
         end -- for i
         b_changed = false
-    end
+    end -- if b_changed
 end -- function
 
 local function _sphere(seg, radius)
