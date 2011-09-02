@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1210
+i_vers          = 1211
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -16,9 +16,9 @@ i_release_vers  = 4
 
 --#Settings: default
 --#Main
-b_lws           = false         -- false        do local wiggle and rewiggle
+b_lws           = true         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
@@ -26,14 +26,14 @@ b_fuze          = false         -- false        should we fuze | see #Fuzing
 b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
-b_explore       = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_explore       = true         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Main#
 
 --#Working                      default         description
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segcount    -- i_segcount   the last segment to work with
-i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
-i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
+i_start_walk    = 0             -- 1            with how many segs shall we work - Walker
+i_end_walk      = 4             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
 --Working#
 
 --#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
@@ -85,10 +85,10 @@ b_fuze_bf       = true          -- true         Use Bluefuse
 --Snapping#
 
 --#Rebuilding
-b_worst_rebuild = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 5
 i_re_trys       = 5
-b_re_str        = false
+b_re_str        = true
 b_re_walk       = false          -- true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen 
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
@@ -2313,7 +2313,7 @@ local function _step(a, iter, cl)
         select.segs(seg, r)
         reset.score()
         s1 = get.score()
-        wiggle._local_sel(iter)
+        wiggle.l_sel(iter)
         s2 = get.score()
         if s2 < s1 then
             reset.recent()
