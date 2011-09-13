@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1211
+i_vers          = 1212
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
