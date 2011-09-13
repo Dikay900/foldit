@@ -2148,6 +2148,8 @@ local function _loss(option, cl1, cl2)
         work.step("wa", 2, 1)
         work.step("s", 1, cl1 - 0.02)
         work.step("wa", 2, 1)
+        work.step("s", 1, 1)
+        work.step("wa", 2, 1)
     end -- if option
     reset.recent()
 end -- function
