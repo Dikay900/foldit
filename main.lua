@@ -42,9 +42,6 @@ i_score_change  = 0.01          -- 0.01         an action tries to get this scor
 
 --#Mutating
 b_m_normal      = true         -- false
-b_m_fast        = false         -- false        will just change every seg to every mut without wiggling and see if there is a gain
-b_m_through     = false
-b_m_testall     = false
 b_m_after       = false
 i_m_cl_mut      = 0.75          -- 0.75         cl for mutating
 i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
@@ -943,9 +940,6 @@ local function _mutate(mut, aa, more)
         end
         set.clashImportance(i_m_cl_mut)
         structure.MutateSidechainsSelected(1)
-        set.clashImportance(1)
-        select.index(mutable[mut])
-        do_shake(2)
     end
     select.segs()
     fuze.start(sl_mut)
@@ -955,19 +949,9 @@ local function _mutate(mut, aa, more)
     end
 end -- function
 
-local function _mut(i, more)
-    for ii = 1, #amino.segs do
-        do_.mutate(i, ii, more)
-        if i + 1 < #mutable then
-            do_.mut(i + 1, true)
-        end
-    end
-end
-
 do_ =
 {   freeze      = _freeze,
     mutate      = _mutate,
-    mut         = _mut,
     -- renaming
     rebuild     = structure.RebuildSelected,
     snap        = rotamer.SetRotamer,
@@ -2242,50 +2226,17 @@ end
 --#Mutate function
 function mutate()
     b_mutating = true
-    local mut_1
     local i
     local ii
     get.dists()
-    mutating = true
-    if b_m_through then
-        sl_mut = sl.request()
-        sl.save(sl_mut)
-        for i = 1, #mutable do
-            for ii = 1, #amino.segs do
-                sl.load(sl_mut)
-                do_.mutate(i, ii)
-                for iii = 1, #mutable do
-                    if iii ~= i then
-                        for iiii = 1, #amino.segs do
-                            do_.mutate(iii, iiii)
-                        end
-                    end
-                end
-            end
-            sl.release(sl_mut)
+    for i = 1, #mutable do
+        p("Mutating segment " .. i)
+        sl.save(sl_overall)
+        sc_mut = get.score()
+        for ii = 1, #amino.segs do
+            do_.mutate(i, ii)
         end
-    end
-    if b_m_testall then
-        for i = 1, #mutable do
-            p("Mutating segment " .. i)
-            sl.save(sl_overall)
-            sc_mut = get.score()
-            for ii = i, #mutable do
-                do_.mut(ii, true)
-            end
-            sl.load(sl_overall)
-        end
-    end
-    if b_m_normal then
-        for i = 1, #mutable do
-            p("Mutating segment " .. i)
-            sl.save(sl_overall)
-            sc_mut = get.score()
-            for ii = 1, #amino.segs do
-                do_.mutate(i, ii)
-            end
-            sl.load(sl_overall)
-        end
+        sl.load(sl_overall)
     end
     b_mutating = false
 end
