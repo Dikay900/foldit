@@ -21,9 +21,9 @@ b_rebuild       = false         -- false        rebuild | see #Rebuilding
 b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
-b_snap          = true         -- false        should we snap every sidechain to different positions
+b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
-b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = true         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
 b_explore       = true         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
@@ -42,6 +42,8 @@ i_score_change  = 0.01          -- 0.01         an action tries to get this scor
 
 --#Mutating
 b_m_normal      = true         -- false
+b_m_tweak_AT    = true
+b_m_re          = true
 b_m_after       = false
 i_m_cl_mut      = 0.75          -- 0.75         cl for mutating
 i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
@@ -121,12 +123,13 @@ for _i = 1, 100 do
 end
 b_sphering      = false
 b_mutating      = false
+b_tweaking		= false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
 t_selected      = {}
 b_changed       = true
 b_ss_changed    = true
 b_evo           = false
-if score.current.muliplier() == 0 then
+if current.GetExplorationMultiplier() == 0 then
     isExploringPuzzle = false
 else
     isExploringPuzzle = true
@@ -324,7 +327,8 @@ deselect =
 set =
 {   -- Selection Mod
     ss              = structure.SetSecondaryStructure,
-    aa              = structure.SetAminoAcid,
+    _aa             = structure.SetAminoAcid,
+    aa              = structure.SetAminoAcidSelected,
     clashImportance = behavior.SetClashImportance,
     wiggleAccuracy  = behavior.SetWiggleAccuracy,
     shakeAccuracy   = behavior.SetShakeAccuracy
@@ -607,17 +611,23 @@ local function _increase(sc1, sc2, slot, step)
         end
     end
     if sc2 > sc1 then
-        sl.save(slot)
         sc = sc2 - sc1
-        if slot == 3 then
+        if slot == sl_overall then
+		if sc2 > sc_max then
+			sl.save(slot)
             p("Gain: " .. sc)
-            sc = get.score()
-            p("==" .. sc .. "==")
+            sc_max = get.score()
+            p("==NEW=MAX=" .. sc_max .. "==")
+		else
+			sl.load(slot)
+			end
         else
+			sl.save(slot)
             p("+" .. sc .. "+")
         end
         return true
     else -- if
+	p("==MAX SCORE=" .. sc_max .. "==")
         sl.load(slot)
         return false
     end -- if
@@ -630,7 +640,7 @@ local function _mutable()
     local i
     local j
     select.all()
-    set.aa(i, "a")
+    set.aa("a")
     get.aacid()
     for i = 1, i_segcount do
         if aa[i] == "a" then
@@ -917,6 +927,7 @@ local function _mutate(mut, aa, more)
     local i
     select.segs(mutable[mut])
     set.aa(amino.segs[aa])
+	sl.save(sl_mut)
     get.aacid()
     p(#amino.segs - aa .. " Mutations left")
     p("Mutating seg " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
@@ -941,11 +952,24 @@ local function _mutate(mut, aa, more)
         set.clashImportance(i_m_cl_mut)
         structure.MutateSidechainsSelected(1)
     end
-    select.segs()
-    fuze.start(sl_mut)
+	seg = mutable[mut] - 1
+	s_mut = mutable[mut]
+	r = seg + 2
+	if seg < 1 then
+		seg = seg + 1
+		r = seg + 1
+	end
+	if b_m_re then
+	rebuild()
+	elseif b_m_tweak_AT then
+	sidechain_tweak(mutable[mut])
+	end
+--    select.segs()
+  --  fuze.start(sl_mut)
     local sc_mut2 = get.score()
     if not more then
-        get.increase(sc_mut1, sc_mut2, sl_overall)
+        if get.increase(sc_mut1, sc_mut2, sl_overall) then
+		end
     end
 end -- function
 
@@ -977,7 +1001,7 @@ local function _loss(option, cl1, cl2)
         work.step("wa", 2, cl2)
         work.step("s", 1, 1)
         work.step("wa", 3, 1)
-        reset.recent()
+        score.recent.restore()
     elseif option == 4 then
         p("Test")
         work.step("s", 1, cl_1)
@@ -994,12 +1018,14 @@ local function _loss(option, cl1, cl2)
         end
     else
         p("Blue Fuse cl1-s; cl2-s; (cl1 - 0.02)-s")
-        if work.step("s", 1, cl1) then work.step("wa", 2, 1) end
+		if b_tweaking then work.step("wa", 2, 1) end
+		work.step("s", 1, cl1)
+		work.step("wa", 2, 1)
         if work.step("s", 1, cl2) then work.step("wa", 2, 1) end
         if work.step("s", 1, cl1 - 0.02) then work.step("wa", 2, 1) end
         if work.step("s", 1, 1) then work.step("wa", 2, 1) end
     end -- if option
-    reset.recent()
+    score.recent.restore()
 end -- function
 
 local function _part(option, cl1, cl2)
@@ -1136,24 +1162,26 @@ select =
 --Universal select#
 
 --#working
-local function _step(a, iter, cl)
+local function _step(a, iter, cl, more)
     local s1
     local s2
-    if cl then
-        set.clashImportance(cl)
-    end -- if
-    if a == "s" then
-        if b_sphering then
+	if more ~= false then
+	if a == "s" then
+        if b_sphering or b_mutating then
             select.segs(true, seg, r)
         else -- if b_sphering
             select.segs()
         end -- if b_sphering
     else -- if a
-        if b_sphered then
+        if b_sphered or b_mutating then
             select.segs(true, seg, r)
         end
         b_changed = true
     end -- if a
+    end -- if
+	if cl then
+        set.clashImportance(cl)
+	end
     local _s1 = get.score()
     if a == "wa" then
         wiggle.all_sel(iter)
@@ -1174,7 +1202,7 @@ local function _step(a, iter, cl)
         end
     end -- if a
     local _s2 = get.score()
-    if _s1 ~= _s2 then
+    if math.abs(_s1 - _s2) > 0.001 then
         return true
     else
         return false
@@ -1792,7 +1820,6 @@ function rebuild()
     local iter = 1
     b_sphering = true
     sl_re = sl.request()
-    sl.save(sl_overall)
     sl.save(sl_re)
     if b_sphered then
         select.segs(true, seg, r)
@@ -1816,16 +1843,20 @@ function rebuild()
         sl.load(sl_r[ii])
         sl.release(sl_r[ii])
         rs_1 = get.score()
-        if b_re_mutate then
-            select.all()
-            structure.MutateSidechainsSelected(1)
-        end
-        p(rs_1 - rs_0)
-        fuze.start(sl_re)
-        rs_2 = get.score()
-        if get.increase(rs_0, rs_2, sl_overall) then
+		p(rs_1 - rs_0)
+	if b_mutating and b_m_tweak_AT then
+	sidechain_tweak(mutable[s_mut])
+	rs_2 = get.score()
+		if get.increase(rs_0, rs_2, sl_mut) then
             rs_0 = get.score()
         end
+	else
+        fuze.start(sl_re)
+		rs_2 = get.score()
+		if get.increase(rs_0, rs_2, sl_overall) then
+            rs_0 = get.score()
+        end
+	end
     end
     sl.release(sl_re)
     b_sphering = false
@@ -2229,11 +2260,11 @@ function mutate()
     local i
     local ii
     get.dists()
-    for i = 1, #mutable do
+    for i = 2, #mutable do
         p("Mutating segment " .. i)
         sl.save(sl_overall)
         sc_mut = get.score()
-        for ii = 1, #amino.segs do
+        for ii = 2, #amino.segs do
             do_.mutate(i, ii)
         end
         sl.load(sl_overall)
@@ -2242,7 +2273,147 @@ function mutate()
 end
 --Mutate#
 
+function getNear(seg)
+    if(get.score() < g_total_score-1000) then
+        deselect.index(seg)
+		work.step("s", 1, 0.75, false)
+        work.step("ws", 1, false)
+        select.index(seg)
+        set.clashImportance(1)
+    end
+    if(get.score() < g_total_score-1000) then
+        return false
+    end
+    return true
+end
+
+function sidechain_tweak(seg)
+b_tweaking = true
+    p("AT: Sidechain tweak")
+	sl_reset = sl.request()
+	sl.save(sl_reset)
+            deselect.all()  
+            select.segs(seg)
+            local ss=get.score()
+            g_total_score = get.score()
+            if work.step("s", 2, 0, false) then
+	sl_tweak_work = sl.request()
+	sl.save(sl_tweak_work)
+            p("Try sgmnt ", seg)
+            select.segs(true, seg)
+            if (getNear(seg)==true) then
+	sl_tweak = sl.request()
+                fuze.start(sl_tweak)
+			sl.release(sl_tweak)
+            end
+			if ss < get.score() then
+			sl.save(sl_reset)
+			deselect.all()  
+            select.segs(seg)
+			local ss=get.score()
+            g_total_score = get.score()
+			work.step("s", 2, 0, false)
+			sl.save(sl_tweak_work)
+			else
+			sl.load(sl_tweak_work)
+			end
+			deselect.all()  
+            select.segs(seg)
+			local ss=get.score()
+            g_total_score = get.score()
+			if(get.score() > g_total_score - 30) then
+			
+    p("AT: Sidechain tweak around")
+            select.segs(true, seg)
+			deselect.index(seg)
+			work.step("s", 1, 0.1, false)
+			select.index(seg)
+			if (getNear(i)==true) then
+	sl_tweak = sl.request()
+                fuze.start(sl_tweak)
+			sl.release(sl_tweak)
+			end
+			if ss > get.score() then
+			sl.load(sl_reset)
+			end
+			end
+			else
+			getNear(i)
+			sl_tweak = sl.request()
+            fuze.start(sl_tweak)
+			sl.release(sl_tweak)
+			if ss > get.score() then
+			sl.load(sl_reset)
+			end
+			end -- if work.step
+			sl.release(sl_reset)
+			sl.release(sl_tweak_work)
+			b_tweaking = false
+end
+function sidechain_tweak_around()
+    for i=sStart, sEnd do
+        if usableAA(i) then
+            deselect_all()
+            for n=1, g_segments do
+                g_score[n] = get_segment_score(n)
+            end
+            select_index(i)
+            local ss=Score()
+            g_total_score = Score()
+            CI(0)
+            ds(2)
+            CI(1. )
+            p("Try sgmnt ", i)
+            SelectSphere(i,esfera)
+            if(Score() < g_total_score - 30) then
+               wiggle_out(ss)  
+            else
+                deselect_all()
+                for n=1, g_segments do
+                    if(get_segment_score(n) < g_score[n] - 1) then
+                        select_index(n)
+                    end
+                end
+                deselect_index(i)
+                CI(0.1)
+                ds(1)
+                SelectSphere(i,esfera,true)
+                CI(1.0)
+                if (getNear(i)==true) then
+                    wiggle_out(ss)
+                end
+            end
+        end
+    end
+end
+
+function sidechain_manipulate()
+    p("Last pass: Brute force sidechain manipulator")
+    for i=sStart, sEnd do
+        if usableAA(i) then
+            deselect_all()
+            rotamers = get_sidechain_snap_count(i)
+            quicksave(4)
+            if(rotamers > 1) then
+                local ss=Score()
+                p("Sgmnt: ", i," positions: ",rotamers)
+                for x=1, rotamers do
+                    quickload(4)
+                    g_total_score = Score()
+                    do_sidechain_snap(i, x)
+                    CI(1.)
+                    if(Score() > g_total_score - 30) then
+                        SelectSphere(i,esfera)
+                        wiggle_out(ss)  
+                    end  
+                end   -- for
+            end
+        end
+    end
+end
+
 i_s0 = get.score()
+sc_max = get.score()
 sl_overall = sl.request()
 p("v" .. i_vers)
 if b_release then
@@ -2282,7 +2453,9 @@ if b_pp then
     end -- for i
 end -- if b_pp
 if b_mutate then
+	sl_mut = sl.request()
     mutate()
+	sl.release(sl_mut)
 end
 if b_rebuild then
     if b_worst_rebuild then
