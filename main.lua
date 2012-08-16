@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-i_vers          = 1216
+i_vers          = 1217
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -43,7 +43,7 @@ i_score_change  = 0.01          -- 0.01         an action tries to get this scor
 --#Mutating
 b_m_normal      = true         -- false
 b_m_tweak_AT    = true
-b_m_re          = true
+b_m_re          = false
 b_m_after       = false
 i_m_cl_mut      = 0.75          -- 0.75         cl for mutating
 i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
@@ -51,7 +51,7 @@ i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
 
 --#Pull
 i_pp_trys       = 1             -- 1            how often should the pull start over?
-i_pp_loss       = 1             -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
+i_pp_loss       = 0.01            -- 1            the score / 100 * i_pp_loss is the general formula for calculating the points we must lose till we fuze
 b_pp_mutate     = false
 b_pp_struct     = true          -- true         don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 i_pp_bandperc   = 0.1          -- 0.08
@@ -71,7 +71,7 @@ b_pp_push_pull  = false          -- true
 b_pp_pull       = true          -- true         hydrophobic segs are pulled together
 b_pp_c_pushpull = true          -- true
 b_pp_centerpull = false         -- true          hydrophobic segs are pulled to the center segment
-b_pp_vibrator   = false          -- false
+b_pp_vibrator   = true          -- false
 b_pp_bonds      = false          -- false        pulls already bonded segments to maybe strengthen them
 b_pp_area        = false
 i_pp_area_range = 20
@@ -155,10 +155,10 @@ local function _addToSegs(seg1, seg2)
     end
 end
 
-local function _addToArea(seg1, seg2)
-    local count = band.AddBetweenSegments(seg1, seg2 --[[integer atomIndex1], [integer atomIndex2]])
+local function _addToArea(seg, x, y , length, theta, phi)
+    local count = band.Add(seg, x, y, length, theta, phi)
     if count ~= nil then
-        bands.info[count] = {3.5, 1, seg1, seg2, true}
+		bands.info[count] = {3.5, 1, x, y, true}
         return true
     else
         return false
@@ -953,15 +953,20 @@ local function _mutate(mut, aa, more)
         structure.MutateSidechainsSelected(1)
     end
 	seg = mutable[mut] - 1
-	s_mut = mutable[mut]
+	seg_mut = mutable[mut]
 	r = seg + 2
 	if seg < 1 then
 		seg = seg + 1
 		r = seg + 1
 	end
+	if r > i_segcount then
+	r = mutable[mut]
+	seg = r - 1
+	end
 	if b_m_re then
 	rebuild()
-	elseif b_m_tweak_AT then
+	end
+	if b_m_tweak_AT then
 	sidechain_tweak(mutable[mut])
 	end
 --    select.segs()
@@ -1202,7 +1207,7 @@ local function _step(a, iter, cl, more)
         end
     end -- if a
     local _s2 = get.score()
-    if math.abs(_s1 - _s2) > 0.001 then
+    if math.abs(_s1 - _s2) > 0.15 then
         return true
     else
         return false
@@ -1367,10 +1372,15 @@ local function _rebuild(trys, str)
             do_.rebuild(iter * str)
             iter = iter + 1
             re2 = get.score()
+			if iter > 5 then
+			p("Rebuilding aborted! Backbone unrebuildable")
+			return false
+			end
         end -- while
         iter = 1
     end -- for i
     b_changed = true
+	return true
 end -- function
 
 work =
@@ -1834,7 +1844,21 @@ function rebuild()
     rs_0 = get.score()
     sl_r = {}
     for ii = 1, i_re_trys do
-        work.rebuild(i_max_rebuilds, i_rebuild_str)
+		if not work.rebuild(i_max_rebuilds, i_rebuild_str) then
+			sl.load(sl_re)
+    sl.release(sl_re)
+    b_sphering = false
+			if math.abs(seg - r) == 2 then
+			p("detected rebuild length of 3")
+			p("Trying splitting rebuild length to 2x2")
+				seg = seg + 1
+				rebuild()
+				seg = seg - 1
+				r = r - 1
+				rebuild()
+			end
+			return
+		end
         sl_r[ii] = sl.request()
         sl.save(sl_r[ii])
     end
@@ -1842,22 +1866,24 @@ function rebuild()
     for ii = 1, #sl_r do
         sl.load(sl_r[ii])
         sl.release(sl_r[ii])
+		p("Stabilize try "..ii)
         rs_1 = get.score()
 		p(rs_1 - rs_0)
-	if b_mutating and b_m_tweak_AT then
-	sidechain_tweak(mutable[s_mut])
-	rs_2 = get.score()
+	    fuze.start(sl_re)
+		rs_2 = get.score()
+		if b_mutating then
+		if (sc_max - rs_2 ) < 30 then
+		sidechain_tweak(seg_mut)
+		end
 		if get.increase(rs_0, rs_2, sl_mut) then
             rs_0 = get.score()
         end
-	else
-        fuze.start(sl_re)
-		rs_2 = get.score()
+		else
 		if get.increase(rs_0, rs_2, sl_overall) then
             rs_0 = get.score()
         end
+		end
 	end
-    end
     sl.release(sl_re)
     b_sphering = false
 end -- function
@@ -1890,6 +1916,17 @@ function dists()
     sl.save(sl_overall)
     dist_score = get.score()
     bands.delete()
+	if b_pp_vibrator then
+	for i = 1, 1 do
+for iiiii = 0, 180, 15 do
+for iiii = 0, 360, 15 do
+bands.addToArea(i, i + 1, i + 2, 5, math.rad(iiiii),math.rad(iiii))
+end
+end
+end
+work.dist()
+        bands.delete()
+end
     if b_pp_pre_strong then
         bonding.matrix.strong()
         work.dist()
@@ -1928,11 +1965,11 @@ function dists()
         work.dist()
         bands.delete()
     end -- if b_pp_centerpull
-    if b_pp_vibrator then
+    --[[if b_pp_vibrator then
         bonding.vib()
         work.dist()
         bands.delete()
-    end
+    end]]--
     if b_pp_bonds then
         bonding.bonds(12, 10)
         bonding.bonds(5, 2)
@@ -2260,11 +2297,11 @@ function mutate()
     local i
     local ii
     get.dists()
-    for i = 2, #mutable do
-        p("Mutating segment " .. i)
+    for i = 3, #mutable do
+        p("Mutating segment " .. mutable[i])
         sl.save(sl_overall)
         sc_mut = get.score()
-        for ii = 2, #amino.segs do
+        for ii = 1, #amino.segs do
             do_.mutate(i, ii)
         end
         sl.load(sl_overall)
