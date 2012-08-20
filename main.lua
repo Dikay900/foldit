@@ -1,11 +1,11 @@
 --[[#Header
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
-Thanks and Credits for external functions and ideas goes to Seagat, Rav3n_pl, Tlaloc and Gary Forbis
+Thanks and Credits for external functions and ideas goes to Seagat, Rav3n_pl, Tlaloc, Gary Forbis and BitSpawn
 see http://www.github.com/Darkknight900/foldit/ for latest version of this script
 ]]
 
 --#Game vars
-i_vers          = 1222
+i_vers          = 1229
 i_segcount      = structure.GetCount()
 --#Release
 b_release       = false
@@ -18,32 +18,28 @@ i_release_vers  = 5
 --#Main
 b_lws           = false         -- false        do local wiggle and rewiggle
 b_rebuild       = false         -- false        rebuild | see #Rebuilding
-b_pp            = true         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
+b_pp            = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 b_str_re        = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 b_cu            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 b_snap          = false         -- false        should we snap every sidechain to different positions
 b_fuze          = false         -- false        should we fuze | see #Fuzing
-b_mutate        = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
+b_mutate        = true         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 b_predict       = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 b_sphered       = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
-b_explore       = true         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
+b_explore       = true          -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Main#
 
 --#Working                      default         description
 i_start_seg     = 1             -- 1            the first segment to work with
 i_end_seg       = i_segcount    -- i_segcount   the last segment to work with
 i_start_walk    = 1             -- 1            with how many segs shall we work - Walker
-i_end_walk      = 3             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
+i_end_walk      = 2             -- 3            starting at the current seg + i_start_walk to seg + i_end_walk
+i_score_change  = 0.01          -- 0.01         an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
 --Working#
 
---#Scoring | adjust a lower value to get the lws script working on high evo- / solos, higher values are probably better rebuilding the protein
-i_score_change  = 0.01          -- 0.01         an action tries to get this score, then it will repeat itself
---Scoring#
-
 --#Mutating
-b_m_normal      = true         -- false
-b_m_tweak_AT    = true
-b_m_re          = true
+b_m_re          = false
+b_m_opt            = true
 b_m_after       = false
 i_m_cl_mut      = 0.75          -- 0.75         cl for mutating
 i_m_cl_wig      = 1             -- 1            cl for wiggling after mutating
@@ -89,13 +85,13 @@ b_fuze_bf       = true          -- true         Use Bluefuse
 b_worst_rebuild = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
 b_worst_len     = 6
 i_re_trys       = 10
-b_re_str        = true
-b_re_walk       = false          -- true
+b_re_str        = false
+b_re_walk       = true          -- true
 i_max_rebuilds  = 1             -- 2            max rebuilds till best rebuild will be chosen
 i_rebuild_str   = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
-b_re_mutate     = false
 b_re_m_ignore_struct = false
 b_m_re_deep_rebuild = true
+b_re_extreme_tweak = true
 --Rebuilding#
 
 --#Predicting
@@ -124,9 +120,9 @@ for _i = 1, 100 do
     t_sls[#t_sls + 1] = _i
 end
 b_sphering      = false
-startTime    = os.time()
+startTime       = os.time()
 time_used       = 0
-time_mod		= 1
+time_mod        = 1
 b_mutating      = false
 b_tweaking      = false
 i_pp_bandperc   = i_pp_bandperc / i_segcount * 100
@@ -331,7 +327,8 @@ deselect =
 
 set =
 {   -- Selection Mod
-    ss              = structure.SetSecondaryStructure,
+    _ss             = structure.SetSecondaryStructure,
+    ss              = structure.SetSecondaryStructureSelected,
     _aa             = structure.SetAminoAcid,
     aa              = structure.SetAminoAcidSelected,
     clashImportance = behavior.SetClashImportance,
@@ -360,8 +357,7 @@ score =
         segmentScorePart    = recentbest.GetSegmentEnergySubscore,
         conditions          = recentbest.AreConditionsMet,
         restore             = recentbest.Restore,
-        save                = recentbest.Save,
-        restore             = recentbest.Restore
+        save                = recentbest.Save
     },
     absolutebest =
     {
@@ -472,15 +468,11 @@ amino =
 }
 
 --#Precalculated Table
-hci_table = {}
-cci_table = {}
-sci_table = {}
+t_precalcStrength = {}
 for _i = 1, #amino.segs do
-    hci_table[amino.segs[_i]] = {}
-    cci_table[amino.segs[_i]] = {}
-    sci_table[amino.segs[_i]] = {}
+    t_precalcStrength[amino.segs[_i]] = {}
 end
-hci_table['a']['a']=20;hci_table['a']['c']=8.5283018867925;hci_table['a']['d']=14.084905660377;hci_table['a']['e']=19.820754716981;hci_table['a']['f']=4.2264150943396;hci_table['a']['g']=16.952830188679;hci_table['a']['h']=14.443396226415;hci_table['a']['i']=14.084905660377;hci_table['a']['k']=-2.7641509433962;hci_table['a']['l']=16.952830188679;hci_table['a']['m']=16.952830188679;hci_table['a']['n']=4.2264150943396;hci_table['a']['p']=4.2264150943396;hci_table['a']['q']=9.0660377358491;hci_table['a']['r']=14.084905660377;hci_table['a']['s']=18.38679245283;hci_table['a']['t']=-6.7075471698113;hci_table['a']['v']=-7.6037735849057;hci_table['a']['w']=4.2264150943396;hci_table['a']['y']=16.952830188679;hci_table['c']['a']=8.5283018867925;hci_table['c']['c']=20;hci_table['c']['d']=14.443396226415;hci_table['c']['e']=8.7075471698113;hci_table['c']['f']=15.698113207547;hci_table['c']['g']=11.575471698113;hci_table['c']['h']=14.084905660377;hci_table['c']['i']=14.443396226415;hci_table['c']['k']=8.7075471698113;hci_table['c']['l']=11.575471698113;hci_table['c']['m']=11.575471698113;hci_table['c']['n']=15.698113207547;hci_table['c']['p']=15.698113207547;hci_table['c']['q']=19.462264150943;hci_table['c']['r']=14.443396226415;hci_table['c']['s']=10.141509433962;hci_table['c']['t']=4.7641509433962;hci_table['c']['v']=3.8679245283019;hci_table['c']['w']=15.698113207547;hci_table['c']['y']=11.575471698113;hci_table['d']['a']=14.084905660377;hci_table['d']['c']=14.443396226415;hci_table['d']['d']=20;hci_table['d']['e']=14.264150943396;hci_table['d']['f']=10.141509433962;hci_table['d']['g']=17.132075471698;hci_table['d']['h']=19.641509433962;hci_table['d']['i']=20;hci_table['d']['k']=3.1509433962264;hci_table['d']['l']=17.132075471698;hci_table['d']['m']=17.132075471698;hci_table['d']['n']=10.141509433962;hci_table['d']['p']=10.141509433962;hci_table['d']['q']=14.981132075472;hci_table['d']['r']=20;hci_table['d']['s']=15.698113207547;hci_table['d']['t']=-0.79245283018868;hci_table['d']['v']=-1.688679245283;hci_table['d']['w']=10.141509433962;hci_table['d']['y']=17.132075471698;hci_table['e']['a']=19.820754716981;hci_table['e']['c']=8.7075471698113;hci_table['e']['d']=14.264150943396;hci_table['e']['e']=20;hci_table['e']['f']=4.4056603773585;hci_table['e']['g']=17.132075471698;hci_table['e']['h']=14.622641509434;hci_table['e']['i']=14.264150943396;hci_table['e']['k']=-2.5849056603774;hci_table['e']['l']=17.132075471698;hci_table['e']['m']=17.132075471698;hci_table['e']['n']=4.4056603773585;hci_table['e']['p']=4.4056603773585;hci_table['e']['q']=9.2452830188679;hci_table['e']['r']=14.264150943396;hci_table['e']['s']=18.566037735849;hci_table['e']['t']=-6.5283018867925;hci_table['e']['v']=-7.4245283018868;hci_table['e']['w']=4.4056603773585;hci_table['e']['y']=17.132075471698;hci_table['f']['a']=4.2264150943396;hci_table['f']['c']=15.698113207547;hci_table['f']['d']=10.141509433962;hci_table['f']['e']=4.4056603773585;hci_table['f']['f']=20;hci_table['f']['g']=7.2735849056604;hci_table['f']['h']=9.7830188679245;hci_table['f']['i']=10.141509433962;hci_table['f']['k']=13.009433962264;hci_table['f']['l']=7.2735849056604;hci_table['f']['m']=7.2735849056604;hci_table['f']['n']=20;hci_table['f']['p']=20;hci_table['f']['q']=15.160377358491;hci_table['f']['r']=10.141509433962;hci_table['f']['s']=5.8396226415094;hci_table['f']['t']=9.0660377358491;hci_table['f']['v']=8.1698113207547;hci_table['f']['w']=20;hci_table['f']['y']=7.2735849056604;hci_table['g']['a']=16.952830188679;hci_table['g']['c']=11.575471698113;hci_table['g']['d']=17.132075471698;hci_table['g']['e']=17.132075471698;hci_table['g']['f']=7.2735849056604;hci_table['g']['g']=20;hci_table['g']['h']=17.490566037736;hci_table['g']['i']=17.132075471698;hci_table['g']['k']=0.28301886792453;hci_table['g']['l']=20;hci_table['g']['m']=20;hci_table['g']['n']=7.2735849056604;hci_table['g']['p']=7.2735849056604;hci_table['g']['q']=12.11320754717;hci_table['g']['r']=17.132075471698;hci_table['g']['s']=18.566037735849;hci_table['g']['t']=-3.6603773584906;hci_table['g']['v']=-4.5566037735849;hci_table['g']['w']=7.2735849056604;hci_table['g']['y']=20;hci_table['h']['a']=14.443396226415;hci_table['h']['c']=14.084905660377;hci_table['h']['d']=19.641509433962;hci_table['h']['e']=14.622641509434;hci_table['h']['f']=9.7830188679245;hci_table['h']['g']=17.490566037736;hci_table['h']['h']=20;hci_table['h']['i']=19.641509433962;hci_table['h']['k']=2.7924528301887;hci_table['h']['l']=17.490566037736;hci_table['h']['m']=17.490566037736;hci_table['h']['n']=9.7830188679245;hci_table['h']['p']=9.7830188679245;hci_table['h']['q']=14.622641509434;hci_table['h']['r']=19.641509433962;hci_table['h']['s']=16.056603773585;hci_table['h']['t']=-1.1509433962264;hci_table['h']['v']=-2.0471698113208;hci_table['h']['w']=9.7830188679245;hci_table['h']['y']=17.490566037736;hci_table['i']['a']=14.084905660377;hci_table['i']['c']=14.443396226415;hci_table['i']['d']=20;hci_table['i']['e']=14.264150943396;hci_table['i']['f']=10.141509433962;hci_table['i']['g']=17.132075471698;hci_table['i']['h']=19.641509433962;hci_table['i']['i']=20;hci_table['i']['k']=3.1509433962264;hci_table['i']['l']=17.132075471698;hci_table['i']['m']=17.132075471698;hci_table['i']['n']=10.141509433962;hci_table['i']['p']=10.141509433962;hci_table['i']['q']=14.981132075472;hci_table['i']['r']=20;hci_table['i']['s']=15.698113207547;hci_table['i']['t']=-0.79245283018868;hci_table['i']['v']=-1.688679245283;hci_table['i']['w']=10.141509433962;hci_table['i']['y']=17.132075471698;hci_table['k']['a']=-2.7641509433962;hci_table['k']['c']=8.7075471698113;hci_table['k']['d']=3.1509433962264;hci_table['k']['e']=-2.5849056603774;hci_table['k']['f']=13.009433962264;hci_table['k']['g']=0.28301886792453;hci_table['k']['h']=2.7924528301887;hci_table['k']['i']=3.1509433962264;hci_table['k']['k']=20;hci_table['k']['l']=0.28301886792453;hci_table['k']['m']=0.28301886792453;hci_table['k']['n']=13.009433962264;hci_table['k']['p']=13.009433962264;hci_table['k']['q']=8.1698113207547;hci_table['k']['r']=3.1509433962264;hci_table['k']['s']=-1.1509433962264;hci_table['k']['t']=16.056603773585;hci_table['k']['v']=15.160377358491;hci_table['k']['w']=13.009433962264;hci_table['k']['y']=0.28301886792453;hci_table['l']['a']=16.952830188679;hci_table['l']['c']=11.575471698113;hci_table['l']['d']=17.132075471698;hci_table['l']['e']=17.132075471698;hci_table['l']['f']=7.2735849056604;hci_table['l']['g']=20;hci_table['l']['h']=17.490566037736;hci_table['l']['i']=17.132075471698;hci_table['l']['k']=0.28301886792453;hci_table['l']['l']=20;hci_table['l']['m']=20;hci_table['l']['n']=7.2735849056604;hci_table['l']['p']=7.2735849056604;hci_table['l']['q']=12.11320754717;hci_table['l']['r']=17.132075471698;hci_table['l']['s']=18.566037735849;hci_table['l']['t']=-3.6603773584906;hci_table['l']['v']=-4.5566037735849;hci_table['l']['w']=7.2735849056604;hci_table['l']['y']=20;hci_table['m']['a']=16.952830188679;hci_table['m']['c']=11.575471698113;hci_table['m']['d']=17.132075471698;hci_table['m']['e']=17.132075471698;hci_table['m']['f']=7.2735849056604;hci_table['m']['g']=20;hci_table['m']['h']=17.490566037736;hci_table['m']['i']=17.132075471698;hci_table['m']['k']=0.28301886792453;hci_table['m']['l']=20;hci_table['m']['m']=20;hci_table['m']['n']=7.2735849056604;hci_table['m']['p']=7.2735849056604;hci_table['m']['q']=12.11320754717;hci_table['m']['r']=17.132075471698;hci_table['m']['s']=18.566037735849;hci_table['m']['t']=-3.6603773584906;hci_table['m']['v']=-4.5566037735849;hci_table['m']['w']=7.2735849056604;hci_table['m']['y']=20;hci_table['n']['a']=4.2264150943396;hci_table['n']['c']=15.698113207547;hci_table['n']['d']=10.141509433962;hci_table['n']['e']=4.4056603773585;hci_table['n']['f']=20;hci_table['n']['g']=7.2735849056604;hci_table['n']['h']=9.7830188679245;hci_table['n']['i']=10.141509433962;hci_table['n']['k']=13.009433962264;hci_table['n']['l']=7.2735849056604;hci_table['n']['m']=7.2735849056604;hci_table['n']['n']=20;hci_table['n']['p']=20;hci_table['n']['q']=15.160377358491;hci_table['n']['r']=10.141509433962;hci_table['n']['s']=5.8396226415094;hci_table['n']['t']=9.0660377358491;hci_table['n']['v']=8.1698113207547;hci_table['n']['w']=20;hci_table['n']['y']=7.2735849056604;hci_table['p']['a']=4.2264150943396;hci_table['p']['c']=15.698113207547;hci_table['p']['d']=10.141509433962;hci_table['p']['e']=4.4056603773585;hci_table['p']['f']=20;hci_table['p']['g']=7.2735849056604;hci_table['p']['h']=9.7830188679245;hci_table['p']['i']=10.141509433962;hci_table['p']['k']=13.009433962264;hci_table['p']['l']=7.2735849056604;hci_table['p']['m']=7.2735849056604;hci_table['p']['n']=20;hci_table['p']['p']=20;hci_table['p']['q']=15.160377358491;hci_table['p']['r']=10.141509433962;hci_table['p']['s']=5.8396226415094;hci_table['p']['t']=9.0660377358491;hci_table['p']['v']=8.1698113207547;hci_table['p']['w']=20;hci_table['p']['y']=7.2735849056604;hci_table['q']['a']=9.0660377358491;hci_table['q']['c']=19.462264150943;hci_table['q']['d']=14.981132075472;hci_table['q']['e']=9.2452830188679;hci_table['q']['f']=15.160377358491;hci_table['q']['g']=12.11320754717;hci_table['q']['h']=14.622641509434;hci_table['q']['i']=14.981132075472;hci_table['q']['k']=8.1698113207547;hci_table['q']['l']=12.11320754717;hci_table['q']['m']=12.11320754717;hci_table['q']['n']=15.160377358491;hci_table['q']['p']=15.160377358491;hci_table['q']['q']=20;hci_table['q']['r']=14.981132075472;hci_table['q']['s']=10.679245283019;hci_table['q']['t']=4.2264150943396;hci_table['q']['v']=3.3301886792453;hci_table['q']['w']=15.160377358491;hci_table['q']['y']=12.11320754717;hci_table['r']['a']=14.084905660377;hci_table['r']['c']=14.443396226415;hci_table['r']['d']=20;hci_table['r']['e']=14.264150943396;hci_table['r']['f']=10.141509433962;hci_table['r']['g']=17.132075471698;hci_table['r']['h']=19.641509433962;hci_table['r']['i']=20;hci_table['r']['k']=3.1509433962264;hci_table['r']['l']=17.132075471698;hci_table['r']['m']=17.132075471698;hci_table['r']['n']=10.141509433962;hci_table['r']['p']=10.141509433962;hci_table['r']['q']=14.981132075472;hci_table['r']['r']=20;hci_table['r']['s']=15.698113207547;hci_table['r']['t']=-0.79245283018868;hci_table['r']['v']=-1.688679245283;hci_table['r']['w']=10.141509433962;hci_table['r']['y']=17.132075471698;hci_table['s']['a']=18.38679245283;hci_table['s']['c']=10.141509433962;hci_table['s']['d']=15.698113207547;hci_table['s']['e']=18.566037735849;hci_table['s']['f']=5.8396226415094;hci_table['s']['g']=18.566037735849;hci_table['s']['h']=16.056603773585;hci_table['s']['i']=15.698113207547;hci_table['s']['k']=-1.1509433962264;hci_table['s']['l']=18.566037735849;hci_table['s']['m']=18.566037735849;hci_table['s']['n']=5.8396226415094;hci_table['s']['p']=5.8396226415094;hci_table['s']['q']=10.679245283019;hci_table['s']['r']=15.698113207547;hci_table['s']['s']=20;hci_table['s']['t']=-5.0943396226415;hci_table['s']['v']=-5.9905660377358;hci_table['s']['w']=5.8396226415094;hci_table['s']['y']=18.566037735849;hci_table['t']['a']=-6.7075471698113;hci_table['t']['c']=4.7641509433962;hci_table['t']['d']=-0.79245283018868;hci_table['t']['e']=-6.5283018867925;hci_table['t']['f']=9.0660377358491;hci_table['t']['g']=-3.6603773584906;hci_table['t']['h']=-1.1509433962264;hci_table['t']['i']=-0.79245283018868;hci_table['t']['k']=16.056603773585;hci_table['t']['l']=-3.6603773584906;hci_table['t']['m']=-3.6603773584906;hci_table['t']['n']=9.0660377358491;hci_table['t']['p']=9.0660377358491;hci_table['t']['q']=4.2264150943396;hci_table['t']['r']=-0.79245283018868;hci_table['t']['s']=-5.0943396226415;hci_table['t']['t']=20;hci_table['t']['v']=19.103773584906;hci_table['t']['w']=9.0660377358491;hci_table['t']['y']=-3.6603773584906;hci_table['v']['a']=-7.6037735849057;hci_table['v']['c']=3.8679245283019;hci_table['v']['d']=-1.688679245283;hci_table['v']['e']=-7.4245283018868;hci_table['v']['f']=8.1698113207547;hci_table['v']['g']=-4.5566037735849;hci_table['v']['h']=-2.0471698113208;hci_table['v']['i']=-1.688679245283;hci_table['v']['k']=15.160377358491;hci_table['v']['l']=-4.5566037735849;hci_table['v']['m']=-4.5566037735849;hci_table['v']['n']=8.1698113207547;hci_table['v']['p']=8.1698113207547;hci_table['v']['q']=3.3301886792453;hci_table['v']['r']=-1.688679245283;hci_table['v']['s']=-5.9905660377358;hci_table['v']['t']=19.103773584906;hci_table['v']['v']=20;hci_table['v']['w']=8.1698113207547;hci_table['v']['y']=-4.5566037735849;hci_table['w']['a']=4.2264150943396;hci_table['w']['c']=15.698113207547;hci_table['w']['d']=10.141509433962;hci_table['w']['e']=4.4056603773585;hci_table['w']['f']=20;hci_table['w']['g']=7.2735849056604;hci_table['w']['h']=9.7830188679245;hci_table['w']['i']=10.141509433962;hci_table['w']['k']=13.009433962264;hci_table['w']['l']=7.2735849056604;hci_table['w']['m']=7.2735849056604;hci_table['w']['n']=20;hci_table['w']['p']=20;hci_table['w']['q']=15.160377358491;hci_table['w']['r']=10.141509433962;hci_table['w']['s']=5.8396226415094;hci_table['w']['t']=9.0660377358491;hci_table['w']['v']=8.1698113207547;hci_table['w']['w']=20;hci_table['w']['y']=7.2735849056604;hci_table['y']['a']=16.952830188679;hci_table['y']['c']=11.575471698113;hci_table['y']['d']=17.132075471698;hci_table['y']['e']=17.132075471698;hci_table['y']['f']=7.2735849056604;hci_table['y']['g']=20;hci_table['y']['h']=17.490566037736;hci_table['y']['i']=17.132075471698;hci_table['y']['k']=0.28301886792453;hci_table['y']['l']=20;hci_table['y']['m']=20;hci_table['y']['n']=7.2735849056604;hci_table['y']['p']=7.2735849056604;hci_table['y']['q']=12.11320754717;hci_table['y']['r']=17.132075471698;hci_table['y']['s']=18.566037735849;hci_table['y']['t']=-3.6603773584906;hci_table['y']['v']=-4.5566037735849;hci_table['y']['w']=7.2735849056604;hci_table['y']['y']=20;sci_table['a']['a']=-11.723734222222;sci_table['a']['c']=-8.2059334814815;sci_table['a']['d']=-7.7811075555556;sci_table['a']['e']=-7.7749994074074;sci_table['a']['f']=-5.6679275555556;sci_table['a']['g']=-7.9136008888889;sci_table['a']['h']=-5.9394445925926;sci_table['a']['i']=-7.7811075555556;sci_table['a']['k']=-3.6937853333333;sci_table['a']['l']=-7.9136008888889;sci_table['a']['m']=-7.9136008888889;sci_table['a']['n']=-5.6679275555556;sci_table['a']['p']=-5.6679275555556;sci_table['a']['q']=-1.9972401481481;sci_table['a']['r']=-7.7811075555556;sci_table['a']['s']=-5.8008431111111;sci_table['a']['t']=-12.707300888889;sci_table['a']['v']=-9.0431297777778;sci_table['a']['w']=-5.6679275555556;sci_table['a']['y']=-7.9136008888889;sci_table['c']['a']=-8.2059334814815;sci_table['c']['c']=-4.6881327407407;sci_table['c']['d']=-4.2633068148148;sci_table['c']['e']=-4.2571986666667;sci_table['c']['f']=-2.1501268148148;sci_table['c']['g']=-4.3958001481481;sci_table['c']['h']=-2.4216438518519;sci_table['c']['i']=-4.2633068148148;sci_table['c']['k']=-0.17598459259259;sci_table['c']['l']=-4.3958001481481;sci_table['c']['m']=-4.3958001481481;sci_table['c']['n']=-2.1501268148148;sci_table['c']['p']=-2.1501268148148;sci_table['c']['q']=1.5205605925926;sci_table['c']['r']=-4.2633068148148;sci_table['c']['s']=-2.2830423703704;sci_table['c']['t']=-9.1895001481482;sci_table['c']['v']=-5.525329037037;sci_table['c']['w']=-2.1501268148148;sci_table['c']['y']=-4.3958001481481;sci_table['d']['a']=-7.7811075555556;sci_table['d']['c']=-4.2633068148148;sci_table['d']['d']=-3.8384808888889;sci_table['d']['e']=-3.8323727407407;sci_table['d']['f']=-1.7253008888889;sci_table['d']['g']=-3.9709742222222;sci_table['d']['h']=-1.9968179259259;sci_table['d']['i']=-3.8384808888889;sci_table['d']['k']=0.24884133333333;sci_table['d']['l']=-3.9709742222222;sci_table['d']['m']=-3.9709742222222;sci_table['d']['n']=-1.7253008888889;sci_table['d']['p']=-1.7253008888889;sci_table['d']['q']=1.9453865185185;sci_table['d']['r']=-3.8384808888889;sci_table['d']['s']=-1.8582164444444;sci_table['d']['t']=-8.7646742222222;sci_table['d']['v']=-5.1005031111111;sci_table['d']['w']=-1.7253008888889;sci_table['d']['y']=-3.9709742222222;sci_table['e']['a']=-7.7749994074074;sci_table['e']['c']=-4.2571986666667;sci_table['e']['d']=-3.8323727407407;sci_table['e']['e']=-3.8262645925926;sci_table['e']['f']=-1.7191927407407;sci_table['e']['g']=-3.9648660740741;sci_table['e']['h']=-1.9907097777778;sci_table['e']['i']=-3.8323727407407;sci_table['e']['k']=0.25494948148149;sci_table['e']['l']=-3.9648660740741;sci_table['e']['m']=-3.9648660740741;sci_table['e']['n']=-1.7191927407407;sci_table['e']['p']=-1.7191927407407;sci_table['e']['q']=1.9514946666667;sci_table['e']['r']=-3.8323727407407;sci_table['e']['s']=-1.8521082962963;sci_table['e']['t']=-8.7585660740741;sci_table['e']['v']=-5.094394962963;sci_table['e']['w']=-1.7191927407407;sci_table['e']['y']=-3.9648660740741;sci_table['f']['a']=-5.6679275555556;sci_table['f']['c']=-2.1501268148148;sci_table['f']['d']=-1.7253008888889;sci_table['f']['e']=-1.7191927407407;sci_table['f']['f']=0.38787911111111;sci_table['f']['g']=-1.8577942222222;sci_table['f']['h']=0.11636207407408;sci_table['f']['i']=-1.7253008888889;sci_table['f']['k']=2.3620213333333;sci_table['f']['l']=-1.8577942222222;sci_table['f']['m']=-1.8577942222222;sci_table['f']['n']=0.38787911111111;sci_table['f']['p']=0.38787911111111;sci_table['f']['q']=4.0585665185185;sci_table['f']['r']=-1.7253008888889;sci_table['f']['s']=0.25496355555556;sci_table['f']['t']=-6.6514942222222;sci_table['f']['v']=-2.9873231111111;sci_table['f']['w']=0.38787911111111;sci_table['f']['y']=-1.8577942222222;sci_table['g']['a']=-7.9136008888889;sci_table['g']['c']=-4.3958001481481;sci_table['g']['d']=-3.9709742222222;sci_table['g']['e']=-3.9648660740741;sci_table['g']['f']=-1.8577942222222;sci_table['g']['g']=-4.1034675555556;sci_table['g']['h']=-2.1293112592593;sci_table['g']['i']=-3.9709742222222;sci_table['g']['k']=0.116348;sci_table['g']['l']=-4.1034675555556;sci_table['g']['m']=-4.1034675555556;sci_table['g']['n']=-1.8577942222222;sci_table['g']['p']=-1.8577942222222;sci_table['g']['q']=1.8128931851852;sci_table['g']['r']=-3.9709742222222;sci_table['g']['s']=-1.9907097777778;sci_table['g']['t']=-8.8971675555556;sci_table['g']['v']=-5.2329964444444;sci_table['g']['w']=-1.8577942222222;sci_table['g']['y']=-4.1034675555556;sci_table['h']['a']=-5.9394445925926;sci_table['h']['c']=-2.4216438518519;sci_table['h']['d']=-1.9968179259259;sci_table['h']['e']=-1.9907097777778;sci_table['h']['f']=0.11636207407408;sci_table['h']['g']=-2.1293112592593;sci_table['h']['h']=-0.15515496296296;sci_table['h']['i']=-1.9968179259259;sci_table['h']['k']=2.0905042962963;sci_table['h']['l']=-2.1293112592593;sci_table['h']['m']=-2.1293112592593;sci_table['h']['n']=0.11636207407408;sci_table['h']['p']=0.11636207407408;sci_table['h']['q']=3.7870494814815;sci_table['h']['r']=-1.9968179259259;sci_table['h']['s']=-0.016553481481484;sci_table['h']['t']=-6.9230112592593;sci_table['h']['v']=-3.2588401481481;sci_table['h']['w']=0.11636207407408;sci_table['h']['y']=-2.1293112592593;sci_table['i']['a']=-7.7811075555556;sci_table['i']['c']=-4.2633068148148;sci_table['i']['d']=-3.8384808888889;sci_table['i']['e']=-3.8323727407407;sci_table['i']['f']=-1.7253008888889;sci_table['i']['g']=-3.9709742222222;sci_table['i']['h']=-1.9968179259259;sci_table['i']['i']=-3.8384808888889;sci_table['i']['k']=0.24884133333333;sci_table['i']['l']=-3.9709742222222;sci_table['i']['m']=-3.9709742222222;sci_table['i']['n']=-1.7253008888889;sci_table['i']['p']=-1.7253008888889;sci_table['i']['q']=1.9453865185185;sci_table['i']['r']=-3.8384808888889;sci_table['i']['s']=-1.8582164444444;sci_table['i']['t']=-8.7646742222222;sci_table['i']['v']=-5.1005031111111;sci_table['i']['w']=-1.7253008888889;sci_table['i']['y']=-3.9709742222222;sci_table['k']['a']=-3.6937853333333;sci_table['k']['c']=-0.17598459259259;sci_table['k']['d']=0.24884133333333;sci_table['k']['e']=0.25494948148149;sci_table['k']['f']=2.3620213333333;sci_table['k']['g']=0.116348;sci_table['k']['h']=2.0905042962963;sci_table['k']['i']=0.24884133333333;sci_table['k']['k']=4.3361635555556;sci_table['k']['l']=0.116348;sci_table['k']['m']=0.116348;sci_table['k']['n']=2.3620213333333;sci_table['k']['p']=2.3620213333333;sci_table['k']['q']=6.0327087407407;sci_table['k']['r']=0.24884133333333;sci_table['k']['s']=2.2291057777778;sci_table['k']['t']=-4.677352;sci_table['k']['v']=-1.0131808888889;sci_table['k']['w']=2.3620213333333;sci_table['k']['y']=0.116348;sci_table['l']['a']=-7.9136008888889;sci_table['l']['c']=-4.3958001481481;sci_table['l']['d']=-3.9709742222222;sci_table['l']['e']=-3.9648660740741;sci_table['l']['f']=-1.8577942222222;sci_table['l']['g']=-4.1034675555556;sci_table['l']['h']=-2.1293112592593;sci_table['l']['i']=-3.9709742222222;sci_table['l']['k']=0.116348;sci_table['l']['l']=-4.1034675555556;sci_table['l']['m']=-4.1034675555556;sci_table['l']['n']=-1.8577942222222;sci_table['l']['p']=-1.8577942222222;sci_table['l']['q']=1.8128931851852;sci_table['l']['r']=-3.9709742222222;sci_table['l']['s']=-1.9907097777778;sci_table['l']['t']=-8.8971675555556;sci_table['l']['v']=-5.2329964444444;sci_table['l']['w']=-1.8577942222222;sci_table['l']['y']=-4.1034675555556;sci_table['m']['a']=-7.9136008888889;sci_table['m']['c']=-4.3958001481481;sci_table['m']['d']=-3.9709742222222;sci_table['m']['e']=-3.9648660740741;sci_table['m']['f']=-1.8577942222222;sci_table['m']['g']=-4.1034675555556;sci_table['m']['h']=-2.1293112592593;sci_table['m']['i']=-3.9709742222222;sci_table['m']['k']=0.116348;sci_table['m']['l']=-4.1034675555556;sci_table['m']['m']=-4.1034675555556;sci_table['m']['n']=-1.8577942222222;sci_table['m']['p']=-1.8577942222222;sci_table['m']['q']=1.8128931851852;sci_table['m']['r']=-3.9709742222222;sci_table['m']['s']=-1.9907097777778;sci_table['m']['t']=-8.8971675555556;sci_table['m']['v']=-5.2329964444444;sci_table['m']['w']=-1.8577942222222;sci_table['m']['y']=-4.1034675555556;sci_table['n']['a']=-5.6679275555556;sci_table['n']['c']=-2.1501268148148;sci_table['n']['d']=-1.7253008888889;sci_table['n']['e']=-1.7191927407407;sci_table['n']['f']=0.38787911111111;sci_table['n']['g']=-1.8577942222222;sci_table['n']['h']=0.11636207407408;sci_table['n']['i']=-1.7253008888889;sci_table['n']['k']=2.3620213333333;sci_table['n']['l']=-1.8577942222222;sci_table['n']['m']=-1.8577942222222;sci_table['n']['n']=0.38787911111111;sci_table['n']['p']=0.38787911111111;sci_table['n']['q']=4.0585665185185;sci_table['n']['r']=-1.7253008888889;sci_table['n']['s']=0.25496355555556;sci_table['n']['t']=-6.6514942222222;sci_table['n']['v']=-2.9873231111111;sci_table['n']['w']=0.38787911111111;sci_table['n']['y']=-1.8577942222222;sci_table['p']['a']=-5.6679275555556;sci_table['p']['c']=-2.1501268148148;sci_table['p']['d']=-1.7253008888889;sci_table['p']['e']=-1.7191927407407;sci_table['p']['f']=0.38787911111111;sci_table['p']['g']=-1.8577942222222;sci_table['p']['h']=0.11636207407408;sci_table['p']['i']=-1.7253008888889;sci_table['p']['k']=2.3620213333333;sci_table['p']['l']=-1.8577942222222;sci_table['p']['m']=-1.8577942222222;sci_table['p']['n']=0.38787911111111;sci_table['p']['p']=0.38787911111111;sci_table['p']['q']=4.0585665185185;sci_table['p']['r']=-1.7253008888889;sci_table['p']['s']=0.25496355555556;sci_table['p']['t']=-6.6514942222222;sci_table['p']['v']=-2.9873231111111;sci_table['p']['w']=0.38787911111111;sci_table['p']['y']=-1.8577942222222;sci_table['q']['a']=-1.9972401481481;sci_table['q']['c']=1.5205605925926;sci_table['q']['d']=1.9453865185185;sci_table['q']['e']=1.9514946666667;sci_table['q']['f']=4.0585665185185;sci_table['q']['g']=1.8128931851852;sci_table['q']['h']=3.7870494814815;sci_table['q']['i']=1.9453865185185;sci_table['q']['k']=6.0327087407407;sci_table['q']['l']=1.8128931851852;sci_table['q']['m']=1.8128931851852;sci_table['q']['n']=4.0585665185185;sci_table['q']['p']=4.0585665185185;sci_table['q']['q']=7.7292539259259;sci_table['q']['r']=1.9453865185185;sci_table['q']['s']=3.925650962963;sci_table['q']['t']=-2.9808068148148;sci_table['q']['v']=0.6833642962963;sci_table['q']['w']=4.0585665185185;sci_table['q']['y']=1.8128931851852;sci_table['r']['a']=-7.7811075555556;sci_table['r']['c']=-4.2633068148148;sci_table['r']['d']=-3.8384808888889;sci_table['r']['e']=-3.8323727407407;sci_table['r']['f']=-1.7253008888889;sci_table['r']['g']=-3.9709742222222;sci_table['r']['h']=-1.9968179259259;sci_table['r']['i']=-3.8384808888889;sci_table['r']['k']=0.24884133333333;sci_table['r']['l']=-3.9709742222222;sci_table['r']['m']=-3.9709742222222;sci_table['r']['n']=-1.7253008888889;sci_table['r']['p']=-1.7253008888889;sci_table['r']['q']=1.9453865185185;sci_table['r']['r']=-3.8384808888889;sci_table['r']['s']=-1.8582164444444;sci_table['r']['t']=-8.7646742222222;sci_table['r']['v']=-5.1005031111111;sci_table['r']['w']=-1.7253008888889;sci_table['r']['y']=-3.9709742222222;sci_table['s']['a']=-5.8008431111111;sci_table['s']['c']=-2.2830423703704;sci_table['s']['d']=-1.8582164444444;sci_table['s']['e']=-1.8521082962963;sci_table['s']['f']=0.25496355555556;sci_table['s']['g']=-1.9907097777778;sci_table['s']['h']=-0.016553481481484;sci_table['s']['i']=-1.8582164444444;sci_table['s']['k']=2.2291057777778;sci_table['s']['l']=-1.9907097777778;sci_table['s']['m']=-1.9907097777778;sci_table['s']['n']=0.25496355555556;sci_table['s']['p']=0.25496355555556;sci_table['s']['q']=3.925650962963;sci_table['s']['r']=-1.8582164444444;sci_table['s']['s']=0.122048;sci_table['s']['t']=-6.7844097777778;sci_table['s']['v']=-3.1202386666667;sci_table['s']['w']=0.25496355555556;sci_table['s']['y']=-1.9907097777778;sci_table['t']['a']=-12.707300888889;sci_table['t']['c']=-9.1895001481482;sci_table['t']['d']=-8.7646742222222;sci_table['t']['e']=-8.7585660740741;sci_table['t']['f']=-6.6514942222222;sci_table['t']['g']=-8.8971675555556;sci_table['t']['h']=-6.9230112592593;sci_table['t']['i']=-8.7646742222222;sci_table['t']['k']=-4.677352;sci_table['t']['l']=-8.8971675555556;sci_table['t']['m']=-8.8971675555556;sci_table['t']['n']=-6.6514942222222;sci_table['t']['p']=-6.6514942222222;sci_table['t']['q']=-2.9808068148148;sci_table['t']['r']=-8.7646742222222;sci_table['t']['s']=-6.7844097777778;sci_table['t']['t']=-13.690867555556;sci_table['t']['v']=-10.026696444444;sci_table['t']['w']=-6.6514942222222;sci_table['t']['y']=-8.8971675555556;sci_table['v']['a']=-9.0431297777778;sci_table['v']['c']=-5.525329037037;sci_table['v']['d']=-5.1005031111111;sci_table['v']['e']=-5.094394962963;sci_table['v']['f']=-2.9873231111111;sci_table['v']['g']=-5.2329964444444;sci_table['v']['h']=-3.2588401481481;sci_table['v']['i']=-5.1005031111111;sci_table['v']['k']=-1.0131808888889;sci_table['v']['l']=-5.2329964444444;sci_table['v']['m']=-5.2329964444444;sci_table['v']['n']=-2.9873231111111;sci_table['v']['p']=-2.9873231111111;sci_table['v']['q']=0.6833642962963;sci_table['v']['r']=-5.1005031111111;sci_table['v']['s']=-3.1202386666667;sci_table['v']['t']=-10.026696444444;sci_table['v']['v']=-6.3625253333333;sci_table['v']['w']=-2.9873231111111;sci_table['v']['y']=-5.2329964444444;sci_table['w']['a']=-5.6679275555556;sci_table['w']['c']=-2.1501268148148;sci_table['w']['d']=-1.7253008888889;sci_table['w']['e']=-1.7191927407407;sci_table['w']['f']=0.38787911111111;sci_table['w']['g']=-1.8577942222222;sci_table['w']['h']=0.11636207407408;sci_table['w']['i']=-1.7253008888889;sci_table['w']['k']=2.3620213333333;sci_table['w']['l']=-1.8577942222222;sci_table['w']['m']=-1.8577942222222;sci_table['w']['n']=0.38787911111111;sci_table['w']['p']=0.38787911111111;sci_table['w']['q']=4.0585665185185;sci_table['w']['r']=-1.7253008888889;sci_table['w']['s']=0.25496355555556;sci_table['w']['t']=-6.6514942222222;sci_table['w']['v']=-2.9873231111111;sci_table['w']['w']=0.38787911111111;sci_table['w']['y']=-1.8577942222222;sci_table['y']['a']=-7.9136008888889;sci_table['y']['c']=-4.3958001481481;sci_table['y']['d']=-3.9709742222222;sci_table['y']['e']=-3.9648660740741;sci_table['y']['f']=-1.8577942222222;sci_table['y']['g']=-4.1034675555556;sci_table['y']['h']=-2.1293112592593;sci_table['y']['i']=-3.9709742222222;sci_table['y']['k']=0.116348;sci_table['y']['l']=-4.1034675555556;sci_table['y']['m']=-4.1034675555556;sci_table['y']['n']=-1.8577942222222;sci_table['y']['p']=-1.8577942222222;sci_table['y']['q']=1.8128931851852;sci_table['y']['r']=-3.9709742222222;sci_table['y']['s']=-1.9907097777778;sci_table['y']['t']=-8.8971675555556;sci_table['y']['v']=-5.2329964444444;sci_table['y']['w']=-1.8577942222222;sci_table['y']['y']=-4.1034675555556;cci_table['a']['a']=3.0528284023669;cci_table['a']['c']=13.663147928994;cci_table['a']['d']=5.5046153846154;cci_table['a']['e']=13.853372781065;cci_table['a']['f']=13.092473372781;cci_table['a']['g']=19.137396449704;cci_table['a']['h']=19.771479289941;cci_table['a']['i']=5.5046153846154;cci_table['a']['k']=13.113609467456;cci_table['a']['l']=19.137396449704;cci_table['a']['m']=19.137396449704;cci_table['a']['n']=13.092473372781;cci_table['a']['p']=13.092473372781;cci_table['a']['q']=13.789964497041;cci_table['a']['r']=5.5046153846154;cci_table['a']['s']=14.360639053254;cci_table['a']['t']=13.87450887574;cci_table['a']['v']=9.7318343195266;cci_table['a']['w']=13.092473372781;cci_table['a']['y']=19.137396449704;cci_table['c']['a']=13.663147928994;cci_table['c']['c']=10.107562130178;cci_table['c']['d']=12.841538461538;cci_table['c']['e']=10.043816568047;cci_table['c']['f']=10.298798816568;cci_table['c']['g']=8.2731065088757;cci_table['c']['h']=8.0606213017751;cci_table['c']['i']=12.841538461538;cci_table['c']['k']=10.291715976331;cci_table['c']['l']=8.2731065088757;cci_table['c']['m']=8.2731065088757;cci_table['c']['n']=10.298798816568;cci_table['c']['p']=10.298798816568;cci_table['c']['q']=10.065065088757;cci_table['c']['r']=12.841538461538;cci_table['c']['s']=9.8738284023669;cci_table['c']['t']=10.036733727811;cci_table['c']['v']=11.424970414201;cci_table['c']['w']=10.298798816568;cci_table['c']['y']=8.2731065088757;cci_table['d']['a']=5.5046153846154;cci_table['d']['c']=12.841538461538;cci_table['d']['d']=7.2;cci_table['d']['e']=12.973076923077;cci_table['d']['f']=12.446923076923;cci_table['d']['g']=16.626923076923;cci_table['d']['h']=17.065384615385;cci_table['d']['i']=7.2;cci_table['d']['k']=12.461538461538;cci_table['d']['l']=16.626923076923;cci_table['d']['m']=16.626923076923;cci_table['d']['n']=12.446923076923;cci_table['d']['p']=12.446923076923;cci_table['d']['q']=12.929230769231;cci_table['d']['r']=7.2;cci_table['d']['s']=13.323846153846;cci_table['d']['t']=12.987692307692;cci_table['d']['v']=10.123076923077;cci_table['d']['w']=12.446923076923;cci_table['d']['y']=16.626923076923;cci_table['e']['a']=13.853372781065;cci_table['e']['c']=10.043816568047;cci_table['e']['d']=12.973076923077;cci_table['e']['e']=9.9755177514793;cci_table['e']['f']=10.248713017751;cci_table['e']['g']=8.0783284023669;cci_table['e']['h']=7.8506656804734;cci_table['e']['i']=12.973076923077;cci_table['e']['k']=10.241124260355;cci_table['e']['l']=8.0783284023669;cci_table['e']['m']=8.0783284023669;cci_table['e']['n']=10.248713017751;cci_table['e']['p']=10.248713017751;cci_table['e']['q']=9.9982840236686;cci_table['e']['r']=12.973076923077;cci_table['e']['s']=9.7933875739645;cci_table['e']['t']=9.9679289940828;cci_table['e']['v']=11.455325443787;cci_table['e']['w']=10.248713017751;cci_table['e']['y']=8.0783284023669;cci_table['f']['a']=13.092473372781;cci_table['f']['c']=10.298798816568;cci_table['f']['d']=12.446923076923;cci_table['f']['e']=10.248713017751;cci_table['f']['f']=10.449056213018;cci_table['f']['g']=8.8574408284024;cci_table['f']['h']=8.6904881656805;cci_table['f']['i']=12.446923076923;cci_table['f']['k']=10.44349112426;cci_table['f']['l']=8.8574408284024;cci_table['f']['m']=8.8574408284024;cci_table['f']['n']=10.449056213018;cci_table['f']['p']=10.449056213018;cci_table['f']['q']=10.265408284024;cci_table['f']['r']=12.446923076923;cci_table['f']['s']=10.115150887574;cci_table['f']['t']=10.243147928994;cci_table['f']['v']=11.333905325444;cci_table['f']['w']=10.449056213018;cci_table['f']['y']=8.8574408284024;cci_table['g']['a']=19.137396449704;cci_table['g']['c']=8.2731065088757;cci_table['g']['d']=16.626923076923;cci_table['g']['e']=8.0783284023669;cci_table['g']['f']=8.8574408284024;cci_table['g']['g']=2.667825443787;cci_table['g']['h']=2.0185650887574;cci_table['g']['i']=16.626923076923;cci_table['g']['k']=8.835798816568;cci_table['g']['l']=2.667825443787;cci_table['g']['m']=2.667825443787;cci_table['g']['n']=8.8574408284024;cci_table['g']['p']=8.8574408284024;cci_table['g']['q']=8.1432544378698;cci_table['g']['r']=16.626923076923;cci_table['g']['s']=7.5589201183432;cci_table['g']['t']=8.0566863905325;cci_table['g']['v']=12.298520710059;cci_table['g']['w']=8.8574408284024;cci_table['g']['y']=2.667825443787;cci_table['h']['a']=19.771479289941;cci_table['h']['c']=8.0606213017751;cci_table['h']['d']=17.065384615385;cci_table['h']['e']=7.8506656804734;cci_table['h']['f']=8.6904881656805;cci_table['h']['g']=2.0185650887574;cci_table['h']['h']=1.3187130177515;cci_table['h']['i']=17.065384615385;cci_table['h']['k']=8.6671597633136;cci_table['h']['l']=2.0185650887574;cci_table['h']['m']=2.0185650887574;cci_table['h']['n']=8.6904881656805;cci_table['h']['p']=8.6904881656805;cci_table['h']['q']=7.920650887574;cci_table['h']['r']=17.065384615385;cci_table['h']['s']=7.2907840236686;cci_table['h']['t']=7.8273372781065;cci_table['h']['v']=12.399704142012;cci_table['h']['w']=8.6904881656805;cci_table['h']['y']=2.0185650887574;cci_table['i']['a']=5.5046153846154;cci_table['i']['c']=12.841538461538;cci_table['i']['d']=7.2;cci_table['i']['e']=12.973076923077;cci_table['i']['f']=12.446923076923;cci_table['i']['g']=16.626923076923;cci_table['i']['h']=17.065384615385;cci_table['i']['i']=7.2;cci_table['i']['k']=12.461538461538;cci_table['i']['l']=16.626923076923;cci_table['i']['m']=16.626923076923;cci_table['i']['n']=12.446923076923;cci_table['i']['p']=12.446923076923;cci_table['i']['q']=12.929230769231;cci_table['i']['r']=7.2;cci_table['i']['s']=13.323846153846;cci_table['i']['t']=12.987692307692;cci_table['i']['v']=10.123076923077;cci_table['i']['w']=12.446923076923;cci_table['i']['y']=16.626923076923;cci_table['k']['a']=13.113609467456;cci_table['k']['c']=10.291715976331;cci_table['k']['d']=12.461538461538;cci_table['k']['e']=10.241124260355;cci_table['k']['f']=10.44349112426;cci_table['k']['g']=8.835798816568;cci_table['k']['h']=8.6671597633136;cci_table['k']['i']=12.461538461538;cci_table['k']['k']=10.437869822485;cci_table['k']['l']=8.835798816568;cci_table['k']['m']=8.835798816568;cci_table['k']['n']=10.44349112426;cci_table['k']['p']=10.44349112426;cci_table['k']['q']=10.25798816568;cci_table['k']['r']=12.461538461538;cci_table['k']['s']=10.106213017751;cci_table['k']['t']=10.23550295858;cci_table['k']['v']=11.337278106509;cci_table['k']['w']=10.44349112426;cci_table['k']['y']=8.835798816568;cci_table['l']['a']=19.137396449704;cci_table['l']['c']=8.2731065088757;cci_table['l']['d']=16.626923076923;cci_table['l']['e']=8.0783284023669;cci_table['l']['f']=8.8574408284024;cci_table['l']['g']=2.667825443787;cci_table['l']['h']=2.0185650887574;cci_table['l']['i']=16.626923076923;cci_table['l']['k']=8.835798816568;cci_table['l']['l']=2.667825443787;cci_table['l']['m']=2.667825443787;cci_table['l']['n']=8.8574408284024;cci_table['l']['p']=8.8574408284024;cci_table['l']['q']=8.1432544378698;cci_table['l']['r']=16.626923076923;cci_table['l']['s']=7.5589201183432;cci_table['l']['t']=8.0566863905325;cci_table['l']['v']=12.298520710059;cci_table['l']['w']=8.8574408284024;cci_table['l']['y']=2.667825443787;cci_table['m']['a']=19.137396449704;cci_table['m']['c']=8.2731065088757;cci_table['m']['d']=16.626923076923;cci_table['m']['e']=8.0783284023669;cci_table['m']['f']=8.8574408284024;cci_table['m']['g']=2.667825443787;cci_table['m']['h']=2.0185650887574;cci_table['m']['i']=16.626923076923;cci_table['m']['k']=8.835798816568;cci_table['m']['l']=2.667825443787;cci_table['m']['m']=2.667825443787;cci_table['m']['n']=8.8574408284024;cci_table['m']['p']=8.8574408284024;cci_table['m']['q']=8.1432544378698;cci_table['m']['r']=16.626923076923;cci_table['m']['s']=7.5589201183432;cci_table['m']['t']=8.0566863905325;cci_table['m']['v']=12.298520710059;cci_table['m']['w']=8.8574408284024;cci_table['m']['y']=2.667825443787;cci_table['n']['a']=13.092473372781;cci_table['n']['c']=10.298798816568;cci_table['n']['d']=12.446923076923;cci_table['n']['e']=10.248713017751;cci_table['n']['f']=10.449056213018;cci_table['n']['g']=8.8574408284024;cci_table['n']['h']=8.6904881656805;cci_table['n']['i']=12.446923076923;cci_table['n']['k']=10.44349112426;cci_table['n']['l']=8.8574408284024;cci_table['n']['m']=8.8574408284024;cci_table['n']['n']=10.449056213018;cci_table['n']['p']=10.449056213018;cci_table['n']['q']=10.265408284024;cci_table['n']['r']=12.446923076923;cci_table['n']['s']=10.115150887574;cci_table['n']['t']=10.243147928994;cci_table['n']['v']=11.333905325444;cci_table['n']['w']=10.449056213018;cci_table['n']['y']=8.8574408284024;cci_table['p']['a']=13.092473372781;cci_table['p']['c']=10.298798816568;cci_table['p']['d']=12.446923076923;cci_table['p']['e']=10.248713017751;cci_table['p']['f']=10.449056213018;cci_table['p']['g']=8.8574408284024;cci_table['p']['h']=8.6904881656805;cci_table['p']['i']=12.446923076923;cci_table['p']['k']=10.44349112426;cci_table['p']['l']=8.8574408284024;cci_table['p']['m']=8.8574408284024;cci_table['p']['n']=10.449056213018;cci_table['p']['p']=10.449056213018;cci_table['p']['q']=10.265408284024;cci_table['p']['r']=12.446923076923;cci_table['p']['s']=10.115150887574;cci_table['p']['t']=10.243147928994;cci_table['p']['v']=11.333905325444;cci_table['p']['w']=10.449056213018;cci_table['p']['y']=8.8574408284024;cci_table['q']['a']=13.789964497041;cci_table['q']['c']=10.065065088757;cci_table['q']['d']=12.929230769231;cci_table['q']['e']=9.9982840236686;cci_table['q']['f']=10.265408284024;cci_table['q']['g']=8.1432544378698;cci_table['q']['h']=7.920650887574;cci_table['q']['i']=12.929230769231;cci_table['q']['k']=10.25798816568;cci_table['q']['l']=8.1432544378698;cci_table['q']['m']=8.1432544378698;cci_table['q']['n']=10.265408284024;cci_table['q']['p']=10.265408284024;cci_table['q']['q']=10.020544378698;cci_table['q']['r']=12.929230769231;cci_table['q']['s']=9.820201183432;cci_table['q']['t']=9.9908639053254;cci_table['q']['v']=11.445207100592;cci_table['q']['w']=10.265408284024;cci_table['q']['y']=8.1432544378698;cci_table['r']['a']=5.5046153846154;cci_table['r']['c']=12.841538461538;cci_table['r']['d']=7.2;cci_table['r']['e']=12.973076923077;cci_table['r']['f']=12.446923076923;cci_table['r']['g']=16.626923076923;cci_table['r']['h']=17.065384615385;cci_table['r']['i']=7.2;cci_table['r']['k']=12.461538461538;cci_table['r']['l']=16.626923076923;cci_table['r']['m']=16.626923076923;cci_table['r']['n']=12.446923076923;cci_table['r']['p']=12.446923076923;cci_table['r']['q']=12.929230769231;cci_table['r']['r']=7.2;cci_table['r']['s']=13.323846153846;cci_table['r']['t']=12.987692307692;cci_table['r']['v']=10.123076923077;cci_table['r']['w']=12.446923076923;cci_table['r']['y']=16.626923076923;cci_table['s']['a']=14.360639053254;cci_table['s']['c']=9.8738284023669;cci_table['s']['d']=13.323846153846;cci_table['s']['e']=9.7933875739645;cci_table['s']['f']=10.115150887574;cci_table['s']['g']=7.5589201183432;cci_table['s']['h']=7.2907840236686;cci_table['s']['i']=13.323846153846;cci_table['s']['k']=10.106213017751;cci_table['s']['l']=7.5589201183432;cci_table['s']['m']=7.5589201183432;cci_table['s']['n']=10.115150887574;cci_table['s']['p']=10.115150887574;cci_table['s']['q']=9.820201183432;cci_table['s']['r']=13.323846153846;cci_table['s']['s']=9.5788786982249;cci_table['s']['t']=9.784449704142;cci_table['s']['v']=11.536272189349;cci_table['s']['w']=10.115150887574;cci_table['s']['y']=7.5589201183432;cci_table['t']['a']=13.87450887574;cci_table['t']['c']=10.036733727811;cci_table['t']['d']=12.987692307692;cci_table['t']['e']=9.9679289940828;cci_table['t']['f']=10.243147928994;cci_table['t']['g']=8.0566863905325;cci_table['t']['h']=7.8273372781065;cci_table['t']['i']=12.987692307692;cci_table['t']['k']=10.23550295858;cci_table['t']['l']=8.0566863905325;cci_table['t']['m']=8.0566863905325;cci_table['t']['n']=10.243147928994;cci_table['t']['p']=10.243147928994;cci_table['t']['q']=9.9908639053254;cci_table['t']['r']=12.987692307692;cci_table['t']['s']=9.784449704142;cci_table['t']['t']=9.9602840236686;cci_table['t']['v']=11.458698224852;cci_table['t']['w']=10.243147928994;cci_table['t']['y']=8.0566863905325;cci_table['v']['a']=9.7318343195266;cci_table['v']['c']=11.424970414201;cci_table['v']['d']=10.123076923077;cci_table['v']['e']=11.455325443787;cci_table['v']['f']=11.333905325444;cci_table['v']['g']=12.298520710059;cci_table['v']['h']=12.399704142012;cci_table['v']['i']=10.123076923077;cci_table['v']['k']=11.337278106509;cci_table['v']['l']=12.298520710059;cci_table['v']['m']=12.298520710059;cci_table['v']['n']=11.333905325444;cci_table['v']['p']=11.333905325444;cci_table['v']['q']=11.445207100592;cci_table['v']['r']=10.123076923077;cci_table['v']['s']=11.536272189349;cci_table['v']['t']=11.458698224852;cci_table['v']['v']=10.797633136095;cci_table['v']['w']=11.333905325444;cci_table['v']['y']=12.298520710059;cci_table['w']['a']=13.092473372781;cci_table['w']['c']=10.298798816568;cci_table['w']['d']=12.446923076923;cci_table['w']['e']=10.248713017751;cci_table['w']['f']=10.449056213018;cci_table['w']['g']=8.8574408284024;cci_table['w']['h']=8.6904881656805;cci_table['w']['i']=12.446923076923;cci_table['w']['k']=10.44349112426;cci_table['w']['l']=8.8574408284024;cci_table['w']['m']=8.8574408284024;cci_table['w']['n']=10.449056213018;cci_table['w']['p']=10.449056213018;cci_table['w']['q']=10.265408284024;cci_table['w']['r']=12.446923076923;cci_table['w']['s']=10.115150887574;cci_table['w']['t']=10.243147928994;cci_table['w']['v']=11.333905325444;cci_table['w']['w']=10.449056213018;cci_table['w']['y']=8.8574408284024;cci_table['y']['a']=19.137396449704;cci_table['y']['c']=8.2731065088757;cci_table['y']['d']=16.626923076923;cci_table['y']['e']=8.0783284023669;cci_table['y']['f']=8.8574408284024;cci_table['y']['g']=2.667825443787;cci_table['y']['h']=2.0185650887574;cci_table['y']['i']=16.626923076923;cci_table['y']['k']=8.835798816568;cci_table['y']['l']=2.667825443787;cci_table['y']['m']=2.667825443787;cci_table['y']['n']=8.8574408284024;cci_table['y']['p']=8.8574408284024;cci_table['y']['q']=8.1432544378698;cci_table['y']['r']=16.626923076923;cci_table['y']['s']=7.5589201183432;cci_table['y']['t']=8.0566863905325;cci_table['y']['v']=12.298520710059;cci_table['y']['w']=8.8574408284024;cci_table['y']['y']=2.667825443787
+t_precalcStrength['a']['a'] = 32.372856210914;t_precalcStrength['a']['c'] = 27.185248498021;t_precalcStrength['a']['d'] = 27.775347149814;t_precalcStrength['a']['e'] = 50.456350961466;t_precalcStrength['a']['f'] = 20.353692652058;t_precalcStrength['a']['g'] = 51.672531784327;t_precalcStrength['a']['h'] = 49.478695919409;t_precalcStrength['a']['i'] = 27.775347149814;t_precalcStrength['a']['k'] = 8.3750653242535;t_precalcStrength['a']['l'] = 51.672531784327;t_precalcStrength['a']['m'] = 51.672531784327;t_precalcStrength['a']['n'] = 20.353692652058;t_precalcStrength['a']['p'] = 20.353692652058;t_precalcStrength['a']['q'] = 34.639588682129;t_precalcStrength['a']['r'] = 27.775347149814;t_precalcStrength['a']['s'] = 50.24328334011;t_precalcStrength['a']['t'] = -7.5041917681561;t_precalcStrength['a']['v'] = -11.191528474216;t_precalcStrength['a']['w'] = 20.353692652058;t_precalcStrength['a']['y'] = 51.672531784327;t_precalcStrength['c']['a'] = 27.185248498021;t_precalcStrength['c']['c'] = 48.875204881745;t_precalcStrength['c']['d'] = 41.855546099553;t_precalcStrength['c']['e'] = 26.635693125618;t_precalcStrength['c']['f'] = 43.066057732232;t_precalcStrength['c']['g'] = 29.856824872338;t_precalcStrength['c']['h'] = 36.564715193754;t_precalcStrength['c']['i'] = 41.855546099553;t_precalcStrength['c']['k'] = 31.049563415669;t_precalcStrength['c']['l'] = 29.856824872338;t_precalcStrength['c']['m'] = 29.856824872338;t_precalcStrength['c']['n'] = 43.066057732232;t_precalcStrength['c']['p'] = 43.066057732232;t_precalcStrength['c']['q'] = 53.951399737082;t_precalcStrength['c']['r'] = 41.855546099553;t_precalcStrength['c']['s'] = 31.24966683069;t_precalcStrength['c']['t'] = 13.807094727994;t_precalcStrength['c']['v'] = 17.541687818383;t_precalcStrength['c']['w'] = 43.066057732232;t_precalcStrength['c']['y'] = 29.856824872338;t_precalcStrength['d']['a'] = 27.775347149814;t_precalcStrength['d']['c'] = 41.855546099553;t_precalcStrength['d']['d'] = 45.823199111111;t_precalcStrength['d']['e'] = 42.104501069128;t_precalcStrength['d']['f'] = 35.260244055958;t_precalcStrength['d']['g'] = 52.604844798097;t_precalcStrength['d']['h'] = 60.186240557383;t_precalcStrength['d']['i'] = 45.823199111111;t_precalcStrength['d']['k'] = 23.272866587324;t_precalcStrength['d']['l'] = 52.604844798097;t_precalcStrength['d']['m'] = 52.604844798097;t_precalcStrength['d']['n'] = 35.260244055958;t_precalcStrength['d']['p'] = 35.260244055958;t_precalcStrength['d']['q'] = 49.257385438694;t_precalcStrength['d']['r'] = 45.823199111111;t_precalcStrength['d']['s'] = 47.417279124496;t_precalcStrength['d']['t'] = 7.0786044250923;t_precalcStrength['d']['v'] = 5.1062953213999;t_precalcStrength['d']['w'] = 35.260244055958;t_precalcStrength['d']['y'] = 52.604844798097;t_precalcStrength['e']['a'] = 50.456350961466;t_precalcStrength['e']['c'] = 26.635693125618;t_precalcStrength['e']['d'] = 42.104501069128;t_precalcStrength['e']['e'] = 49.559882678117;t_precalcStrength['e']['f'] = 20.844876012496;t_precalcStrength['e']['g'] = 41.139593752458;t_precalcStrength['e']['h'] = 37.789381517717;t_precalcStrength['e']['i'] = 42.104501069128;t_precalcStrength['e']['k'] = 8.8277028056971;t_precalcStrength['e']['l'] = 41.139593752458;t_precalcStrength['e']['m'] = 41.139593752458;t_precalcStrength['e']['n'] = 20.844876012496;t_precalcStrength['e']['p'] = 20.844876012496;t_precalcStrength['e']['q'] = 33.858758035763;t_precalcStrength['e']['r'] = 42.104501069128;t_precalcStrength['e']['s'] = 48.421713960905;t_precalcStrength['e']['t'] = -8.4392059304994;t_precalcStrength['e']['v'] = -4.5715503537188;t_precalcStrength['e']['w'] = 20.844876012496;t_precalcStrength['e']['y'] = 41.139593752458;t_precalcStrength['f']['a'] = 20.353692652058;t_precalcStrength['f']['c'] = 43.066057732232;t_precalcStrength['f']['d'] = 35.260244055958;t_precalcStrength['f']['e'] = 20.844876012496;t_precalcStrength['f']['f'] = 54.40946764336;t_precalcStrength['f']['g'] = 24.575175436732;t_precalcStrength['f']['h'] = 31.34416587945;t_precalcStrength['f']['i'] = 35.260244055958;t_precalcStrength['f']['k'] = 42.395009997506;t_precalcStrength['f']['l'] = 24.575175436732;t_precalcStrength['f']['m'] = 24.575175436732;t_precalcStrength['f']['n'] = 54.40946764336;t_precalcStrength['f']['p'] = 54.40946764336;t_precalcStrength['f']['q'] = 48.154472611832;t_precalcStrength['f']['r'] = 35.260244055958;t_precalcStrength['f']['s'] = 25.50772981461;t_precalcStrength['f']['t'] = 25.225861455393;t_precalcStrength['f']['v'] = 28.561267086612;t_precalcStrength['f']['w'] = 54.40946764336;t_precalcStrength['f']['y'] = 24.575175436732;t_precalcStrength['g']['a'] = 51.672531784327;t_precalcStrength['g']['c'] = 29.856824872338;t_precalcStrength['g']['d'] = 52.604844798097;t_precalcStrength['g']['e'] = 41.139593752458;t_precalcStrength['g']['f'] = 24.575175436732;t_precalcStrength['g']['g'] = 39.476487407462;t_precalcStrength['g']['h'] = 35.560533308816;t_precalcStrength['g']['i'] = 52.604844798097;t_precalcStrength['g']['k'] = 12.539144167802;t_precalcStrength['g']['l'] = 39.476487407462;t_precalcStrength['g']['m'] = 39.476487407462;t_precalcStrength['g']['n'] = 24.575175436732;t_precalcStrength['g']['p'] = 24.575175436732;t_precalcStrength['g']['q'] = 36.966741409703;t_precalcStrength['g']['r'] = 52.604844798097;t_precalcStrength['g']['s'] = 45.284680600725;t_precalcStrength['g']['t'] = -5.4066548050812;t_precalcStrength['g']['v'] = 2.157180949214;t_precalcStrength['g']['w'] = 24.575175436732;t_precalcStrength['g']['y'] = 39.476487407462;t_precalcStrength['h']['a'] = 49.478695919409;t_precalcStrength['h']['c'] = 36.564715193754;t_precalcStrength['h']['d'] = 60.186240557383;t_precalcStrength['h']['e'] = 37.789381517717;t_precalcStrength['h']['f'] = 31.34416587945;t_precalcStrength['h']['g'] = 35.560533308816;t_precalcStrength['h']['h'] = 41.614426035558;t_precalcStrength['h']['i'] = 60.186240557383;t_precalcStrength['h']['k'] = 19.305871643064;t_precalcStrength['h']['l'] = 35.560533308816;t_precalcStrength['h']['m'] = 35.560533308816;t_precalcStrength['h']['n'] = 31.34416587945;t_precalcStrength['h']['p'] = 31.34416587945;t_precalcStrength['h']['q'] = 43.661053926385;t_precalcStrength['h']['r'] = 60.186240557383;t_precalcStrength['h']['s'] = 41.880157147049;t_precalcStrength['h']['t'] = 1.278605841779;t_precalcStrength['h']['v'] = 9.2859832173762;t_precalcStrength['h']['w'] = 31.34416587945;t_precalcStrength['h']['y'] = 35.560533308816;t_precalcStrength['i']['a'] = 27.775347149814;t_precalcStrength['i']['c'] = 41.855546099553;t_precalcStrength['i']['d'] = 45.823199111111;t_precalcStrength['i']['e'] = 42.104501069128;t_precalcStrength['i']['f'] = 35.260244055958;t_precalcStrength['i']['g'] = 52.604844798097;t_precalcStrength['i']['h'] = 60.186240557383;t_precalcStrength['i']['i'] = 45.823199111111;t_precalcStrength['i']['k'] = 23.272866587324;t_precalcStrength['i']['l'] = 52.604844798097;t_precalcStrength['i']['m'] = 52.604844798097;t_precalcStrength['i']['n'] = 35.260244055958;t_precalcStrength['i']['p'] = 35.260244055958;t_precalcStrength['i']['q'] = 49.257385438694;t_precalcStrength['i']['r'] = 45.823199111111;t_precalcStrength['i']['s'] = 47.417279124496;t_precalcStrength['i']['t'] = 7.0786044250923;t_precalcStrength['i']['v'] = 5.1062953213999;t_precalcStrength['i']['w'] = 35.260244055958;t_precalcStrength['i']['y'] = 52.604844798097;t_precalcStrength['k']['a'] = 8.3750653242535;t_precalcStrength['k']['c'] = 31.049563415669;t_precalcStrength['k']['d'] = 23.272866587324;t_precalcStrength['k']['e'] = 8.8277028056971;t_precalcStrength['k']['f'] = 42.395009997506;t_precalcStrength['k']['g'] = 12.539144167802;t_precalcStrength['k']['h'] = 19.305871643064;t_precalcStrength['k']['i'] = 23.272866587324;t_precalcStrength['k']['k'] = 58.342741070348;t_precalcStrength['k']['l'] = 12.539144167802;t_precalcStrength['k']['m'] = 12.539144167802;t_precalcStrength['k']['n'] = 42.395009997506;t_precalcStrength['k']['p'] = 42.395009997506;t_precalcStrength['k']['q'] = 36.137525701776;t_precalcStrength['k']['r'] = 23.272866587324;t_precalcStrength['k']['s'] = 13.488746233845;t_precalcStrength['k']['t'] = 41.170876967289;t_precalcStrength['k']['v'] = 44.521067319218;t_precalcStrength['k']['w'] = 42.395009997506;t_precalcStrength['k']['y'] = 12.539144167802;t_precalcStrength['l']['a'] = 51.672531784327;t_precalcStrength['l']['c'] = 29.856824872338;t_precalcStrength['l']['d'] = 52.604844798097;t_precalcStrength['l']['e'] = 41.139593752458;t_precalcStrength['l']['f'] = 24.575175436732;t_precalcStrength['l']['g'] = 39.476487407462;t_precalcStrength['l']['h'] = 35.560533308816;t_precalcStrength['l']['i'] = 52.604844798097;t_precalcStrength['l']['k'] = 12.539144167802;t_precalcStrength['l']['l'] = 39.476487407462;t_precalcStrength['l']['m'] = 39.476487407462;t_precalcStrength['l']['n'] = 24.575175436732;t_precalcStrength['l']['p'] = 24.575175436732;t_precalcStrength['l']['q'] = 36.966741409703;t_precalcStrength['l']['r'] = 52.604844798097;t_precalcStrength['l']['s'] = 45.284680600725;t_precalcStrength['l']['t'] = -5.4066548050812;t_precalcStrength['l']['v'] = 2.157180949214;t_precalcStrength['l']['w'] = 24.575175436732;t_precalcStrength['l']['y'] = 39.476487407462;t_precalcStrength['m']['a'] = 51.672531784327;t_precalcStrength['m']['c'] = 29.856824872338;t_precalcStrength['m']['d'] = 52.604844798097;t_precalcStrength['m']['e'] = 41.139593752458;t_precalcStrength['m']['f'] = 24.575175436732;t_precalcStrength['m']['g'] = 39.476487407462;t_precalcStrength['m']['h'] = 35.560533308816;t_precalcStrength['m']['i'] = 52.604844798097;t_precalcStrength['m']['k'] = 12.539144167802;t_precalcStrength['m']['l'] = 39.476487407462;t_precalcStrength['m']['m'] = 39.476487407462;t_precalcStrength['m']['n'] = 24.575175436732;t_precalcStrength['m']['p'] = 24.575175436732;t_precalcStrength['m']['q'] = 36.966741409703;t_precalcStrength['m']['r'] = 52.604844798097;t_precalcStrength['m']['s'] = 45.284680600725;t_precalcStrength['m']['t'] = -5.4066548050812;t_precalcStrength['m']['v'] = 2.157180949214;t_precalcStrength['m']['w'] = 24.575175436732;t_precalcStrength['m']['y'] = 39.476487407462;t_precalcStrength['n']['a'] = 20.353692652058;t_precalcStrength['n']['c'] = 43.066057732232;t_precalcStrength['n']['d'] = 35.260244055958;t_precalcStrength['n']['e'] = 20.844876012496;t_precalcStrength['n']['f'] = 54.40946764336;t_precalcStrength['n']['g'] = 24.575175436732;t_precalcStrength['n']['h'] = 31.34416587945;t_precalcStrength['n']['i'] = 35.260244055958;t_precalcStrength['n']['k'] = 42.395009997506;t_precalcStrength['n']['l'] = 24.575175436732;t_precalcStrength['n']['m'] = 24.575175436732;t_precalcStrength['n']['n'] = 54.40946764336;t_precalcStrength['n']['p'] = 54.40946764336;t_precalcStrength['n']['q'] = 48.154472611832;t_precalcStrength['n']['r'] = 35.260244055958;t_precalcStrength['n']['s'] = 25.50772981461;t_precalcStrength['n']['t'] = 25.225861455393;t_precalcStrength['n']['v'] = 28.561267086612;t_precalcStrength['n']['w'] = 54.40946764336;t_precalcStrength['n']['y'] = 24.575175436732;t_precalcStrength['p']['a'] = 20.353692652058;t_precalcStrength['p']['c'] = 43.066057732232;t_precalcStrength['p']['d'] = 35.260244055958;t_precalcStrength['p']['e'] = 20.844876012496;t_precalcStrength['p']['f'] = 54.40946764336;t_precalcStrength['p']['g'] = 24.575175436732;t_precalcStrength['p']['h'] = 31.34416587945;t_precalcStrength['p']['i'] = 35.260244055958;t_precalcStrength['p']['k'] = 42.395009997506;t_precalcStrength['p']['l'] = 24.575175436732;t_precalcStrength['p']['m'] = 24.575175436732;t_precalcStrength['p']['n'] = 54.40946764336;t_precalcStrength['p']['p'] = 54.40946764336;t_precalcStrength['p']['q'] = 48.154472611832;t_precalcStrength['p']['r'] = 35.260244055958;t_precalcStrength['p']['s'] = 25.50772981461;t_precalcStrength['p']['t'] = 25.225861455393;t_precalcStrength['p']['v'] = 28.561267086612;t_precalcStrength['p']['w'] = 54.40946764336;t_precalcStrength['p']['y'] = 24.575175436732;t_precalcStrength['q']['a'] = 34.639588682129;t_precalcStrength['q']['c'] = 53.951399737082;t_precalcStrength['q']['d'] = 49.257385438694;t_precalcStrength['q']['e'] = 33.858758035763;t_precalcStrength['q']['f'] = 48.154472611832;t_precalcStrength['q']['g'] = 36.966741409703;t_precalcStrength['q']['h'] = 43.661053926385;t_precalcStrength['q']['i'] = 49.257385438694;t_precalcStrength['q']['k'] = 36.137525701776;t_precalcStrength['q']['l'] = 36.966741409703;t_precalcStrength['q']['m'] = 36.966741409703;t_precalcStrength['q']['n'] = 48.154472611832;t_precalcStrength['q']['p'] = 48.154472611832;t_precalcStrength['q']['q'] = 61.175822427701;t_precalcStrength['q']['r'] = 49.257385438694;t_precalcStrength['q']['s'] = 38.461869497048;t_precalcStrength['q']['t'] = 18.878763648421;t_precalcStrength['q']['v'] = 22.702065063071;t_precalcStrength['q']['w'] = 48.154472611832;t_precalcStrength['q']['y'] = 36.966741409703;t_precalcStrength['r']['a'] = 27.775347149814;t_precalcStrength['r']['c'] = 41.855546099553;t_precalcStrength['r']['d'] = 45.823199111111;t_precalcStrength['r']['e'] = 42.104501069128;t_precalcStrength['r']['f'] = 35.260244055958;t_precalcStrength['r']['g'] = 52.604844798097;t_precalcStrength['r']['h'] = 60.186240557383;t_precalcStrength['r']['i'] = 45.823199111111;t_precalcStrength['r']['k'] = 23.272866587324;t_precalcStrength['r']['l'] = 52.604844798097;t_precalcStrength['r']['m'] = 52.604844798097;t_precalcStrength['r']['n'] = 35.260244055958;t_precalcStrength['r']['p'] = 35.260244055958;t_precalcStrength['r']['q'] = 49.257385438694;t_precalcStrength['r']['r'] = 45.823199111111;t_precalcStrength['r']['s'] = 47.417279124496;t_precalcStrength['r']['t'] = 7.0786044250923;t_precalcStrength['r']['v'] = 5.1062953213999;t_precalcStrength['r']['w'] = 35.260244055958;t_precalcStrength['r']['y'] = 52.604844798097;t_precalcStrength['s']['a'] = 50.24328334011;t_precalcStrength['s']['c'] = 31.24966683069;t_precalcStrength['s']['d'] = 47.417279124496;t_precalcStrength['s']['e'] = 48.421713960905;t_precalcStrength['s']['f'] = 25.50772981461;t_precalcStrength['s']['g'] = 45.284680600725;t_precalcStrength['s']['h'] = 41.880157147049;t_precalcStrength['s']['i'] = 47.417279124496;t_precalcStrength['s']['k'] = 13.488746233845;t_precalcStrength['s']['l'] = 45.284680600725;t_precalcStrength['s']['m'] = 45.284680600725;t_precalcStrength['s']['n'] = 25.50772981461;t_precalcStrength['s']['p'] = 25.50772981461;t_precalcStrength['s']['q'] = 38.461869497048;t_precalcStrength['s']['r'] = 47.417279124496;t_precalcStrength['s']['s'] = 52.975945325148;t_precalcStrength['s']['t'] = -3.8433359650727;t_precalcStrength['s']['v'] = 0.37915290874912;t_precalcStrength['s']['w'] = 25.50772981461;t_precalcStrength['s']['y'] = 45.284680600725;t_precalcStrength['t']['a'] = -7.5041917681561;t_precalcStrength['t']['c'] = 13.807094727994;t_precalcStrength['t']['d'] = 7.0786044250923;t_precalcStrength['t']['e'] = -8.4392059304994;t_precalcStrength['t']['f'] = 25.225861455393;t_precalcStrength['t']['g'] = -5.4066548050812;t_precalcStrength['t']['h'] = 1.278605841779;t_precalcStrength['t']['i'] = 7.0786044250923;t_precalcStrength['t']['k'] = 41.170876967289;t_precalcStrength['t']['l'] = -5.4066548050812;t_precalcStrength['t']['m'] = -5.4066548050812;t_precalcStrength['t']['n'] = 25.225861455393;t_precalcStrength['t']['p'] = 25.225861455393;t_precalcStrength['t']['q'] = 18.878763648421;t_precalcStrength['t']['r'] = 7.0786044250923;t_precalcStrength['t']['s'] = -3.8433359650727;t_precalcStrength['t']['t'] = 39.674837575805;t_precalcStrength['t']['v'] = 43.557277873297;t_precalcStrength['t']['w'] = 25.225861455393;t_precalcStrength['t']['y'] = -5.4066548050812;t_precalcStrength['v']['a'] = -11.191528474216;t_precalcStrength['v']['c'] = 17.541687818383;t_precalcStrength['v']['d'] = 5.1062953213999;t_precalcStrength['v']['e'] = -4.5715503537188;t_precalcStrength['v']['f'] = 28.561267086612;t_precalcStrength['v']['g'] = 2.157180949214;t_precalcStrength['v']['h'] = 9.2859832173762;t_precalcStrength['v']['i'] = 5.1062953213999;t_precalcStrength['v']['k'] = 44.521067319218;t_precalcStrength['v']['l'] = 2.157180949214;t_precalcStrength['v']['m'] = 2.157180949214;t_precalcStrength['v']['n'] = 28.561267086612;t_precalcStrength['v']['p'] = 28.561267086612;t_precalcStrength['v']['q'] = 22.702065063071;t_precalcStrength['v']['r'] = 5.1062953213999;t_precalcStrength['v']['s'] = 0.37915290874912;t_precalcStrength['v']['t'] = 43.557277873297;t_precalcStrength['v']['v'] = 48.126818571993;t_precalcStrength['v']['w'] = 28.561267086612;t_precalcStrength['v']['y'] = 2.157180949214;t_precalcStrength['w']['a'] = 20.353692652058;t_precalcStrength['w']['c'] = 43.066057732232;t_precalcStrength['w']['d'] = 35.260244055958;t_precalcStrength['w']['e'] = 20.844876012496;t_precalcStrength['w']['f'] = 54.40946764336;t_precalcStrength['w']['g'] = 24.575175436732;t_precalcStrength['w']['h'] = 31.34416587945;t_precalcStrength['w']['i'] = 35.260244055958;t_precalcStrength['w']['k'] = 42.395009997506;t_precalcStrength['w']['l'] = 24.575175436732;t_precalcStrength['w']['m'] = 24.575175436732;t_precalcStrength['w']['n'] = 54.40946764336;t_precalcStrength['w']['p'] = 54.40946764336;t_precalcStrength['w']['q'] = 48.154472611832;t_precalcStrength['w']['r'] = 35.260244055958;t_precalcStrength['w']['s'] = 25.50772981461;t_precalcStrength['w']['t'] = 25.225861455393;t_precalcStrength['w']['v'] = 28.561267086612;t_precalcStrength['w']['w'] = 54.40946764336;t_precalcStrength['w']['y'] = 24.575175436732;t_precalcStrength['y']['a'] = 51.672531784327;t_precalcStrength['y']['c'] = 29.856824872338;t_precalcStrength['y']['d'] = 52.604844798097;t_precalcStrength['y']['e'] = 41.139593752458;t_precalcStrength['y']['f'] = 24.575175436732;t_precalcStrength['y']['g'] = 39.476487407462;t_precalcStrength['y']['h'] = 35.560533308816;t_precalcStrength['y']['i'] = 52.604844798097;t_precalcStrength['y']['k'] = 12.539144167802;t_precalcStrength['y']['l'] = 39.476487407462;t_precalcStrength['y']['m'] = 39.476487407462;t_precalcStrength['y']['n'] = 24.575175436732;t_precalcStrength['y']['p'] = 24.575175436732;t_precalcStrength['y']['q'] = 36.966741409703;t_precalcStrength['y']['r'] = 52.604844798097;t_precalcStrength['y']['s'] = 45.284680600725;t_precalcStrength['y']['t'] = -5.4066548050812;t_precalcStrength['y']['v'] = 2.157180949214;t_precalcStrength['y']['w'] = 24.575175436732;t_precalcStrength['y']['y'] = 39.476487407462
 --Precalculated Table#
 
 --#Calculations
@@ -488,11 +480,11 @@ local function _calc()
     local i
     local ii
     p("Getting Segment Score out of the Matrix")
-    c_strength = {}
+    t_predictedStrength = {}
     for i = 1, i_segcount do
-        c_strength[i] = {}
+        t_predictedStrength[i] = {}
         for ii = i + 2, i_segcount - 2 do
-            c_strength[i][ii] = (hci_table[aa[i]][aa[ii]] * 2) + (cci_table[aa[i]][aa[ii]] * 1.26 * 1.065) + (sci_table[aa[i]][aa[ii]])
+            t_predictedStrength[i][ii] = t_precalcStrength[aa[i]][aa[ii]]
         end -- for ii
     end -- for i
 end -- function
@@ -618,13 +610,13 @@ local function _increase(sc1, sc2, slot, step)
     if sc2 > sc1 then
         sc = sc2 - sc1
         if slot == sl_overall then
-        if sc2 > sc_max then
-            sl.save(slot)
-            p("Gain: " .. sc)
-            sc_max = get.score()
-            p("==NEW=MAX=" .. sc_max .. "==")
-        else
-            sl.load(slot)
+            if sc2 > sc_max then
+                sl.save(slot)
+                p("Gain: " .. sc)
+                sc_max = get.score()
+                p("==NEW=MAX=" .. sc_max .. "==")
+            else
+                sl.load(slot)
             end
         else
             sl.save(slot)
@@ -637,8 +629,8 @@ local function _increase(sc1, sc2, slot, step)
 end
 
 local function _mutable()
-	sl_before_mut = sl.request()
-	sl.save(sl_before_mut)
+    sl_before_mut = sl.request()
+    sl.save(sl_before_mut)
     mutable = {}
     local isA = {}
     local i
@@ -665,7 +657,7 @@ local function _mutable()
     end
     get.aacid()
     deselect.all()
-	sl.load(sl_before_mut)
+    sl.load(sl_before_mut)
 end -- function
 
 local function _score()
@@ -850,38 +842,60 @@ end
 
 local function timeline(disp_time)
 local disp_time_min = 0
-	local disp_time_hour = 0
-	while disp_time > 59 do
-	disp_time_min = disp_time_min + 1
-	disp_time = disp_time - 60
-	if disp_time_min > 59 then
-	disp_time_hour = disp_time_hour + 1
-	disp_time_min = disp_time_min - 60
-	end
-	end
-	if disp_time_hour < 10 then
-	disp_time_hour = "0"..disp_time_hour
-	end
-	if disp_time_min < 10 then
-	disp_time_min = "0"..disp_time_min
-	end
-	if disp_time < 10 then
-	disp_time = "0"..disp_time
-	end
-	return (disp_time_hour..":" .. disp_time_min .. ":" .. disp_time)
+    local disp_time_hour = 0
+    while disp_time > 59 do
+    disp_time_min = disp_time_min + 1
+    disp_time = disp_time - 60
+    if disp_time_min > 59 then
+    disp_time_hour = disp_time_hour + 1
+    disp_time_min = disp_time_min - 60
+    end
+    end
+    if disp_time_hour < 10 then
+    disp_time_hour = "0"..disp_time_hour
+    end
+    if disp_time_min < 10 then
+    disp_time_min = "0"..disp_time_min
+    end
+    if disp_time < 10 then
+    disp_time = "0"..disp_time
+    end
+    return (disp_time_hour..":" .. disp_time_min .. ":" .. disp_time)
 end
 
 local function _time()
     currentTimeUsed = os.time()
     --[[if currentTimeUsed - startTime > (60 + time_used*60) then
-	time_used = time_used + 1]]
-	local disp_time = currentTimeUsed - startTime
-	estimated_time = math.floor(disp_time * time_mod + 0.5) - disp_time
+    time_used = time_used + 1]]
+    local disp_time = currentTimeUsed - startTime
+    estimated_time = math.floor(disp_time * time_mod + 0.5) - disp_time
     p("Time elapsed: " .. timeline(disp_time) .. "; Recipe finished ".. progress .. "%")
-	p("approx. time till that recipe is finished: " .. timeline(estimated_time))
-	p(os.date("Recipe will be approx. finished: %a, %c", estimated_time + currentTimeUsed))
+    if estimated_time > 0 then
+        p("approx. time till that recipe is finished: " .. timeline(estimated_time))
+        p(os.date("Recipe will be approx. finished: %a, %c", estimated_time + currentTimeUsed))
+    else
+        p("calculating approx. finish of this recipe")
+    end
     p("==MAX SCORE=" .. sc_max .. "==")
     --end
+end
+
+local function _report(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
+    if start2 == nil then
+        if iter1 == 1 then
+            time_mod = (end1 - vari1) / vari1
+            progress = math.floor(vari1 / end1, 3)
+            get.checkTime()
+        end
+    else
+        if iter1 == -1 then
+            local start = (vari2 +(start1 - vari1) *end2)--progress.getStart(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
+            local stop = (end2 - vari2+ end2 * vari1)
+            time_mod = stop / start
+            progress = math.floor(start / (start1 * end2), 3)
+            get.checkTime()
+        end
+    end
 end
 
 get =
@@ -902,6 +916,7 @@ get =
     checksame   = _checksame,
     segscores   = _segscores,
     worst       = _worst,
+    report        = _report,
     -- renaming
     distance        = structure.GetDistance,
     ss              = structure.GetSecondaryStructure,
@@ -958,42 +973,43 @@ local function _mutate(mut, aa, more)
         structure.MutateSidechainsSelected(1)
     end
     if b_m_re then
-	if b_m_re_deep_rebuild then
-		seg = mutable[mut] - 2
-		r = seg + 4
-		if not b_re_m_ignore_struct then
-			if ss[mutable[mut]] == "L" then
-				rebuild()
-			end
-		else
-			rebuild()
-		end
-		seg = mutable[mut] - 2
-		r = seg + 3
-		if not b_re_m_ignore_struct then
-			if ss[mutable[mut]] == "L" then
-				rebuild()
-			end
-		else
-			rebuild()
-		end
-		seg = mutable[mut] - 1
-		seg_mut = mutable[mut]
-		r = seg + 2
-		if not b_re_m_ignore_struct then
-			if ss[mutable[mut]] == "L" then
-				rebuild()
-			end
-		else
-			rebuild()
+        if b_m_re_deep_rebuild then
+            seg = mutable[mut] - 2
+            r = seg + 4
+            if not b_re_m_ignore_struct then
+                if ss[mutable[mut]] == "L" then
+                    rebuild(mutable[mut])
+                end
+            else
+                rebuild(mutable[mut])
+            end
+            seg = mutable[mut] - 2
+            r = seg + 3
+            if not b_re_m_ignore_struct then
+                if ss[mutable[mut]] == "L" then
+                    rebuild(mutable[mut])
+                end
+            else
+                rebuild(mutable[mut])
+            end
+        else
+            seg = mutable[mut] - 1
+            r = seg + 2
+            if not b_re_m_ignore_struct then
+                if ss[mutable[mut]] == "L" then
+                    rebuild(mutable[mut])
+                end
+            else
+                rebuild(mutable[mut])
+            end
+        end
+    elseif b_m_opt then
+        if not sidechain_tweak(mutable[mut]) then
+			b_tweaking = true
+			fuze.start(sl_mut)
+			b_tweaking = false
 		end
 	end
-	end
-    if b_m_tweak_AT then
-    sidechain_tweak(mutable[mut])
-    end
---    select.segs()
-  --  fuze.start(sl_mut)
     local sc_mut2 = get.score()
     if not more then
         if get.increase(sc_mut1, sc_mut2, sl_overall) then
@@ -1013,42 +1029,25 @@ do_ =
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
-    score.recent.save()
     if option == 1 then
-        work.step("s", 1, cl1)
+        if not b_tweaking then work.step("s", 1, cl1) end
         work.step("wa", 2, cl2)
         work.step("wa", 1, 1)
         work.step("s", 1, 1)
         work.step("wa", 1, cl2)
         work.step("wa", 2, 1)
     elseif option == 2 then
-        work.step("s", 1, cl1)
-        work.step("wa", 2, cl2)
         work.step("s", 1, 1)
-        work.step("wa", 3, 1)
-        score.recent.restore()
-    elseif option == 4 then
-        work.step("s", 1, cl_1)
         work.step("wa", 2, 1)
-        work.step("s", 1, cl_2)
-        work.step("wa", 2, 1)
-        if cl_3 ~= 0 then
-        work.step("s", 1, cl_3)
-        work.step("wa", 2, 1)
-        end
-        if cl_4 ~= 0 then
-        work.step("s", 1, cl_4)
-        work.step("wa", 2, 1)
-        end
     else
+	score.recent.save()
         if b_tweaking then work.step("wa", 2, 1) end
-        work.step("s", 1, cl1)
-        work.step("wa", 2, 1)
+        if work.step("s", 1, cl1) then work.step("wa", 2, 1) end
         if work.step("s", 1, cl2) then work.step("wa", 2, 1) end
         if work.step("s", 1, cl1 - 0.02) then work.step("wa", 2, 1) end
         if work.step("s", 1, 1) then work.step("wa", 2, 1) end
-    end -- if option
     score.recent.restore()
+    end -- if option
 end -- function
 
 local function _part(option, cl1, cl2)
@@ -1059,21 +1058,15 @@ local function _part(option, cl1, cl2)
 end -- function
 
 local function _start(slot)
-    p("Fuzing")
     sl_f = sl.request()
     local s_f1 = get.score()
     sl.save(sl_f)
-    if b_fuze_pf then
+    if b_fuze_pf and 1 > 0.8 or b_tweaking then
         fuze.part(1, 0.1, 0.6)
-    end
-    if b_fuze_bf then
+    elseif b_fuze_bf and 1 > 0.8 then
         fuze.part(3, 0.05, 0.07)
-    end
-    if b_fuze_qstab then
-        fuze.part(2, 0.1, 0.4)
-    end
-    if b_test2 then
-    fuze.part(4,0,0)
+    else
+        fuze.part(2)
     end
     sl.load(sl_f)
     local s_f2 = get.score()
@@ -1224,7 +1217,7 @@ local function _step(a, iter, cl, more)
         end
     end -- if a
     local _s2 = get.score()
-    if math.abs(_s1 - _s2) > 0.15 then
+    if _s1 - _s2 < -0.15 or _s1-_s2 > 0.15 then
         return true
     else
         return false
@@ -1269,7 +1262,7 @@ function _quake(ii)
         bands.enable()
     end -- if s3 < 0
     local s3 = math.floor(get.score() / 50 * i_pp_loss, 4)
-    local c_strength = 0.1 + 0.1 * i_pp_loss
+    local t_predictedStrength = 0.1 + 0.1 * i_pp_loss
     local cbands = get.bandcount()
     local quake = sl.request()
     if seg or r then
@@ -1280,13 +1273,13 @@ function _quake(ii)
     if b_pp then
         if b_pp_pre_local then
             s3 = math.floor(s3 * 4 / cbands, 4)
-            c_strength = math.floor(c_strength * 4 / cbands, 4)
+            t_predictedStrength = math.floor(t_predictedStrength * 4 / cbands, 4)
         end -- if
         if b_solo_quake then
             bands.disable()
             bands.enable(ii)
             s3 = math.floor(s3 * 2, 4)
-            c_strength = math.floor(c_strength * 2, 4)
+            t_predictedStrength = math.floor(t_predictedStrength * 2, 4)
         end -- if b_solo_quake
     end -- if b_pp
     if b_cu then
@@ -1295,24 +1288,24 @@ function _quake(ii)
     if s3 > 200 * i_pp_loss then
         s3 = 200 * i_pp_loss
     end -- if s3
-    if c_strength > 0.2 * i_pp_loss then
-        c_strength = 0.2 * i_pp_loss
-    end -- if c_strength
+    if t_predictedStrength > 0.2 * i_pp_loss then
+        t_predictedStrength = 0.2 * i_pp_loss
+    end -- if t_predictedStrength
     p("Pulling until a loss of more than " .. s3 .. " points")
     local s1 = get.score()
     repeat
-        p("Band strength: " .. c_strength)
+        p("Band strength: " .. t_predictedStrength)
         if b_solo_quake then
-            bands.strength(ii, c_strength)
+            bands.strength(ii, t_predictedStrength)
         else -- if b_solo
             for i = 1, cbands do
                 if bands.info[i][bands.part.enabled] then
-                    bands.strength(i, c_strength)
+                    bands.strength(i, t_predictedStrength)
                 end
             end -- for
         end -- if b_solo
         score.recent.save()
-        set.clashImportance(0.9)
+        set.clashImportance(1)
         wiggle.back_sel(1)
         sl.save(quake)
         score.recent.restore()
@@ -1323,13 +1316,13 @@ function _quake(ii)
         end -- if >
         sl.load(quake)
         local s2 = get.score()
-        c_strength = math.floor(c_strength * 2 - c_strength * 10 / 11, 4)
+        t_predictedStrength = math.floor(t_predictedStrength * 2 - t_predictedStrength * 10 / 11, 4)
         if b_pp_pre_local or b_cu or b_solo_quake then
-            c_strength = math.floor(c_strength * 2 - c_strength * 6 / 7, 4)
+            t_predictedStrength = math.floor(t_predictedStrength * 2 - t_predictedStrength * 6 / 7, 4)
         end -- if b_solo
-        if c_strength > 10 then
+        if t_predictedStrength > 10 then
             break
-        end -- if c_strength
+        end -- if t_predictedStrength
     until s1 - s2 > s3
     sl.release(quake)
 end -- function
@@ -1385,6 +1378,7 @@ local function _rebuild(trys, str)
         local re2 = re1
         while re1 == re2 do
             do_.rebuild(iter * str)
+            work.step("s", 1, 0, false)
             iter = iter + 1
             re2 = get.score()
             if iter > 10 then
@@ -1520,13 +1514,13 @@ local function _pl(_local, bandsp)
                 if hydro[y] then
                     if b_pp_area then
                         if distances[x][y] < i_pp_area_range then
-                                if get.checksame(x, y) then
-                                    bands.add(x, y)
-                                    if b_pp_soft then
-                                        local cband = get.bandcount()
-                                        bands.length(cband, distances[x][y] - i_pp_len)
-                                    end -- if b_pp_soft
-                                end -- if checksame
+                            if get.checksame(x, y) then
+                                bands.add(x, y)
+                                if b_pp_soft then
+                                    local cband = get.bandcount()
+                                    bands.length(cband, distances[x][y] - i_pp_len)
+                                end -- if b_pp_soft
+                            end -- if checksame
                         end -- distances < 5
                     else -- if b_pp_area
                         if math.random() < bandsp then
@@ -1552,18 +1546,18 @@ local function _strong(_local)
         local max_str = 0
         local min_dist = 999
         for ii = i + 2, i_segcount - 2 do
-            if max_str <= c_strength[i][ii] then
-                if max_str ~= c_strength[i][ii] then
+            if max_str <= t_predictedStrength[i][ii] then
+                if max_str ~= t_predictedStrength[i][ii] then
                     min_dist = 999
                 end -- if max_str ~=
-                max_str = c_strength[i][ii]
+                max_str = t_predictedStrength[i][ii]
                 if min_dist > distances[i][ii] then
                     min_dist = distances[i][ii]
                 end -- if min_dist
             end -- if max_str <=
         end -- for ii
         for ii = i + 2, i_segcount - 2 do
-            if c_strength[i][ii] == max_str and min_dist == distances[i][ii] then
+            if t_predictedStrength[i][ii] == max_str and min_dist == distances[i][ii] then
                 if get.checksame(i, ii) then
                     bands.addToSegs(i , ii)
                     if b_pp_soft then
@@ -1571,7 +1565,7 @@ local function _strong(_local)
                         bands.length(cband, distances[i][ii] - i_pp_len)
                     end -- if pp_soft
                 end -- if get.checksame
-            end -- if c_strength
+            end -- if t_predictedStrength
         end -- for ii
     end -- for i
 end -- function
@@ -1580,12 +1574,12 @@ local function _one(_seg)
     get.dists()
     local max_str = 0
     for ii = _seg + 2, i_segcount - 2 do
-        if max_str <= c_strength[_seg][ii] then
-            max_str = c_strength[_seg][ii]
+        if max_str <= t_predictedStrength[_seg][ii] then
+            max_str = t_predictedStrength[_seg][ii]
         end -- if max_str <=
     end -- for ii
     for ii = _seg + 2, i_segcount - 2 do
-        if c_strength[_seg][ii] == max_str then
+        if t_predictedStrength[_seg][ii] == max_str then
             if get.checksame(_seg, ii) then
                 bands.addToSegs(_seg , ii)
                 if b_pp_soft then
@@ -1593,7 +1587,7 @@ local function _one(_seg)
                     bands.length(cband, distances[_seg][ii] - i_pp_len)
                 end
             end
-        end -- if c_strength
+        end -- if t_predictedStrength
     end -- for ii
 end -- function
 
@@ -1813,58 +1807,58 @@ bonding =
 
 --#Snapping
 function snap()
+    b_tweaking = true
     b_sphering = true
-    snaps = sl.request()
+    sl_snaps = sl.request()
     cs = get.score()
     c_snap = cs
     local s_1
     local s_2
     local c_s
     local c_s2
-    sl.save(snaps)
+    sl.save(sl_snaps)
+    sidechain_tweak(seg)
+    get.increase(cs, get.score(), sl_snaps)
     iii = get.snapcount(seg)
     p("Snapcount: " .. iii .. " - segment " .. seg)
     if iii > 1 then
         snapwork = sl.request()
         ii = 1
         while ii <= iii do
-            sl.load(snaps)
+            sl.load(sl_snaps)
             c_s = get.score()
             c_s2 = c_s
-            p("Snap " .. ii .. "/ " .. iii)
             do_.snap(seg, ii)
             c_s2 = get.score()
             sl.save(snapwork)
-            select.segs(seg)
-            do_.freeze("s")
+            select.segs(true, seg)
             fuze.start(snapwork)
-            do_.unfreeze()
-            select.segs(seg)
-            fuze.start(snapwork)
-            if get.score ~= c_s2 then
-            work.step("wa", 1, 0.7)
-            work.step("wa", 2, 1)
-            end
-            sl.save(snapwork)
             if c_snap < get.score() then
                 c_snap = get.score()
-                sl.save(snaps)
+                sl.save(sl_snaps)
             end
             ii = ii + 1
         end
         sl.load(snapwork)
         sl.release(snapwork)
         if cs < c_snap then
-            sl.save(snaps)
+            sl.save(sl_snaps)
             c_snap = get.score()
         else
-            sl.load(snaps)
+            sl.load(sl_snaps)
         end
     else
         p("Skipping...")
     end
+    if cs < get.score() then
+    sl.load(sl_snaps)
+    else
+    sl.save(sl_snaps)
+    cs = get.score()
+    end
     b_sphering = false
-    sl.release(snaps)
+    b_tweaking = false
+    sl.release(sl_snaps)
     if mutated then
         s_snap = get.score()
         if s_mut < s_snap then
@@ -1879,12 +1873,12 @@ end
 --Snapping#
 
 --#Rebuilding
-function rebuild()
+function rebuild(tweaking_seg)
     local iter = 1
     b_sphering = true
     sl_re = sl.request()
     sl.save(sl_re)
-	while seg < 1 do
+    while seg < 1 do
         seg = seg + 1
     end
     while r > i_segcount do
@@ -1902,54 +1896,60 @@ function rebuild()
     end -- if r
     rs_0 = get.score()
     local sl_r = {}
-	local ii
+    local ii
     for ii = 1, i_re_trys do
         if not work.rebuild(i_max_rebuilds, i_rebuild_str) then
             sl.load(sl_re)
-    sl.release(sl_re)
-    b_sphering = false
+            sl.release(sl_re)
+            b_sphering = false
             if math.abs(seg - r) == 2 then
-            p("Detected rebuild length of 3; splitting to 2x2")
+                p("Detected rebuild length of 3; splitting to 2x2")
                 seg = seg + 1
                 rebuild()
                 seg = seg - 1
                 r = r - 1
                 rebuild()
             end
-			sl_r = nil
+            sl_r = nil
             return
         end
         sl_r[ii] = sl.request()
         sl.save(sl_r[ii])
     end
     set.clashImportance(1)
+    local slot
+    if b_mutating then
+        slot = sl_mut
+    else
+        slot = sl_overall
+    end
     for ii = 1, #sl_r do
         sl.load(sl_r[ii])
         sl.release(sl_r[ii])
-		sl_r[ii] = nil
-		if rs_1 ~= get.score() then
-        rs_1 = get.score()
-		if rs_1 ~= rs_0 then
-        p("Stabilize try "..ii)
-        bands.delete()
-        fuze.start(sl_re)
-        rs_2 = get.score()
-        if b_mutating then
-        if (sc_max - rs_2 ) < 30 then
-        sidechain_tweak(seg_mut)
+        sl_r[ii] = nil
+        if rs_1 ~= get.score() then
+            rs_1 = get.score()
+            if rs_1 ~= rs_0 then
+                p("Stabilize try "..ii)
+                fuze.start(sl_re)
+                rs_2 = get.score()
+                if (sc_max - rs_2 ) < 30 then
+                    if b_re_extreme_tweak then
+                        for i = seg, r do
+                            sidechain_tweak(i)
+                        end
+                    else
+                    sidechain_tweak(tweaking_seg)
+                    end
+                end
+                if get.increase(rs_0, rs_2, slot) then
+                    rs_0 = get.score()
+                end
+            end
         end
-        if get.increase(rs_0, rs_2, sl_mut) then
-            rs_0 = get.score()
-        end
-        else
-        if get.increase(rs_0, rs_2, sl_overall) then
-            rs_0 = get.score()
-        end
-        end
-		end
-		end
     end
-	sl_r = nil
+    sl.load(slot)
+    sl_r = nil
     sl.release(sl_re)
     b_sphering = false
 end -- function
@@ -2363,19 +2363,15 @@ function mutate()
     local i
     local ii
     get.dists()
-	local i_will_be = #mutable - 4
+    local i_will_be = #mutable - 5
     for i = i_will_be, 1, -1 do
         p("Mutating segment " .. mutable[i])
         sl.save(sl_overall)
         sc_mut = get.score()
-		local ii
+        local ii
         for ii = 1, #amino.segs do
-			local start = (ii - 1 +(i_will_be - i) *#amino.segs)
-			local stop = (#amino.segs - ii+ #amino.segs * (i - 1))
-			time_mod = stop / start
-			progress = math.floor(start / (i_will_be * #amino.segs), 3)
-			get.checkTime()
             do_.mutate(i, ii)
+            get.report(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
         end
         sl.load(sl_overall)
     end
@@ -2398,67 +2394,66 @@ function getNear(seg)
 end
 
 function sidechain_tweak(seg)
-b_tweaking = true
-    p("AT: Sidechain tweak")
-    sl_reset = sl.request()
-    sl.save(sl_reset)
-            deselect.all()  
-            select.segs(seg)
-            local ss=get.score()
-            g_total_score = get.score()
-            if work.step("s", 2, 0, false) then
-    sl_tweak_work = sl.request()
-    sl.save(sl_tweak_work)
-            p("Try sgmnt ", seg)
+    if aa[seg] ~= "a" or aa[seg] ~= "g" then
+		score.recent.save()
+        b_tweaking = true
+        sl_reset = sl.request()
+        sl.save(sl_reset)
+        deselect.all()  
+        select.segs(seg)
+        local ss = get.score()
+        g_total_score = get.score()
+        if work.step("s", 2, 0, false) then
+            p("AT: Sidechain tweak")
+            sl_tweak_work = sl.request()
+            sl.save(sl_tweak_work)
             select.segs(true, seg)
-            if (getNear(seg)==true) then
-    sl_tweak = sl.request()
+            if getNear(seg) then
+                sl_tweak = sl.request()
                 fuze.start(sl_tweak)
-            sl.release(sl_tweak)
+                sl.release(sl_tweak)
             end
             if ss < get.score() then
-            sl.save(sl_reset)
+                sl.save(sl_reset)
+                deselect.all()  
+                select.segs(seg)
+                local ss = get.score()
+                g_total_score = get.score()
+                work.step("s", 2, 0, false)
+                sl.save(sl_tweak_work)
+            else
+                sl.load(sl_tweak_work)
+            end
             deselect.all()  
             select.segs(seg)
             local ss=get.score()
             g_total_score = get.score()
-            work.step("s", 2, 0, false)
-            sl.save(sl_tweak_work)
-            else
-            sl.load(sl_tweak_work)
+            if get.score() > g_total_score - 30 then
+                p("AT: Sidechain tweak around")
+                select.segs(true, seg)
+                deselect.index(seg)
+                work.step("s", 1, 0.1, false)
+                select.index(seg)
+                if getNear(i) then
+                    sl_tweak = sl.request()
+                    fuze.start(sl_tweak)
+                    sl.release(sl_tweak)
+                end
+                if ss > get.score() then
+                    sl.load(sl_reset)
+                end
             end
-            deselect.all()  
-            select.segs(seg)
-            local ss=get.score()
-            g_total_score = get.score()
-            if(get.score() > g_total_score - 30) then
-            
-    p("AT: Sidechain tweak around")
-            select.segs(true, seg)
-            deselect.index(seg)
-            work.step("s", 1, 0.1, false)
-            select.index(seg)
-            if (getNear(i)==true) then
-    sl_tweak = sl.request()
-                fuze.start(sl_tweak)
-            sl.release(sl_tweak)
-            end
-            if ss > get.score() then
-            sl.load(sl_reset)
-            end
-            end
-            else
-            getNear(i)
-            sl_tweak = sl.request()
-            fuze.start(sl_tweak)
-            sl.release(sl_tweak)
-            if ss > get.score() then
-            sl.load(sl_reset)
-            end
-            end -- if work.step
-            sl.release(sl_reset)
-            sl.release(sl_tweak_work)
-            b_tweaking = false
+        else
+			bool = false
+		end		-- if work.step
+        sl.release(sl_reset)
+        sl.release(sl_tweak_work)
+        b_tweaking = false
+    else
+		bool = false
+	end
+	score.recent.restore()
+	return bool
 end
 
 i_s0 = get.score()
@@ -2482,15 +2477,12 @@ get.hydro()
 get.mutated()
 if b_predict then
     predict.getdata()
-end -- if b_predict
-save.SaveSecondaryStructure()
-if b_str_re then
+    save.SaveSecondaryStructure()
+elseif b_str_re then
     struct_rebuild()
-end -- if b_str_re
-if b_cu then
+elseif b_cu then
     struct_curler()
-end -- if b_cu
-if b_pp then
+elseif b_pp then
     if i_s0 < 0 then
         fuze.start(sl_overall)
     end
@@ -2500,13 +2492,11 @@ if b_pp then
         end
         dists()
     end -- for i
-end -- if b_pp
-if b_mutate then
+elseif b_mutate then
     sl_mut = sl.request()
     mutate()
     sl.release(sl_mut)
-end
-if b_rebuild then
+elseif b_rebuild then
     if b_worst_rebuild then
         get.worst(b_worst_len)
         p(seg .. " - " .. r)
@@ -2523,117 +2513,58 @@ if b_rebuild then
             rebuild()
         end
     end
-end
-for i = i_start_seg, i_end_seg do
-    seg = i
-    if b_snap then
-        snap()
-    end
-    for ii = i_start_walk, i_end_walk do
-        r = i + ii
-        if r > i_segcount then
-            r = i_segcount
-            break
-        end -- if r
-        if b_rebuild then
-            if b_re_walk then
-                select.segs()
-                set.ss("L")
-                rebuild()
-            end
-        end -- if b_rebuild
-        if b_lws then
-            p(seg .. "-" .. r)
-            work.flow("wl")
-        end -- if b_lws
-    end -- for ii
-end -- for i
-if b_fuze then
+elseif b_fuze then
+    p("Fuzing")
     fuze.start(sl_overall)
 end -- if b_fuze
+if b_rebuild or b_lws or b_snap then
+    for i = i_start_seg, i_end_seg do
+        seg = i
+        if b_snap then
+            snap()
+        end
+        for ii = i_start_walk, i_end_walk do
+            r = i + ii
+            if r > i_segcount then
+                r = i_segcount
+                break
+            end -- if r
+            if b_rebuild then
+                if b_re_walk then
+                    select.segs()
+                    set.ss("L")
+                    rebuild()
+                end
+            elseif b_lws then
+                p(seg .. "-" .. r)
+                work.flow("wl")
+            end -- if b_lws
+        end -- for ii
+        get.report(i_start_seg, i_end_seg, 1, i)
+    end -- for i
+end
+
 if b_test then
-if b_test1 then
-scoie=0
-for ii=1,70 do
-behavior.SetWiggleAccuracy(ii*0.1)
-p("Wiggle: " .. behavior.GetWiggleAccuracy())
-for iii=1,4 do
-reset.puzzle()
-sl.save(sl_overall)
-behavior.SetShakeAccuracy(iii)
-p("Shake: " .. behavior.GetShakeAccuracy())
-fuze.start(overall)
-sl.load(sl_overall)
-s_1 = get.score()
-if (s_1 - i_s0) > scoie then
-scoie = s_1 - i_s0
-bestw=ii*0.01
-bests=iii*0.01
-end
-p("Best: W:"..bestw.." S:"..bests.." Scores:"..scoie)
-end
-end
-end
-b_test2 = true
-if b_test2 then
-scoie=0
-for i=1,50 do
-if i < 10 then
-mod1 = 1
-elseif i < 30 then
-mod1 = 2
-else
-mod1 = 5
-end
-cl_1 = i*0.01*mod1
-for ii=1,50 do
-if ii < 10 then
-mod2 = 1
-elseif ii < 30 then
-mod2 = 2
-else
-mod2 = 5
-end
-cl_2 = ii*0.01*mod2
-for iii=1,100 do
-if iii < 10 then
-mod3 = 1
-elseif iii < 30 then
-mod3 = 2
-else
-mod3 = 5
-end
-cl_3 = iii*0.01*mod3
-while cl_4 < 1 do
-if iiii < 10 then
-mod4 = 1
-elseif iiii < 30 then
-mod4 = 2
-else
-mod4 = 5
-end
-cl_4 = iiii*0.01*mod4
-for x=0,2 do
-reset.puzzle()
-sl.save(sl_overall)
-p("1:"..cl_1.." 2:"..cl_2.." 3:"..cl_3.." 4:"..cl_4)
-fuze.start(sl_overall)
-sl.load(sl_overall)
-s_1 = get.score()
-if (s_1 - i_s0) > scoie then
-scoie = s_1 - i_s0
-bcl_1=cl_1
-bcl_2=cl_2
-bcl_3=cl_3
-bcl_4=cl_4
-end
-p("Best: cl1:"..bcl_1.." cl2:"..bcl_2.." cl3:"..bcl_3.." cl4:"..bcl_4.." Scores:"..scoie)
-end
-end
-end
-end
-end
-end
+    scoie=0
+    for ii=1,70 do
+        behavior.SetWiggleAccuracy(ii*0.1)
+        p("Wiggle: " .. behavior.GetWiggleAccuracy())
+        for iii=1,4 do
+            reset.puzzle()
+            sl.save(sl_overall)
+            behavior.SetShakeAccuracy(iii)
+            p("Shake: " .. behavior.GetShakeAccuracy())
+            fuze.start(overall)
+            sl.load(sl_overall)
+            s_1 = get.score()
+            if (s_1 - i_s0) > scoie then
+                scoie = s_1 - i_s0
+                bestw=ii*0.01
+                bests=iii*0.01
+            end
+            p("Best: W:"..bestw.." S:"..bests.." Scores:"..scoie)
+        end
+    end
 end
 sl.load(sl_overall)
 save.LoadSecondaryStructure()
@@ -2643,7 +2574,7 @@ p("+++ overall gain +++")
 p("+++" .. s_1 - i_s0 .. "+++")
 
 --old/unused function
-local function _HCI(a, b) -- hydropathy
+--[[local function _HCI(a, b) -- hydropathy
     return 20 - math.abs((amino.hydroscale(a) - amino.hydroscale(b)) * 19 / 10.6)
 end
 
@@ -2653,7 +2584,7 @@ end
 
 local function _CCI(a, b) -- charge
     return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
-end
+end]]
 
 --[[
 local ask = dialog.CreateDialog("Primary Settings")
