@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1230
+iVersion            = 1231
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = false
@@ -17,7 +17,7 @@ iReleaseVersion     = 5
 --#Settings: default
 --#Main                                     default         description
 isLocalWiggleEnabled        = false         -- false        do local wiggle and rewiggle
-isRebuildingEnabled         = false         -- false        rebuild | see #Rebuilding
+isRebuildingEnabled         = true         -- false        rebuild | see #Rebuilding
 isCompressingEnabled        = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 isStructureRebuildEnabled   = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 isCurlingEnabled            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
@@ -34,11 +34,11 @@ bExploringWork              = false         -- false        if true then the ove
 iStartSegment   = 1             -- 1                the first segment to work with
 iEndSegment     = iSegmentCount -- iSegmentCount    the last segment to work with
 iStartingWalk   = 1             -- 1                with how many segs shall we work - Walker
-iEndWalk        = 2             -- 3                starting at the current seg + iStartingWalk to seg + iEndWalk
+iEndWalk        = 3             -- 3                starting at the current seg + iStartingWalk to seg + iEndWalk
 --Working#
 
 --#LocalWiggle
-fScoreMustChange = 0.01         -- 0.01         an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos
+fScoreMustChange = 0.0001         -- 0.01         an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos
 --LocalWiggle#
 
 --#Mutating
@@ -97,7 +97,7 @@ iRebuildsTillSave                   = 1             -- 2            max rebuilds
 iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
 bRebuildInMutatingDeepRebuild       = true          -- true         rebuild length 3,4,5 else just 3
-bRebuildTweakWholeRebuild           = true          -- false        All Sidechains get tweaked after rebuild not just the one focusing in the rebuild | TODO: Start / End seg should be tweaked every time and in a rebuild just the inner segs should be tweaked -!!!- -!!- -!- outer segs should be ignored since they dont change much
+bRebuildTweakWholeRebuild           = false          -- false        All Sidechains get tweaked after rebuild not just the one focusing in the rebuild | TODO: Start / End seg should be tweaked every time and in a rebuild just the inner segs should be tweaked -!!!- -!!- -!- outer segs should be ignored since they dont change much
 --Rebuilding#
 
 --#Predicting
@@ -519,7 +519,7 @@ saveSlot =
 
 --#Internal functions
 --#Getters
-local function _dists()
+local function _distances()
     local i
     local j
     if bChanged then
@@ -596,11 +596,13 @@ local function _increase(sc1, sc2, slot, step)
     if sc2 > sc1 then
         sc = sc2 - sc1
         if slot == saveSlotOverall then
-            if sc2 > sc_max then
+        p(sc2.. ">" .. fMaxScore)
+            if sc2 > fMaxScore then
                 saveSlot.save(slot)
                 p("Gain: " .. sc)
-                sc_max = get.score()
-                p("==NEW=MAX=" .. sc_max .. "==")
+                fMaxScore = get.score()
+                p(fMaxScore)
+                p("==NEW=MAX=" .. fMaxScore .. "==")
             else -- if sc2
                 saveSlot.load(slot)
             end -- if sc2
@@ -630,6 +632,7 @@ local function _score()
     else -- if
         s = score.current.energyScore()
     end -- if
+    check.time()
     return s
 end -- function
 
@@ -841,24 +844,22 @@ local function _time()
         --else
         --    p("calculating approx. finish of this recipe")
         --end
-        p("==MAX SCORE=" .. sc_max .. "==")
+        p("==MAX SCORE=" .. fMaxScore .. "==")
     end
 end
 
 local function _report(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
-    if start2 == nil then
-        if iter1 == 1 then
-            fEstimatedTimeMod = (end1 - vari1) / vari1
-            fProgress = round(vari1 / end1 * 1000, 3)
-            check.time()
-        end -- if iter1
-    else -- if start2
+    if start2 then
         if iter1 == -1 then
             local start = (vari2 +(start1 - vari1) *end2)
             local stop = (end2 - vari2+ end2 * vari1)
             fEstimatedTimeMod = stop / start
-            fProgress = round(start / (start1 * end2) * 1000, 3)
-            check.time()
+            fProgress = round(start / (start1 * end2) * 100, 3)
+        end -- if iter1
+    else -- if start2
+        if iter1 == 1 then
+            fEstimatedTimeMod = (end1 - vari1) / vari1
+            fProgress = round(vari1 / end1 * 100, 3)
         end -- if iter1
     end -- if start2
 end -- function
@@ -961,9 +962,9 @@ local function _mutate(mut, aa, more)
                 end
             else
                 rebuild(mutable[mut])
-            end
-        else
-            seg = mutable[mut] - 1
+            end            
+        end
+        seg = mutable[mut] - 1
             r = seg + 2
             if not bRebuildInMutatingIgnoreStructures then
                 if ss[mutable[mut]] == "L" then
@@ -972,8 +973,9 @@ local function _mutate(mut, aa, more)
             else
                 rebuild(mutable[mut])
             end
-        end
     elseif bOptimizeSidechain then
+        seg = mutable[mut]
+        r = seg
         if not sidechain_tweak(mutable[mut]) then
             bTweaking = true
             fuze.start(sl_mut)
@@ -999,7 +1001,6 @@ do_ =
 
 --#Fuzing
 local function _loss(option, cl1, cl2)
-    score.recent.save()
     if option == 1 then
         if not bTweaking then work.step("s", 1, cl1) end
         work.step("wa", 2, cl2)
@@ -1017,7 +1018,6 @@ local function _loss(option, cl1, cl2)
         if work.step("s", 1, cl1 - 0.02) then work.step("wa", 2, 1) end
         if work.step("s", 1, 1) then work.step("wa", 2, 1) end
     end -- if option
-    score.recent.restore()
 end -- function
 
 local function _part(option, cl1, cl2)
@@ -1886,7 +1886,7 @@ function rebuild(tweaking_seg)
                 p("Stabilize try "..ii)
                 fuze.start(sl_re)
                 rs_2 = get.score()
-                if (sc_max - rs_2 ) < 30 then
+                if (fMaxScore - rs_2 ) < 30 then
                     if bRebuildTweakWholeRebuild then
                         for i = seg, r do
                             sidechain_tweak(i)
@@ -2347,8 +2347,9 @@ function getNear(seg)
 end
 
 function sidechain_tweak(seg)
+    score.recent.save()
     if aa[seg] ~= "a" or aa[seg] ~= "g" then
-    bool = true
+        bool = true
         bTweaking = true
         sl_reset = saveSlot.request()
         saveSlot.save(sl_reset)
@@ -2405,11 +2406,12 @@ function sidechain_tweak(seg)
     else
         bool = false
     end
+    score.recent.restore()
     return bool
 end
 
 i_s0 = get.score()
-sc_max = get.score()
+fMaxScore = get.score()
 saveSlotOverall = 1
 p("v" .. iVersion)
 if isReleaseVersion then
@@ -2485,7 +2487,7 @@ if isRebuildingEnabled or isLocalWiggleEnabled or isSnappingEnabled then
                 if bRebuildWalking then
                     select.segs()
                     set.ss("L")
-                    rebuild()
+                    rebuild(seg)
                 end
             elseif isLocalWiggleEnabled then
                 p(seg .. "-" .. r)
