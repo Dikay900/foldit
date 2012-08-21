@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1231
+iVersion            = 1232
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = false
@@ -88,11 +88,11 @@ bFuzingBlueFuze = true          -- true         Use Bluefuse
 --Snapping#
 
 --#Rebuilding
-bRebuildWorst                       = false         -- false        rebuild worst scored parts of the protein | NOT READY YET
-iWorstSegmentLength                 = 6
+bRebuildWorst                       = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+iWorstSegmentLength                 = 4
 iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
 bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
-bRebuildWalking                     = true          -- true         walk through the protein rebuilding every seg with different lengths of rebuilds
+bRebuildWalking                     = false          -- true         walk through the protein rebuilding every seg with different lengths of rebuilds
 iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
 iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
@@ -836,7 +836,7 @@ local function _time()
     if currentTime - timeStart > (60 + iTimeChecked*60) then
         iTimeChecked = iTimeChecked + 1
         local elapsedSecs = currentTime - timeStart
-        estimatedTime = math.floor(elapsedSecs * fEstimatedTimeMod + 0.5) - elapsedSecs
+        estimatedTime = math.floor(elapsedSecs * fEstimatedTimeMod + 0.5)
         p("Time elapsed: " .. get.formattedTime(elapsedSecs) .. "; Recipe finished ".. fProgress .. "%")
         --if estimatedTime > 0 then
         p("approx. time till that recipe is finished: " .. get.formattedTime(estimatedTime))
@@ -852,7 +852,7 @@ local function _report(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
     if start2 then
         if iter1 == -1 then
             local start = (vari2 +(start1 - vari1) *end2)
-            local stop = (end2 - vari2+ end2 * vari1)
+            local stop = (end2 - vari2 - 1+ (end2 - 1) * vari1)
             fEstimatedTimeMod = stop / start
             fProgress = round(start / (start1 * end2) * 100, 3)
         end -- if iter1
@@ -902,7 +902,7 @@ get =
 }
 --Getters#
 
---#Doers -- TODO: CODESTYLE vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+--#Doers
 local function _freeze(f)
     if f == "b" then
         freeze.FreezeSelected(true, false)
@@ -913,86 +913,8 @@ local function _freeze(f)
     end -- if
 end -- function
 
-local function _mutate(mut, aa, more)
-    local sc_mut1 = get.score()
-    local i
-    select.segs(mutable[mut])
-    set.aa(amino.segs[aa])
-    saveSlot.save(sl_mut)
-    check.aa()
-    p(#amino.segs - aa .. " Mutations left")
-    p("Mutating seg " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
-    if bMutateSurroundingAfter then
-        select.list(mutable)
-        deselect.index(mutable[mut])
-        for i = 1, #mutable do
-            local temp = false
-            if i ~= mut then
-                if tDistances[mutable[i]][mutable[mut]] then
-                    if tDistances[mutable[i]][mutable[mut]] > 10 then
-                        temp = true
-                    end
-                elseif tDistances[mutable[mut]][mutable[i]] > 10 then
-                    temp = true
-                end
-                if temp then
-                    deselect.index(mutable[i])
-                end
-            end
-        end
-        set.clashImportance(fClashingForMutating)
-        structure.MutateSidechainsSelected(1)
-    end
-    if bRebuildAfterMutating then
-        if bRebuildInMutatingDeepRebuild then
-            seg = mutable[mut] - 2
-            r = seg + 4
-            if not bRebuildInMutatingIgnoreStructures then
-                if ss[mutable[mut]] == "L" then
-                    rebuild(mutable[mut])
-                end
-            else
-                rebuild(mutable[mut])
-            end
-            seg = mutable[mut] - 2
-            r = seg + 3
-            if not bRebuildInMutatingIgnoreStructures then
-                if ss[mutable[mut]] == "L" then
-                    rebuild(mutable[mut])
-                end
-            else
-                rebuild(mutable[mut])
-            end            
-        end
-        seg = mutable[mut] - 1
-            r = seg + 2
-            if not bRebuildInMutatingIgnoreStructures then
-                if ss[mutable[mut]] == "L" then
-                    rebuild(mutable[mut])
-                end
-            else
-                rebuild(mutable[mut])
-            end
-    elseif bOptimizeSidechain then
-        seg = mutable[mut]
-        r = seg
-        if not sidechain_tweak(mutable[mut]) then
-            bTweaking = true
-            fuze.start(sl_mut)
-            bTweaking = false
-        end
-    end
-    local sc_mut2 = get.score()
-    if not more then
-        if check.increase(sc_mut1, sc_mut2, saveSlotOverall) then
-        end
-    end
-end -- function
-
 do_ =
 {   freeze      = _freeze,
-    mutate      = _mutate,
-    -- renaming
     rebuild     = structure.RebuildSelected,
     snap        = rotamer.SetRotamer,
     unfreeze    = freeze.UnfreezeAll
@@ -1858,10 +1780,10 @@ function rebuild(tweaking_seg)
             if math.abs(seg - r) == 2 then
                 p("Detected rebuild length of 3; splitting to 2x2")
                 seg = seg + 1
-                rebuild()
+                rebuild(tweaking_seg)
                 seg = seg - 1
                 r = r - 1
-                rebuild()
+                rebuild(tweaking_seg)
             end
             sl_r = nil
             return
@@ -1887,7 +1809,7 @@ function rebuild(tweaking_seg)
                 fuze.start(sl_re)
                 rs_2 = get.score()
                 if (fMaxScore - rs_2 ) < 30 then
-                    if bRebuildTweakWholeRebuild then
+                    if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops then
                         for i = seg, r do
                             sidechain_tweak(i)
                         end
@@ -2323,13 +2245,90 @@ function mutate()
         sc_mut = get.score()
         local ii
         for ii = 1, #amino.segs do
-            do_.mutate(i, ii)
+           mutate2(i, ii)
             get.report(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
         end
         saveSlot.load(saveSlotOverall)
     end
     bMutating = false
 end
+
+function mutate2(mut, aa, more)
+    local sc_mut1 = get.score()
+    local i
+    select.segs(mutable[mut])
+    set.aa(amino.segs[aa])
+    saveSlot.save(sl_mut)
+    check.aa()
+    p(#amino.segs - aa .. " Mutations left")
+    p("Mutating seg " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
+    if bMutateSurroundingAfter then
+        select.list(mutable)
+        deselect.index(mutable[mut])
+        for i = 1, #mutable do
+            local temp = false
+            if i ~= mut then
+                if tDistances[mutable[i]][mutable[mut]] then
+                    if tDistances[mutable[i]][mutable[mut]] > 10 then
+                        temp = true
+                    end
+                elseif tDistances[mutable[mut]][mutable[i]] > 10 then
+                    temp = true
+                end
+                if temp then
+                    deselect.index(mutable[i])
+                end
+            end
+        end
+        set.clashImportance(fClashingForMutating)
+        structure.MutateSidechainsSelected(1)
+    end
+    if bRebuildAfterMutating then
+        if bRebuildInMutatingDeepRebuild then
+            seg = mutable[mut] - 2
+            r = seg + 4
+            if not bRebuildInMutatingIgnoreStructures then
+                if ss[mutable[mut]] == "L" then
+                    rebuild(mutable[mut])
+                end
+            else
+                rebuild(mutable[mut])
+            end
+            seg = mutable[mut] - 2
+            r = seg + 3
+            if not bRebuildInMutatingIgnoreStructures then
+                if ss[mutable[mut]] == "L" then
+                    rebuild(mutable[mut])
+                end
+            else
+                rebuild(mutable[mut])
+            end            
+        end
+        seg = mutable[mut] - 1
+            r = seg + 2
+            if not bRebuildInMutatingIgnoreStructures then
+                if ss[mutable[mut]] == "L" then
+                    rebuild(mutable[mut])
+                end
+            else
+                rebuild(mutable[mut])
+            end
+    elseif bOptimizeSidechain then
+        seg = mutable[mut]
+        r = seg
+        if not sidechain_tweak(mutable[mut]) then
+            bTweaking = true
+            fuze.start(sl_mut)
+            bTweaking = false
+        end
+    end
+    local sc_mut2 = get.score()
+    if not more then
+        if check.increase(sc_mut1, sc_mut2, saveSlotOverall) then
+        end
+    end
+end -- function
+
 --Mutate#
 
 function getNear(seg)
@@ -2456,7 +2455,7 @@ elseif isRebuildingEnabled then
         p(seg .. " - " .. r)
         select.segs(seg, r)
         set.ss("L")
-        rebuild()
+        rebuild(seg)
     end
     if bRebuildLoops then
         check.struct()
@@ -2464,7 +2463,7 @@ elseif isRebuildingEnabled then
             seg = lo[i][1]
             r = lo[i][#lo[i]]
             p(seg .. " - " .. r)
-            rebuild()
+            rebuild(seg)
         end
     end
 elseif isFuzingEnabled then
