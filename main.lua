@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1232
+iVersion            = 1236
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = false
@@ -17,16 +17,15 @@ iReleaseVersion     = 5
 --#Settings: default
 --#Main                                     default         description
 isLocalWiggleEnabled        = false         -- false        do local wiggle and rewiggle
-isRebuildingEnabled         = true         -- false        rebuild | see #Rebuilding
+isRebuildingEnabled         = false         -- false        rebuild | see #Rebuilding
 isCompressingEnabled        = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 isStructureRebuildEnabled   = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 isCurlingEnabled            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 isSnappingEnabled           = false         -- false        should we snap every sidechain to different positions
-isFuzingEnabled             = false         -- false        should we fuze | see #Fuzing
+isFuzingEnabled             = true         -- false        should we fuze | see #Fuzing
 isMutatingEnabled           = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 isPredictingEnabled         = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 --isEvolutionEnabled                                        TODO: IDEA to fully automatic random methods -- rebuilding/pushing/pulling
-bSpheredWork                = false         -- false        work with a sphere always, can be used on lws and rebuilding walker
 bExploringWork              = false         -- false        if true then the overall score will be taken if a exploration puzzle, if false then just the stability score is used for the methods
 --Main#
 
@@ -34,7 +33,7 @@ bExploringWork              = false         -- false        if true then the ove
 iStartSegment   = 1             -- 1                the first segment to work with
 iEndSegment     = iSegmentCount -- iSegmentCount    the last segment to work with
 iStartingWalk   = 1             -- 1                with how many segs shall we work - Walker
-iEndWalk        = 3             -- 3                starting at the current seg + iStartingWalk to seg + iEndWalk
+iEndWalk        = 3             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
 --Working#
 
 --#LocalWiggle
@@ -51,31 +50,31 @@ fClashingForMutating    = 0.75  -- 0.75         cl for mutating
 
 --#Pull                                         default     description
 iCompressingTrys                    = 1         -- 1        how often should the pull start over?
-fCompressingLoss                    = 0.1       -- 1        the score / 100 * fCompressingLoss is the general formula for calculating the points we must lose till we fuze
+fCompressingLoss                    = 1         -- 1        the score / 100 * fCompressingLoss is the general formula for calculating the points we must lose till we fuze
 bMutateAfterCompressing             = false
 bCompressingConsiderStructure       = true      -- true     don't band segs of same structure together if segs are in one struct (between one helix or sheet)
-fCompressingBondingPercentage       = 0.1       -- 0.08
+fCompressingBondingPercentage       = 0.08      -- 0.08
 iCompressingBondingLength           = 4
 bCompressingFixxedBonding           = false     -- false
 iCompressingFixxedStartSegment      = 54        -- 0
 iCompressingFixxedEndSegment        = 57        -- 0
 bCompressingSoftBonding             = false
 bCompressingFuze                    = true
-bCompressingSoloBonding             = false     -- false    just one seg is used on every method and all segs are tested
+bCompressingSoloBonding             = false     -- false    just one segment is used on every method and all segs are tested
 bCompressingLocalBonding            = false     -- false
 --Methods
 bCompressingPredictedBonding        = false     -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-bCompressingPredictedLocalBonding   = false     -- false
+bCompressingPredictedLocalBonding   = false     -- false    TODO: check if there are bands
 bCompressingEvolutionBonding        = false     -- true
 iCompressingEvolutionRounds         = 10
-bCompressingPushPull                = false     -- true
-bCompressingPull                    = false     -- true     hydrophobic segs are pulled together
+bCompressingPushPull                = true     -- true
+bCompressingPull                    = true     -- true     hydrophobic segs are pulled together
 -- TODO: First Push out then pull in -- test vs combined push,pull
-bCompressingCenterPushPull          = false     -- true
-bCompressingCenterPull              = false     -- true     hydrophobic segs are pulled to the center segment
+bCompressingCenterPushPull          = true     -- true
+bCompressingCenterPull              = true     -- true     hydrophobic segs are pulled to the center segment
 -- TODO: IDEA (ErichVanSterich: 'alternate(pictorial) work') creating herds for 'center' like working
 bCompressingVibrator                = false     -- false
-bCompressingRefineBonds             = true      -- false    pulls already bonded segments to maybe strengthen them | TODO: Maybe put into curler
+bCompressingRefineBonds             = false      -- false    pulls already bonded segments to maybe strengthen them | TODO: Maybe put into curler
 --Pull
 
 --#Fuzing
@@ -88,16 +87,16 @@ bFuzingBlueFuze = true          -- true         Use Bluefuse
 --Snapping#
 
 --#Rebuilding
-bRebuildWorst                       = true         -- false        rebuild worst scored parts of the protein | NOT READY YET
+bRebuildWorst                       = false         -- false        rebuild worst scored parts of the protein | TODO: Do it some times with table of worst segments from worst to best
 iWorstSegmentLength                 = 4
 iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
 bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
-bRebuildWalking                     = false          -- true         walk through the protein rebuilding every seg with different lengths of rebuilds
+bRebuildWalking                     = false         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
 iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
 iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
 bRebuildInMutatingDeepRebuild       = true          -- true         rebuild length 3,4,5 else just 3
-bRebuildTweakWholeRebuild           = false          -- false        All Sidechains get tweaked after rebuild not just the one focusing in the rebuild | TODO: Start / End seg should be tweaked every time and in a rebuild just the inner segs should be tweaked -!!!- -!!- -!- outer segs should be ignored since they dont change much
+bRebuildTweakWholeRebuild           = false          -- false       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
 --Rebuilding#
 
 --#Predicting
@@ -129,7 +128,7 @@ timeStart           = os.time()
 iTimeChecked        = 0
 fEstimatedTimeMod   = 1
 fProgress           = 0
-bDoSpheredWork      = false                 -- TODO: combine or split with bSpheredWork
+bSpheredFuzing      = false
 bMutating           = false
 bTweaking           = false
 tSelectedSegments   = {}
@@ -156,18 +155,18 @@ reset =
 --General#
 
 --#Bonding
-local function _addToSegs(seg1, seg2)
-    local count = band.AddBetweenSegments(seg1, seg2 --[[integer atomIndex1], [integer atomIndex2]])
+local function _addToSegs(segment1, segment2)
+    local count = band.AddBetweenSegments(segment1, segment2 --[[integer atomIndex1], [integer atomIndex2]])
     if count ~= nil then
-        bands.info[count] = {3.5, 1, seg1, seg2, true}
+        bands.info[count] = {3.5, 1, segment1, segment2, true}
         return true
     else
         return false
     end
 end
 
-local function _addToArea(seg, x, y , length, theta, phi)
-    local count = band.Add(seg, x, y, length, theta, phi)
+local function _addToArea(segment, x, y , length, theta, phi)
+    local count = band.Add(segment, x, y, length, theta, phi)
     if count ~= nil then
         bands.info[count] = {3.5, 1, x, y, true}
         return true
@@ -302,7 +301,7 @@ local function _selectedBackbone(a)
 end
 
 wiggle =
-{   -- renaming
+{
     shake                   = structure.ShakeSidechainsAll,
     shakeSelected           = structure.ShakeSidechainsSelected,
     localAll                = _localAll,
@@ -320,8 +319,26 @@ wiggle =
 }
 --Wiggle#
 
+local function _segs(left, right)
+    if left < 1 then
+        left = 1
+    end
+    workingSegmentLeft = left
+    if right ~= nil then
+        if right > iSegmentCount then
+            right = iSegmentCount
+        end
+        workingSegmentRight = right
+    else
+        workingSegmentRight = left
+    end
+    get.midTable(left, right)
+--    get.rangeTable(left, right)
+end
+
 set =
 {
+    segs            = _segs,
     _ss             = structure.SetSecondaryStructure,
     ss              = structure.SetSecondaryStructureSelected,
     _aa             = structure.SetAminoAcid,
@@ -332,7 +349,7 @@ set =
 }
 
 score =
-{   -- renaming
+{
     current =
     {
         energyScore         = current.GetEnergyScore,
@@ -384,40 +401,40 @@ end
 --Optimizing#
 
 --#Amino
-local function _short(seg)
-    return amino.table[aa[seg]][amino.part.short]
+local function _short(segment)
+    return amino.table[aa[segment]][amino.part.short]
 end
 
-local function _abbrev(seg)
-    return amino.table[aa[seg]][amino.part.abbrev]
+local function _abbrev(segment)
+    return amino.table[aa[segment]][amino.part.abbrev]
 end
 
-local function _long(seg)
-    return amino.table[aa[seg]][amino.part.longname]
+local function _long(segment)
+    return amino.table[aa[segment]][amino.part.longname]
 end
 
-local function _h(seg)
-    return amino.table[aa[seg]][amino.part.hydro]
+local function _h(segment)
+    return amino.table[aa[segment]][amino.part.hydro]
 end
 
-local function _hscale(seg)
-    return amino.table[aa[seg]][amino.part.scale]
+local function _hscale(segment)
+    return amino.table[aa[segment]][amino.part.scale]
 end
 
-local function _pref(seg)
-    return amino.table[aa[seg]][amino.part.pref]
+local function _pref(segment)
+    return amino.table[aa[segment]][amino.part.pref]
 end
 
-local function _mol(seg)
-    return amino.table[aa[seg]][amino.part.mol]
+local function _mol(segment)
+    return amino.table[aa[segment]][amino.part.mol]
 end
 
-local function _pl(seg)
-    return amino.table[aa[seg]][amino.part.pl]
+local function _pl(segment)
+    return amino.table[aa[segment]][amino.part.pl]
 end
 
-local function _vdw_radius(seg)
-    return (amino.table[aa[seg]][amino.part.vdw_vol] * 3 / 4 / 3.14159) ^ (1 / 3)
+local function _vdw_radius(segment)
+    return (amino.table[aa[segment]][amino.part.vdw_vol] * 3 / 4 / 3.14159) ^ (1 / 3)
 end
 
 amino =
@@ -502,7 +519,6 @@ local function _release(slot)
 end
 
 local function _request()
-    assert(#tSaveSlots > 0, "Out of save slots")
     local slot = tSaveSlots[#tSaveSlots]
     tSaveSlots[#tSaveSlots] = nil
     return slot
@@ -534,23 +550,23 @@ local function _distances()
     end -- if bChanged
 end -- function
 
-local function _sphere(seg, radius)
+local function _sphere(segment, radius)
     local tSphere = {}
     check.distances()
     local i
     local temp
-    local segment
+    local temp2
     for i = 1, iSegmentCount do
-        if seg ~= i then
-            segment = seg
+        if segment ~= i then
+            temp2 = segment
             temp = i
-            if temp > seg then
-                temp, segment = seg, i
+            if temp > segment then
+                temp, temp2 = segment, i
             end -- if temp
-            if tDistances[temp][segment] <= radius and not tSelectedSegments[i] then
+            if tDistances[temp][temp2] <= radius and not tSelectedSegments[i] then
                 tSphere[#tSphere + 1] = i
             end -- if tDistances
-        end -- if seg
+        end -- if segment
     end -- for i
     return tSphere
 end -- function
@@ -581,8 +597,8 @@ local function _center()
 end -- function
 
 local function _segs()
-    start = seg
-    _end = r
+    start = workingSegmentLeft
+    _end = workingSegmentRight
 end
 
 local function _increase(sc1, sc2, slot, step)
@@ -596,12 +612,38 @@ local function _increase(sc1, sc2, slot, step)
     if sc2 > sc1 then
         sc = sc2 - sc1
         if slot == saveSlotOverall then
-        p(sc2.. ">" .. fMaxScore)
             if sc2 > fMaxScore then
                 saveSlot.save(slot)
                 p("Gain: " .. sc)
                 fMaxScore = get.score()
-                p(fMaxScore)
+                p("==NEW=MAX=" .. fMaxScore .. "==")
+            else -- if sc2
+                saveSlot.load(slot)
+            end -- if sc2
+        else
+            saveSlot.save(slot)
+        end -- if slot
+        return true
+    else -- if sc2 >
+        saveSlot.load(slot)
+        return false
+    end -- if sc2 >
+end -- function
+
+local function _increase2(sectionEnd, slot, step)
+    if step then
+        if sectionEnd < step then
+            saveSlot.load(slot)
+            return
+        end -- if sc2
+    end -- if step
+    if sectionEnd > 0 then
+        if slot == saveSlotOverall then
+            local currentScore = get.score()
+            if currentScore > fMaxScore then
+                saveSlot.save(slot)
+                p("Gain: " .. sectionEnd)
+                fMaxScore = currentScore
                 p("==NEW=MAX=" .. fMaxScore .. "==")
             else -- if sc2
                 saveSlot.load(slot)
@@ -632,7 +674,6 @@ local function _score()
     else -- if
         s = score.current.energyScore()
     end -- if
-    check.time()
     return s
 end -- function
 
@@ -801,11 +842,11 @@ local function _worst(len)
     end -- for ii
     for i = 1, iSegmentCount - len + 1 do
         if segs[i] < worst then
-            seg = i
+            worstSegment = i
             worst = segs[i]
         end -- if s
     end -- for i
-    r = seg + len - 1
+    set.segs(worstSegment, worstSegment + len - 1)
 end
 
 local function _formatTime(secs)
@@ -838,12 +879,12 @@ local function _time()
         local elapsedSecs = currentTime - timeStart
         estimatedTime = math.floor(elapsedSecs * fEstimatedTimeMod + 0.5)
         p("Time elapsed: " .. get.formattedTime(elapsedSecs) .. "; Recipe finished ".. fProgress .. "%")
-        --if estimatedTime > 0 then
-        p("approx. time till that recipe is finished: " .. get.formattedTime(estimatedTime))
-        p(os.date("Recipe will be approx. finished: %a, %c", estimatedTime + currentTime))
-        --else
-        --    p("calculating approx. finish of this recipe")
-        --end
+        if estimatedTime ~= elapsedSecs then
+            p("approx. time till that recipe is finished: " .. get.formattedTime(estimatedTime))
+            p(os.date("Recipe will be approx. finished: %a, %c", estimatedTime + currentTime))
+        else
+            p("calculating approx. finish of this recipe")
+        end
         p("==MAX SCORE=" .. fMaxScore .. "==")
     end
 end
@@ -862,12 +903,33 @@ local function _report(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
             fProgress = round(vari1 / end1 * 100, 3)
         end -- if iter1
     end -- if start2
+    check.time()
 end -- function
+
+local function _midTable(left, right)
+    while right > left do
+        right = right - 1
+        left = left + 1
+    end
+    tWorkingMiddleSegs = {}
+    if right == left then
+        tWorkingMiddleSegs[1] = right 
+    end
+end
+
+local function _rangeTable(left, right)
+    local i
+    tWorkingSegs = {}
+    for i = left, right do
+        tWorkingSegs[#tWorkingSegs+1] = i
+    end
+end
 
 check =
 {
     distances   = _distances,
     increase    = _increase,
+    increaseNew = _increase2,
     mutable     = _mutable,
     ss          = _ss,
     aa          = _aa,
@@ -880,7 +942,10 @@ check =
 }
 
 get =
-{   
+{
+    midTable        = _midTable,
+    rangeTable      = _rangeTable,
+    mid             = _mid,
     formattedTime   = _formatTime,
     sphere          = _sphere,
     center          = _center,
@@ -924,47 +989,45 @@ do_ =
 --#Fuzing
 local function _loss(option, cl1, cl2)
     if option == 1 then
-        if not bTweaking then work.step("s", 1, cl1) end
-        work.step("wa", 2, cl2)
-        work.step("wa", 1, 1)
-        work.step("s", 1, 1)
-        work.step("wa", 1, cl2)
-        work.step("wa", 2, 1)
+        if not bTweaking then work.step("s", 1, cl1, bSpheredFuzing) end
+        work.step("wa", 2, cl2, bSpheredFuzing)
+        work.step("wa", 1, 1, bSpheredFuzing)
+        work.step("s", 1, 1, bSpheredFuzing)
+        work.step("wa", 1, cl2, bSpheredFuzing)
+        work.step("wa", 2, 1, bSpheredFuzing)
     elseif option == 2 then
-        work.step("s", 1, 1)
-        work.step("wa", 2, 1)
+        work.step("s", 1, 1, bSpheredFuzing)
+        work.step("wa", 2, 1, bSpheredFuzing)
     else
-        if bTweaking then work.step("wa", 2, 1) end
-        if work.step("s", 1, cl1) then work.step("wa", 2, 1) end
-        if work.step("s", 1, cl2) then work.step("wa", 2, 1) end
-        if work.step("s", 1, cl1 - 0.02) then work.step("wa", 2, 1) end
-        if work.step("s", 1, 1) then work.step("wa", 2, 1) end
-    end -- if option
-end -- function
+        if bTweaking then work.step("wa", 2, 1, bSpheredFuzing) end
+        if work.step("s", 1, cl1, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+        if work.step("s", 1, cl2, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+        if work.step("s", 1, cl1 - 0.02, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+        if work.step("s", 1, 1, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+    end
+end
 
 local function _part(option, cl1, cl2)
-    local s_f1 = get.score()
+    report.start("Fuzing Part") 
     fuze.loss(option, cl1, cl2)
-    local s_f2 = get.score()
-    check.increase(s_f1, s_f2, sl_f)
-end -- function
+    check.increaseNew(report.stop(), sl_f)
+end
 
 local function _start(slot)
     sl_f = saveSlot.request()
-    local s_f1 = get.score()
+    report.start("Fuzing Complete")
     saveSlot.save(sl_f)
-    if bFuzingPinkFuze and 1 > 0.8 or bTweaking then
+    if bFuzingPinkFuze or bTweaking then
         fuze.part(1, 0.1, 0.6)
-    elseif bFuzingBlueFuze and 1 > 0.8 then
+    elseif bFuzingBlueFuze then
         fuze.part(3, 0.05, 0.07)
     else
         fuze.part(2)
     end
     saveSlot.load(sl_f)
-    local s_f2 = get.score()
     saveSlot.release(sl_f)
-    check.increase(s_f1, s_f2, slot)
-end -- function
+    check.increaseNew(report.end(), slot)
+end
 
 fuze =
 {   loss    =   _loss,
@@ -991,7 +1054,7 @@ local function _segs(sphered, start, _end, more)
         deselect.all()
     end -- if more
     if start then
-        if sphered or bSpheredWork then
+        if sphered then
             local list1
             if _end then
                 if start ~= _end then
@@ -1007,6 +1070,7 @@ local function _segs(sphered, start, _end, more)
             end -- if _end
             list1 = get.sphere(start, 10)
             select.list(list1)
+            select.index(start)
         elseif _end and start ~= _end then
             if start > _end then
                 start, _end = _end, start
@@ -1020,10 +1084,15 @@ local function _segs(sphered, start, _end, more)
     end -- if start
 end -- function
 
-local function _list(_list)
+local function _list(_list, sphered)
     local i
+    local list1
     if _list then
         for i = 1, #_list do
+            if sphered then
+                list1 = get.sphere(_list[i], 10)
+                select.list(list1)
+            end -- for i
             select.index(_list[i])
         end -- for
     end -- if _list
@@ -1067,10 +1136,10 @@ select =
     all     = _all
 }
 
-local function _deindex(seg)
-    if tSelectedSegments[seg] then
-        selection.Deselect(seg)
-        tSelectedSegments[seg] = false
+local function _deindex(segment)
+    if tSelectedSegments[segment] then
+        selection.Deselect(segment)
+        tSelectedSegments[segment] = false
     end
 end
 
@@ -1079,31 +1148,42 @@ local function _deall()
     tSelectedSegments = {}
 end
 
+local function _delist(list)
+    local i
+    for i = 1, #list do
+        tSelectedSegments[list[i]] = false
+        selection.Deselect(list[i])
+    end
+end
+
 deselect =
 {
     index   = _deindex,
-    all     = _deall
+    all     = _deall,
+    list    = _delist
 }
 --Universal select#
 
 --#working
-local function _step(a, iter, cl, more)
+local function _step(a, iter, cl, sphered)
     local s1
     local s2
-    if more ~= false then
-    if a == "s" then
-        if bDoSpheredWork or bMutating then
-            select.segs(true, seg, r)
-        else -- if bDoSpheredWork
-            select.segs()
-        end -- if bDoSpheredWork
-    else -- if a
-        if bSpheredWork or bMutating then
-            select.segs(true, seg, r)
-        end
-        bChanged = true
-    end -- if a
+    if (cl == true or cl == false) and sphered == nil then
+        sphered = cl
+        cl = nil
+    end
+    if sphered == nil then
+        select.segs()
+    elseif sphered ~= 0 then
+        if sphered then
+            select.segs(true, workingSegmentLeft, workingSegmentRight)
+        else -- if sphered
+            select.segs(workingSegmentLeft, workingSegmentRight)
+        end -- if sphered
     end -- if
+    if a ~= "s" then
+        bChanged = true
+    end
     if cl then
         set.clashImportance(cl)
     end
@@ -1117,7 +1197,7 @@ local function _step(a, iter, cl, more)
     elseif a == "ws" then
         wiggle.selectedSidechains(iter)
     elseif a == "wl" then
-        select.segs(seg, r)
+        select.segs(workingSegmentLeft, workingSegmentRight)
         score.recent.save()
         s1 = get.score()
         wiggle.localSelected(iter)
@@ -1127,7 +1207,7 @@ local function _step(a, iter, cl, more)
         end
     end -- if a
     local _s2 = get.score()
-    if _s1 - _s2 < -0.15 or _s1-_s2 > 0.15 then
+    if math.abs(_s2 - _s1) > 0.05 then
         return true
     else
         return false
@@ -1135,15 +1215,9 @@ local function _step(a, iter, cl, more)
 end -- function
 
 local function _flow(a, more)
-    local ws_1 = get.score()
+    report.start("WorkFlow")
     local iter = 0
-    if bDoSpheredWork then
-        slot = sl_re
-    elseif bMutating then -- if
-        slot = sl_mut
-    else
-        slot = saveSlotOverall
-    end -- if
+    slot = saveSlotOverall
     work_sl = saveSlot.request()
     repeat
         iter = iter + 1
@@ -1165,7 +1239,7 @@ local function _flow(a, more)
     end -- if <
     saveSlot.release(work_sl)
     if not more then
-        check.increase(ws_1, s1, slot, fScoreMustChange)
+        check.increaseNew(report.end(), slot, fScoreMustChange)
     end -- if not more
 end -- function
 
@@ -1179,11 +1253,11 @@ function _quake(ii)
     local tPredictedStrength = 0.1 + 0.1 * fCompressingLoss
     local cbands = get.bandcount()
     local quake = saveSlot.request()
-    if seg or r then
-        select.segs(seg, r)
-    else -- if seg
+    if workingSegmentLeft or workingSegmentRight then
+        select.segs(workingSegmentLeft, workingSegmentRight)
+    else -- if workingSegmentLeft
         select.segs()
-    end -- if seg
+    end -- if workingSegmentLeft
     if isCompressingEnabled then
         if bCompressingPredictedLocalBonding then
             s3 = round(s3 * 4 / cbands, 4)
@@ -1243,15 +1317,14 @@ end -- function
 
 local function _dist()
     select.segs()
-    local ps_1 = get.score()
     saveSlot.save(saveSlotOverall)
     dist = saveSlot.request()
     local bandcount = get.bandcount()
     if bCompressingSoloBonding then
         p("Solo quaking enabled")
-        bDoSpheredWork = true
+        bSpheredFuzing = true
         for ii = 1, bandcount do
-            ps_1 = get.score()
+            report.start("Solo Work")
             saveSlot.save(dist)
             work.quake(ii)
             if bMutateAfterCompressing then
@@ -1264,11 +1337,11 @@ local function _dist()
             else
                 work.step("wa", 3)
             end
-            ps_2 = get.score()
-            check.increase(ps_1, ps_2, saveSlotOverall)
+            check.increaseNew(report.end(), saveSlotOverall)
         end -- for ii
-        bDoSpheredWork = false
+        bSpheredFuzing = false
     else -- if bCompressingSoloBonding
+        report.start("Compressing Work")
         saveSlot.save(dist)
         work.quake()
         bands.disable()
@@ -1277,9 +1350,8 @@ local function _dist()
         else
             work.step("wa", 3)
         end
-        ps_2 = get.score()
         if not bEvolutionIsWorking then
-            check.increase(ps_1, ps_2, saveSlotOverall)
+            check.increaseNew(report.end(), saveSlotOverall)
         end
     end -- if bCompressingSoloBonding
     saveSlot.release(dist)
@@ -1290,11 +1362,12 @@ local function _rebuild(trys, str)
     for i = 1, trys do
         local re1 = get.score()
         local re2 = re1
-        while re1 == re2 do
+        while math.abs(re2 - re1) < 1 do
             do_.rebuild(iter * str)
-            work.step("s", 1, 0, false)
-            iter = iter + 1
             re2 = get.score()
+            work.step("s", 1, 1, 0)
+            set.clashImportance(0)
+            iter = iter + 1
             if iter > 10 then
             p("Rebuilding aborted! Backbone unrebuildable")
             return false
@@ -1320,7 +1393,7 @@ work =
 local function _cpl(_local)
     local indexCenter = get.center()
     get.segs()
-    for i = start, _end do
+    for i = 1, iSegmentCount do
         if i ~= indexCenter then
             local x = i
             local y = indexCenter
@@ -1328,7 +1401,7 @@ local function _cpl(_local)
                 x, y = y, x
             end -- if x
             if hydro[i] then
-                if get.checksame(x, y) then
+                if check.same(x, y) then
                     bands.addToSegs(x, y)
                     if bCompressingSoftBonding then
                         local cband = get.bandcount()
@@ -1344,7 +1417,7 @@ local function _cps(_local)
     local indexCenter = get.center()
     get.segs()
     check.distances()
-    for i = start, _end do
+    for i = 1, iSegmentCount do
         if i ~= indexCenter then
             local x = i
             local y = indexCenter
@@ -1353,7 +1426,7 @@ local function _cps(_local)
             end -- if x
             if not hydro[i] then
                 if tDistances[x][y] <= (20 - iCompressingBondingLength) then
-                    if get.checksame(x, y) then
+                    if check.same(x, y) then
                         bands.addToSegs(x, y)
                         local cband = get.bandcount()
                         bands.length(cband, tDistances[x][y] + iCompressingBondingLength)
@@ -1369,14 +1442,14 @@ local function _ps(_local, bandsp)
     local c_temp
     get.segs()
     check.distances()
-    for x = start, _end - 2 do
+    for x = 1, iSegmentCount - 2 do
         if not hydro[x] then
-            for y = x + 2, _end do
+            for y = x + 2, iSegmentCount do
                 if not hydro[y] then
                     if math.random() <= bandsp then
                         if tDistances[x][y] <= (20 - iCompressingBondingLength) then
-                            if get.checksame(x, y) then
-                                bands.add(x, y)
+                            if check.same(x, y) then
+                                bands.addToSegs(x, y)
                                 local cband = get.bandcount()
                                 bands.length(cband, tDistances[x][y] + iCompressingBondingLength)
                             end
@@ -1392,12 +1465,12 @@ local function _pl(_local, bandsp)
     get.segs()
     check.distances()
     if bCompressingFixxedBonding then
-        for x = start, _end do
+        for x = 1, iSegmentCount do
             if hydro[x] then
                 for y = iCompressingFixxedStartSegment, iCompressingFixxedEndSegment do
                     if hydro[y] then
                         if math.random() < bandsp then
-                            if get.checksame(x, y) then
+                            if check.same(x, y) then
                                 bands.addToSegs(x, y)
                                 if bCompressingSoftBonding then
                                     local cband = get.bandcount()
@@ -1410,12 +1483,12 @@ local function _pl(_local, bandsp)
             end -- if hydro[x]
         end -- for x
     end -- if bCompressingFixxedBonding
-    for x = start, _end - 2 do
+    for x = 1, iSegmentCount - 2 do
         if hydro[x] then
             for y = x + 2, iSegmentCount do
                 if hydro[y] then
                     if math.random() < bandsp then
-                        if get.checksame(x, y) then
+                        if check.same(x, y) then
                             bands.addToSegs(x, y)
                             if bCompressingSoftBonding then
                                 local cband = get.bandcount()
@@ -1432,7 +1505,7 @@ end -- function
 local function _strong(_local)
     get.segs()
     check.distances()
-    for i = start, _end do
+    for i = 1, iSegmentCount do
         local max_str = 0
         local min_dist = 999
         for ii = i + 2, iSegmentCount - 2 do
@@ -1448,13 +1521,13 @@ local function _strong(_local)
         end -- for ii
         for ii = i + 2, iSegmentCount - 2 do
             if tPredictedStrength[i][ii] == max_str and min_dist == tDistances[i][ii] then
-                if get.checksame(i, ii) then
+                if check.same(i, ii) then
                     bands.addToSegs(i , ii)
                     if bCompressingSoftBonding then
                         local cband = get.bandcount()
                         bands.length(cband, tDistances[i][ii] - iCompressingBondingLength)
                     end -- if pp_soft
-                end -- if get.checksame
+                end -- if check.same
             end -- if tPredictedStrength
         end -- for ii
     end -- for i
@@ -1470,7 +1543,7 @@ local function _one(_seg)
     end -- for ii
     for ii = _seg + 2, iSegmentCount - 2 do
         if tPredictedStrength[_seg][ii] == max_str then
-            if get.checksame(_seg, ii) then
+            if check.same(_seg, ii) then
                 bands.addToSegs(_seg , ii)
                 if bCompressingSoftBonding then
                     local cband = get.bandcount()
@@ -1683,7 +1756,7 @@ bonding =
 --#Snapping
 function snap()
     bTweaking = true
-    bDoSpheredWork = true
+    bSpheredFuzing = true
     sl_snaps = saveSlot.request()
     cs = get.score()
     c_snap = cs
@@ -1692,10 +1765,10 @@ function snap()
     local c_s
     local c_s2
     saveSlot.save(sl_snaps)
-    sidechain_tweak(seg)
+    sidechain_tweak(workingSegmentLeft)
     check.increase(cs, get.score(), sl_snaps)
-    --[[iii = get.snapcount(seg)
-    p("Snapcount: " .. iii .. " - segment " .. seg)
+    --[[iii = get.snapcount(workingSegmentLeft)
+    p("Snapcount: " .. iii .. " - segment " .. workingSegmentLeft)
     if iii > 1 then
         snapwork = saveSlot.request()
         ii = 1
@@ -1703,10 +1776,10 @@ function snap()
             saveSlot.load(sl_snaps)
             c_s = get.score()
             c_s2 = c_s
-            do_.snap(seg, ii)
+            do_.snap(workingSegmentLeft, ii)
             c_s2 = get.score()
             saveSlot.save(snapwork)
-            select.segs(true, seg)
+            select.segs(true, workingSegmentLeft)
             fuze.start(snapwork)
             if c_snap < get.score() then
                 c_snap = get.score()
@@ -1731,7 +1804,7 @@ function snap()
     saveSlot.save(sl_snaps)
     cs = get.score()
     end]]
-    bDoSpheredWork = false
+    bSpheredFuzing = false
     bTweaking = false
     saveSlot.release(sl_snaps)
     --[[if mutated then
@@ -1749,43 +1822,33 @@ end
 
 --#Rebuilding
 function rebuild(tweaking_seg)
-    local iter = 1
-    bDoSpheredWork = true
+    bSpheredFuzing = true
     sl_re = saveSlot.request()
     saveSlot.save(sl_re)
-    while seg < 1 do
-        seg = seg + 1
-    end
-    while r > iSegmentCount do
-    r = r - 1
-    end
-    if bSpheredWork then
-        select.segs(true, seg, r)
-    else
-        select.segs(seg, r)
-    end
-    if r == seg then
-        p("Rebuilding Segment " .. seg)
-    else -- if r
-        p("Rebuilding Segment " .. seg .. "-" .. r)
-    end -- if r
+    select.segs(workingSegmentLeft, workingSegmentRight)
+    if workingSegmentRight == workingSegmentLeft then
+        p("Rebuilding Segment " .. workingSegmentLeft)
+    else -- if workingSegmentRight
+        p("Rebuilding Segment " .. workingSegmentLeft .. "-" .. workingSegmentRight)
+    end -- if workingSegmentRight
+    report.start("Rebuilding")
     rs_0 = get.score()
     local sl_r = {}
+    local i
     local ii
     for ii = 1, iRebuildTrys do
         if not work.rebuild(iRebuildsTillSave, iRebuildStrength) then
             saveSlot.load(sl_re)
             saveSlot.release(sl_re)
-            bDoSpheredWork = false
-            if math.abs(seg - r) == 2 then
+            bSpheredFuzing = false
+            sl_r = nil
+            if math.abs(workingSegmentLeft - workingSegmentRight) == 2 then
                 p("Detected rebuild length of 3; splitting to 2x2")
-                seg = seg + 1
+                set.segs(workingSegmentLeft + 1, workingSegmentRight)
                 rebuild(tweaking_seg)
-                seg = seg - 1
-                r = r - 1
+                set.segs(workingSegmentLeft - 1, workingSegmentRight - 1)
                 rebuild(tweaking_seg)
             end
-            sl_r = nil
             return
         end
         sl_r[ii] = saveSlot.request()
@@ -1802,6 +1865,7 @@ function rebuild(tweaking_seg)
         saveSlot.load(sl_r[ii])
         saveSlot.release(sl_r[ii])
         sl_r[ii] = nil
+        saveSlot.save(sl_re)
         if rs_1 ~= get.score() then
             rs_1 = get.score()
             if rs_1 ~= rs_0 then
@@ -1809,15 +1873,15 @@ function rebuild(tweaking_seg)
                 fuze.start(sl_re)
                 rs_2 = get.score()
                 if (fMaxScore - rs_2 ) < 30 then
-                    if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops then
-                        for i = seg, r do
+                    if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops or bRebuildWalking then
+                        for i = workingSegmentLeft, workingSegmentRight do
                             sidechain_tweak(i)
                         end
                     else
-                    sidechain_tweak(tweaking_seg)
+                        sidechain_tweak(tweaking_seg)
                     end
                 end
-                if check.increase(rs_0, rs_2, slot) then
+                if check.increaseNew(report.end(), slot) then
                     rs_0 = get.score()
                 end
             end
@@ -1826,7 +1890,7 @@ function rebuild(tweaking_seg)
     saveSlot.load(slot)
     sl_r = nil
     saveSlot.release(sl_re)
-    bDoSpheredWork = false
+    bSpheredFuzing = false
 end -- function
 --Rebuilding#
 
@@ -1853,7 +1917,7 @@ function evolution()
 end
 
 --#Pull
-function dists()
+function compress()
     saveSlot.save(saveSlotOverall)
     dist_score = get.score()
     bands.delete()
@@ -2097,20 +2161,21 @@ function struct_curler()
         for i = 1, #he do
             if #he[i] > 3 then
                 p("Working on Helix " .. i)
-                seg = he[i][1] - 2
-                if seg < 1 then
-                    seg = 1
-                end -- if seg
-                r = he[i][#he[i]] + 2
-                if r > iSegmentCount then
-                    r = iSegmentCount
-                end -- if r
-                select.segs(seg, r)
+                local left = he[i][1] - 2
+                local right = he[i][#he[i]] + 2
+                if left < 1 then
+                    left = 1
+                end -- if left
+                if right > iSegmentCount then
+                    right = iSegmentCount
+                end -- if right
+                set.segs(left, right)
+                select.segs(workingSegmentLeft, workingSegmentRight)
                 bonding.helix(i)
-                bDoSpheredWork = true
+                bSpheredFuzing = true
                 work.dist()
                 bands.delete()
-                bDoSpheredWork = false
+                bSpheredFuzing = false
             end
         end -- for i
     end -- if bCurlingHelix
@@ -2118,20 +2183,21 @@ function struct_curler()
         for i = 1, #sh do
             if #sh[i] > 2 then
                 p("Working on Sheet " .. i)
-                seg = sh[i][1] - 2
-                if seg < 1 then
-                    seg = 1
-                end -- if seg
-                r = sh[i][#sh[i]] + 2
-                if r > iSegmentCount then
-                    r = iSegmentCount
-                end -- if r
+                local left = sh[i][1] - 2
+                local right = sh[i][#sh[i]] + 2
+                if left < 1 then
+                    left = 1
+                end -- if left
+                if right > iSegmentCount then
+                    right = iSegmentCount
+                end -- if right
+                set.segs(left, right)
                 bonding.sheet(i)
-                select.segs(seg, r)
-                bDoSpheredWork = true
+                select.segs(workingSegmentLeft, workingSegmentRight)
+                bSpheredFuzing = true
                 work.dist()
                 bands.delete()
-                bDoSpheredWork = false
+                bSpheredFuzing = false
             end
         end -- for i
     end -- if bCurlingSheet
@@ -2153,17 +2219,18 @@ function struct_rebuild()
         set.ss("L")
         for i = 1, #he do
             p("Working on Helix " .. i)
-            seg = he[i][1] - 2
-            if seg < 1 then
-                seg = 1
-            end -- if seg
-            r = he[i][#he[i]] + 2
-            if r > iSegmentCount then
-                r = iSegmentCount
-            end -- if r
+            local left = he[i][1] - 2
+            local right = he[i][#he[i]] + 2
+            if left < 1 then
+                left = 1
+            end -- if left
+            if right > iSegmentCount then
+                right = iSegmentCount
+            end -- if right
+            set.segs(left, right)
             bonding.helix(i)
             deselect.all()
-            select.range(seg, r)
+            select.range(workingSegmentLeft, workingSegmentRight)
             set.clashImportance(0.4)
             wiggle.selectedBackbone(1)
             set.clashImportance(0)
@@ -2176,10 +2243,10 @@ function struct_rebuild()
             wiggle.selectedBackbone(1)
             bands.delete()
             if bStructuredRebuildFuze then
-                bDoSpheredWork = true
+                bSpheredFuzing = true
                 fuze.start(str_re_best)
                 saveSlot.load(str_re_best)
-                bDoSpheredWork = false
+                bSpheredFuzing = false
             end -- if bStructuredRebuildFuze
             str_sc = nil
             str_rs = nil
@@ -2198,27 +2265,28 @@ function struct_rebuild()
         set.ss("L")
         for i = 1, #sh do
             p("Working on Sheet " .. i)
-            seg = sh[i][1] - 2
-            if seg < 1 then
-                seg = 1
-            end -- if seg
-            r = sh[i][#sh[i]] + 2
-            if r > iSegmentCount then
-                r = iSegmentCount
-            end -- if r
+            local left = sh[i][1] - 2
+            local right = sh[i][#sh[i]] + 2
+            if left < 1 then
+                left = 1
+            end -- if left
+            if right > iSegmentCount then
+                right = iSegmentCount
+            end -- if right
+            set.segs(left, right)
             bonding.sheet(i)
             deselect.all()
-            select.range(seg, r)
+            select.range(workingSegmentLeft, workingSegmentRight)
             set.clashImportance(0.1)
             wiggle.selectedBackbone(1)
             set.clashImportance(0.4)
             wiggle.selectedBackbone(1)
             bands.delete()
             if bStructuredRebuildFuze then
-                bDoSpheredWork = true
+                bSpheredFuzing = true
                 fuze.start(str_re_best)
                 saveSlot.load(str_re_best)
-                bDoSpheredWork = false
+                bSpheredFuzing = false
             end -- if bStructuredRebuildFuze
         end -- for i
         deselect.all()
@@ -2238,7 +2306,7 @@ function mutate()
     local i
     local ii
     check.distances()
-    local i_will_be = #mutable
+    local i_will_be = #mutable - 3
     for i = i_will_be, 1, -1 do
         p("Mutating segment " .. mutable[i])
         saveSlot.save(saveSlotOverall)
@@ -2254,14 +2322,14 @@ function mutate()
 end
 
 function mutate2(mut, aa, more)
-    local sc_mut1 = get.score()
+    report.start("Mutating Work")
     local i
     select.segs(mutable[mut])
     set.aa(amino.segs[aa])
     saveSlot.save(sl_mut)
     check.aa()
     p(#amino.segs - aa .. " Mutations left")
-    p("Mutating seg " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
+    p("Mutating segment " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
     if bMutateSurroundingAfter then
         select.list(mutable)
         deselect.index(mutable[mut])
@@ -2285,8 +2353,8 @@ function mutate2(mut, aa, more)
     end
     if bRebuildAfterMutating then
         if bRebuildInMutatingDeepRebuild then
-            seg = mutable[mut] - 2
-            r = seg + 4
+            set.segs(mutable[mut] - 2, mutable[mut] + 2)
+            tWorkingMiddleSegs[1] = mutable[mut]
             if not bRebuildInMutatingIgnoreStructures then
                 if ss[mutable[mut]] == "L" then
                     rebuild(mutable[mut])
@@ -2294,8 +2362,8 @@ function mutate2(mut, aa, more)
             else
                 rebuild(mutable[mut])
             end
-            seg = mutable[mut] - 2
-            r = seg + 3
+            set.segs(mutable[mut] - 2, mutable[mut] + 1)
+            tWorkingMiddleSegs[1] = mutable[mut]
             if not bRebuildInMutatingIgnoreStructures then
                 if ss[mutable[mut]] == "L" then
                     rebuild(mutable[mut])
@@ -2304,39 +2372,36 @@ function mutate2(mut, aa, more)
                 rebuild(mutable[mut])
             end            
         end
-        seg = mutable[mut] - 1
-            r = seg + 2
-            if not bRebuildInMutatingIgnoreStructures then
-                if ss[mutable[mut]] == "L" then
-                    rebuild(mutable[mut])
-                end
-            else
+        set.segs(mutable[mut] - 1, mutable[mut] + 1)
+        if not bRebuildInMutatingIgnoreStructures then
+            if ss[mutable[mut]] == "L" then
                 rebuild(mutable[mut])
             end
+        else
+            rebuild(mutable[mut])
+        end
     elseif bOptimizeSidechain then
-        seg = mutable[mut]
-        r = seg
+        set.segs(mutable[mut], mutable[mut])
         if not sidechain_tweak(mutable[mut]) then
-            bTweaking = true
+            bSpheredFuzing = true
             fuze.start(sl_mut)
-            bTweaking = false
+            bSpheredFuzing = false
         end
     end
-    local sc_mut2 = get.score()
     if not more then
-        if check.increase(sc_mut1, sc_mut2, saveSlotOverall) then
+        if check.increaseNew(report.end(), saveSlotOverall) then
         end
     end
 end -- function
 
 --Mutate#
 
-function getNear(seg)
+function getNear(segment)
     if(get.score() < g_total_score-1000) then
-        deselect.index(seg)
-        work.step("s", 1, 0.75, false)
-        work.step("ws", 1, false)
-        select.index(seg)
+        deselect.index(segment)
+        work.step("s", 1, 0.75, 0)
+        work.step("ws", 1, 0)
+        select.index(segment)
         set.clashImportance(1)
     end
     if(get.score() < g_total_score-1000) then
@@ -2345,23 +2410,26 @@ function getNear(seg)
     return true
 end
 
-function sidechain_tweak(seg)
+function sidechain_tweak(tweak_seg)
+    if tweak_seg == nil then
+        tweak_seg = tWorkingMiddleSegs[1]
+    end
     score.recent.save()
-    if aa[seg] ~= "a" or aa[seg] ~= "g" then
+    if aa[tweak_seg] ~= "a" or aa[tweak_seg] ~= "g" then
         bool = true
         bTweaking = true
         sl_reset = saveSlot.request()
         saveSlot.save(sl_reset)
         deselect.all()
-        select.segs(seg)
+        select.segs(false,tweak_seg)
         local ss = get.score()
         g_total_score = get.score()
-        if work.step("s", 2, 0, false) then
+        if work.step("s", 2, 0, 0) then
             p("AT: Sidechain tweak")
             sl_tweak_work = saveSlot.request()
             saveSlot.save(sl_tweak_work)
-            select.segs(true, seg)
-            if getNear(seg) then
+            select.segs(true, tweak_seg)
+            if getNear(tweak_seg) then
                 sl_tweak = saveSlot.request()
                 fuze.start(sl_tweak)
                 saveSlot.release(sl_tweak)
@@ -2369,24 +2437,24 @@ function sidechain_tweak(seg)
             if ss < get.score() then
                 saveSlot.save(sl_reset)
                 deselect.all()  
-                select.segs(seg)
+                select.segs(false,tweak_seg)
                 local ss = get.score()
                 g_total_score = get.score()
-                work.step("s", 2, 0, false)
+                work.step("s", 2, 0, 0)
                 saveSlot.save(sl_tweak_work)
             else
                 saveSlot.load(sl_tweak_work)
             end
-            deselect.all()  
-            select.segs(seg)
+            deselect.all()
+            select.segs(tweak_seg)
             local ss=get.score()
             g_total_score = get.score()
             if get.score() > g_total_score - 30 then
                 p("AT: Sidechain tweak around")
-                select.segs(true, seg)
-                deselect.index(seg)
-                work.step("s", 1, 0.1, false)
-                select.index(seg)
+                select.segs(true, tweak_seg)
+                deselect.index(tweak_seg)
+                work.step("s", 1, 0.1, 0)
+                select.index(tweak_seg)
                 if getNear(i) then
                     sl_tweak = saveSlot.request()
                     fuze.start(sl_tweak)
@@ -2436,14 +2504,11 @@ elseif isStructureRebuildEnabled then
 elseif isCurlingEnabled then
     struct_curler()
 elseif isCompressingEnabled then
-    if i_s0 < 0 then
-        fuze.start(saveSlotOverall)
-    end
     for i = 1, iCompressingTrys do
         if bCompressingPredictedBonding or bCompressingPredictedLocalBonding then
             calc.run()
         end
-        dists()
+        compress()
     end -- for i
 elseif isMutatingEnabled then
     sl_mut = saveSlot.request()
@@ -2452,44 +2517,44 @@ elseif isMutatingEnabled then
 elseif isRebuildingEnabled then
     if bRebuildWorst then
         get.worst(iWorstSegmentLength)
-        p(seg .. " - " .. r)
-        select.segs(seg, r)
+        select.segs(workingSegmentLeft, workingSegmentRight)
         set.ss("L")
-        rebuild(seg)
+        rebuild()
     end
     if bRebuildLoops then
         check.struct()
+        local i
         for i = 1, #lo do
-            seg = lo[i][1]
-            r = lo[i][#lo[i]]
-            p(seg .. " - " .. r)
-            rebuild(seg)
+            set.segs(lo[i][1], lo[i][#lo[i]])
+            rebuild()
+            get.report(1, #lo, 1, i)
         end
     end
 elseif isFuzingEnabled then
     p("Fuzing")
     fuze.start(saveSlotOverall)
 end -- if isFuzingEnabled
-if isRebuildingEnabled or isLocalWiggleEnabled or isSnappingEnabled then
+if (isRebuildingEnabled and not bRebuildWorst and not bRebuildLoops) or isLocalWiggleEnabled or isSnappingEnabled then
+    local i
     for i = iStartSegment, iEndSegment do
-        seg = i
+        set.segs(i,i)
         if isSnappingEnabled then
             snap()
         end
+        local ii
         for ii = iStartingWalk, iEndWalk do
-            r = i + ii
-            if r > iSegmentCount then
-                r = iSegmentCount
+            if i + ii > iSegmentCount then
                 break
-            end -- if r
+            end -- if workingSegmentRight
+            set.segs(i,i + ii)
             if isRebuildingEnabled then
                 if bRebuildWalking then
                     select.segs()
                     set.ss("L")
-                    rebuild(seg)
+                    rebuild()
                 end
             elseif isLocalWiggleEnabled then
-                p(seg .. "-" .. r)
+                p(workingSegmentLeft .. "-" .. workingSegmentRight)
                 work.flow("wl")
             end -- if isLocalWiggleEnabled
         end -- for ii
@@ -2611,7 +2676,7 @@ if bIsExploringPuzzle & ask.useExploreMultiplier.value then
         bExploringWork = true
     end
     if (ask.sphere.value) then
-        bSpheredWork = true
+        bSpheredFuzing = true
     end
     
     if not (dialog.Show(lws_dialog) == 1) then
