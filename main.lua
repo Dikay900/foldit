@@ -5,10 +5,10 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1236
+iVersion            = 1237
 iSegmentCount       = structure.GetCount()
 --#Release
-isReleaseVersion    = false
+isReleaseVersion    = true
 strReleaseDate      = "2012"
 iReleaseVersion     = 5
 --Release#
@@ -32,8 +32,8 @@ bExploringWork              = false         -- false        if true then the ove
 --#Working                      default             description
 iStartSegment   = 1             -- 1                the first segment to work with
 iEndSegment     = iSegmentCount -- iSegmentCount    the last segment to work with
-iStartingWalk   = 1             -- 1                with how many segs shall we work - Walker
-iEndWalk        = 3             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
+iStartingWalk   = 2             -- 1                with how many segs shall we work - Walker
+iEndWalk        = 2             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
 --Working#
 
 --#LocalWiggle
@@ -42,7 +42,7 @@ fScoreMustChange = 0.0001         -- 0.01         an action tries to get this sc
 
 --#Mutating
 -- TODO: all mutating things into the mutating category and method
-bRebuildAfterMutating   = false
+bRebuildAfterMutating   = true
 bOptimizeSidechain      = true
 bMutateSurroundingAfter = false
 fClashingForMutating    = 0.75  -- 0.75         cl for mutating
@@ -65,13 +65,14 @@ bCompressingLocalBonding            = false     -- false
 --Methods
 bCompressingPredictedBonding        = false     -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 bCompressingPredictedLocalBonding   = false     -- false    TODO: check if there are bands
-bCompressingEvolutionBonding        = false     -- true
+bCompressingEvolutionBonding        = true     -- true
 iCompressingEvolutionRounds         = 10
-bCompressingPushPull                = true     -- true
-bCompressingPull                    = true     -- true     hydrophobic segs are pulled together
+bCompressingEvolutionOnlyBetter     = true
+bCompressingPushPull                = false     -- true
+bCompressingPull                    = false     -- true     hydrophobic segs are pulled together
 -- TODO: First Push out then pull in -- test vs combined push,pull
-bCompressingCenterPushPull          = true     -- true
-bCompressingCenterPull              = true     -- true     hydrophobic segs are pulled to the center segment
+bCompressingCenterPushPull          = false     -- true
+bCompressingCenterPull              = false     -- true     hydrophobic segs are pulled to the center segment
 -- TODO: IDEA (ErichVanSterich: 'alternate(pictorial) work') creating herds for 'center' like working
 bCompressingVibrator                = false     -- false
 bCompressingRefineBonds             = false      -- false    pulls already bonded segments to maybe strengthen them | TODO: Maybe put into curler
@@ -91,7 +92,7 @@ bRebuildWorst                       = false         -- false        rebuild wors
 iWorstSegmentLength                 = 4
 iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
 bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
-bRebuildWalking                     = false         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
+bRebuildWalking                     = true         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
 iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
 iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
@@ -100,9 +101,10 @@ bRebuildTweakWholeRebuild           = false          -- false       All Sidechai
 --Rebuilding#
 
 --#Predicting
-bPredictingFull                 = true      -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
+bPredictingFull                 = false      -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
 bPredictingAddPrefferedSegments = true      -- true
 bPredictingCombine              = false     -- false        TODO: Doesn't work at all
+bPredictingOtherMethod          = true
 --Predicting#
 
 --#Curler
@@ -134,7 +136,6 @@ bTweaking           = false
 tSelectedSegments   = {}
 bChanged            = true
 bStructureChanged   = true
-bEvolutionIsWorking = false
 fCompressingBondingPercentage   = fCompressingBondingPercentage / iSegmentCount * 100
 if current.GetExplorationMultiplier() == 0 then
     bIsExploringPuzzle = false
@@ -596,41 +597,7 @@ local function _center()
     return indexCenter
 end -- function
 
-local function _segs()
-    start = workingSegmentLeft
-    _end = workingSegmentRight
-end
-
-local function _increase(sc1, sc2, slot, step)
-    local sc
-    if step then
-        if sc2 - sc1 < step then
-            saveSlot.load(slot)
-            return
-        end -- if sc2
-    end -- if step
-    if sc2 > sc1 then
-        sc = sc2 - sc1
-        if slot == saveSlotOverall then
-            if sc2 > fMaxScore then
-                saveSlot.save(slot)
-                p("Gain: " .. sc)
-                fMaxScore = get.score()
-                p("==NEW=MAX=" .. fMaxScore .. "==")
-            else -- if sc2
-                saveSlot.load(slot)
-            end -- if sc2
-        else
-            saveSlot.save(slot)
-        end -- if slot
-        return true
-    else -- if sc2 >
-        saveSlot.load(slot)
-        return false
-    end -- if sc2 >
-end -- function
-
-local function _increase2(sectionEnd, slot, step)
+local function _increase(sectionEnd, slot, step)
     if step then
         if sectionEnd < step then
             saveSlot.load(slot)
@@ -669,7 +636,7 @@ end
 
 local function _score()
     local s = 0
-    if bExploringWork then
+    if not bExploringWork then
         s = score.current.rankedScore()
     else -- if
         s = score.current.energyScore()
@@ -889,7 +856,7 @@ local function _time()
     end
 end
 
-local function _report(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
+local function _progress(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
     if start2 then
         if iter1 == -1 then
             local start = (vari2 +(start1 - vari1) *end2)
@@ -929,7 +896,6 @@ check =
 {
     distances   = _distances,
     increase    = _increase,
-    increaseNew = _increase2,
     mutable     = _mutable,
     ss          = _ss,
     aa          = _aa,
@@ -953,7 +919,7 @@ get =
     score           = _score,
     segscores       = _segscores,
     worst           = _worst,
-    report          = _report,
+    progress        = _progress,
     distance        = structure.GetDistance,
     ss              = structure.GetSecondaryStructure,
     aa              = structure.GetAminoAcid,
@@ -1010,7 +976,7 @@ end
 local function _part(option, cl1, cl2)
     report.start("Fuzing Part") 
     fuze.loss(option, cl1, cl2)
-    check.increaseNew(report.stop(), sl_f)
+    check.increase(report.stop(), sl_f)
 end
 
 local function _start(slot)
@@ -1026,7 +992,7 @@ local function _start(slot)
     end
     saveSlot.load(sl_f)
     saveSlot.release(sl_f)
-    check.increaseNew(report.end(), slot)
+    check.increase(report.stop(), slot)
 end
 
 fuze =
@@ -1239,7 +1205,7 @@ local function _flow(a, more)
     end -- if <
     saveSlot.release(work_sl)
     if not more then
-        check.increaseNew(report.end(), slot, fScoreMustChange)
+        check.increase(report.stop(), slot, fScoreMustChange)
     end -- if not more
 end -- function
 
@@ -1337,7 +1303,7 @@ local function _dist()
             else
                 work.step("wa", 3)
             end
-            check.increaseNew(report.end(), saveSlotOverall)
+            check.increase(report.stop(), saveSlotOverall)
         end -- for ii
         bSpheredFuzing = false
     else -- if bCompressingSoloBonding
@@ -1350,8 +1316,8 @@ local function _dist()
         else
             work.step("wa", 3)
         end
-        if not bEvolutionIsWorking then
-            check.increaseNew(report.end(), saveSlotOverall)
+        if bCompressingEvolutionOnlyBetter then
+            check.increase(report.stop(), saveSlotOverall)
         end
     end -- if bCompressingSoloBonding
     saveSlot.release(dist)
@@ -1392,7 +1358,6 @@ work =
 --#Center
 local function _cpl(_local)
     local indexCenter = get.center()
-    get.segs()
     for i = 1, iSegmentCount do
         if i ~= indexCenter then
             local x = i
@@ -1415,7 +1380,6 @@ end -- function
 
 local function _cps(_local)
     local indexCenter = get.center()
-    get.segs()
     check.distances()
     for i = 1, iSegmentCount do
         if i ~= indexCenter then
@@ -1440,7 +1404,6 @@ end -- function
 
 local function _ps(_local, bandsp)
     local c_temp
-    get.segs()
     check.distances()
     for x = 1, iSegmentCount - 2 do
         if not hydro[x] then
@@ -1462,7 +1425,6 @@ local function _ps(_local, bandsp)
 end
 
 local function _pl(_local, bandsp)
-    get.segs()
     check.distances()
     if bCompressingFixxedBonding then
         for x = 1, iSegmentCount do
@@ -1503,7 +1465,6 @@ local function _pl(_local, bandsp)
 end -- function
 
 local function _strong(_local)
-    get.segs()
     check.distances()
     for i = 1, iSegmentCount do
         local max_str = 0
@@ -1579,6 +1540,11 @@ end -- function
 local function _sheet(_sh)
     if _sh then
         for ii = sh[_sh][1], sh[_sh][#sh[_sh]] - 1 do
+            if ii - 1 < 1 then
+                ii = 2
+            elseif ii > iSegmentCount then
+                ii = iSegmentCount - 2
+            end
             bands.addToSegs(ii - 1, ii + 2)
             local cbands = get.bandcount()
             bands.strength(cbands, 10)
@@ -1587,6 +1553,11 @@ local function _sheet(_sh)
     else
         for i = 1, #sh do
             for ii = 1, #sh[i] - 1 do
+                if ii - 1 < 1 then
+                    ii = 2
+                elseif ii + 2 > iSegmentCount then
+                    ii = iSegmentCount - 2
+                end
                 bands.addToSegs(sh[i][ii] - 1, sh[i][ii] + 2)
                 local cbands = get.bandcount()
                 bands.strength(cbands, 10)
@@ -1881,7 +1852,7 @@ function rebuild(tweaking_seg)
                         sidechain_tweak(tweaking_seg)
                     end
                 end
-                if check.increaseNew(report.end(), slot) then
+                if check.increase(report.stop(), slot) then
                     rs_0 = get.score()
                 end
             end
@@ -1895,9 +1866,8 @@ end -- function
 --Rebuilding#
 
 function evolution()
-    bEvolutionIsWorking = true
     local i
-    for i = 1, 50 do
+    for i = 1, 5*iCompressingEvolutionRounds do
         bonding.rnd()
     end
     bands.disable()
@@ -1913,7 +1883,6 @@ function evolution()
         end
         work.dist()
     end
-    bEvolutionIsWorking = false
 end
 
 --#Pull
@@ -1996,45 +1965,87 @@ local function _getdata()
     while i < iSegmentCount do
         ui = i
         loop = false
-        if hydro[i] then
-            if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if aa[i] ~= "p" then
-                    if not helix then
-                        helix = true
-                        p_he[#p_he + 1] = {}
-                    end
-                else
+        if bPredictingOtherMethod then
+            if hydro[i] then
+                if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] and not hydro[i + 4] or hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] and not hydro[i + 4] or not hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] and hydro[i + 4] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] or hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- hydro i +
                     loop = true
-                    helix = false
-                end -- if helix
-            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
-                if not sheet then
-                    sheet = true
-                    p_sh[#p_sh + 1] = {}
-                end -- if sheet
-            else -- hydro i +
-                loop = true
-            end -- hydro i +
-        elseif not hydro[i] then
-            if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
-                if aa[i] ~= "p" then
-                    if not helix then
-                        helix = true
-                        p_he[#p_he + 1] = {}
-                    end
-                else
+                end -- hydro i +
+            elseif not hydro[i] then
+                if not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] and hydro[i + 4] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] and hydro[i + 4] or hydro[i + 1] and hydro[i + 2] and hydro[i + 3] and not hydro[i + 4] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- if hydro +
                     loop = true
-                    helix = false
-                end -- if helix
-            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if not sheet then
-                    sheet = true
-                    p_sh[#p_sh + 1] = {}
-                end -- if sheet
-            else -- if hydro +
-                loop = true
-            end -- if hydro +
-        end -- hydro[i]
+                end -- if hydro +
+            end -- hydro[i]
+        else -- if bPredictingOtherMethod
+            if hydro[i] then
+                if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- hydro i +
+                    loop = true
+                end -- hydro i +
+            elseif not hydro[i] then
+                if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- if hydro +
+                    loop = true
+                end -- if hydro +
+            end -- hydro[i]
+        end -- if bPredictingOtherMethod
         if helix then
             p_he[#p_he][#p_he[#p_he] + 1] = i
             if loop or sheet then
@@ -2302,6 +2313,7 @@ end
 
 --#Mutate function
 function mutate()
+    sl_mut = saveSlot.request()
     bMutating = true
     local i
     local ii
@@ -2313,12 +2325,13 @@ function mutate()
         sc_mut = get.score()
         local ii
         for ii = 1, #amino.segs do
-           mutate2(i, ii)
-            get.report(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
+            mutate2(i, ii)
+            get.progress(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
         end
         saveSlot.load(saveSlotOverall)
     end
     bMutating = false
+    saveSlot.release(sl_mut)
 end
 
 function mutate2(mut, aa, more)
@@ -2389,7 +2402,7 @@ function mutate2(mut, aa, more)
         end
     end
     if not more then
-        if check.increaseNew(report.end(), saveSlotOverall) then
+        if check.increase(report.stop(), saveSlotOverall) then
         end
     end
 end -- function
@@ -2477,91 +2490,99 @@ function sidechain_tweak(tweak_seg)
     return bool
 end
 
-i_s0 = get.score()
-fMaxScore = get.score()
-saveSlotOverall = 1
-p("v" .. iVersion)
-if isReleaseVersion then
-    p("Release Version " .. iReleaseVersion)
-    p("Released on " .. strReleaseDate)
-else -- if isReleaseVersion
-    p("No Released script so it's probably unsafe!")
-    p("Last version released on " .. strReleaseDate)
-    p("It was release version " .. iReleaseVersion)
-end -- if isReleaseVersion
-p("Starting Score: " .. i_s0)
-saveSlot.save(saveSlotOverall)
-check.ss()
-check.ligand()
-check.aa()
-check.hydro()
-check.mutable()
-if isPredictingEnabled then
-    predict.getdata()
-    save.SaveSecondaryStructure()
-elseif isStructureRebuildEnabled then
-    struct_rebuild()
-elseif isCurlingEnabled then
-    struct_curler()
-elseif isCompressingEnabled then
-    for i = 1, iCompressingTrys do
-        if bCompressingPredictedBonding or bCompressingPredictedLocalBonding then
-            calc.run()
-        end
-        compress()
-    end -- for i
-elseif isMutatingEnabled then
-    sl_mut = saveSlot.request()
-    mutate()
-    saveSlot.release(sl_mut)
-elseif isRebuildingEnabled then
-    if bRebuildWorst then
-        get.worst(iWorstSegmentLength)
-        select.segs(workingSegmentLeft, workingSegmentRight)
-        set.ss("L")
-        rebuild()
-    end
-    if bRebuildLoops then
-        check.struct()
-        local i
-        for i = 1, #lo do
-            set.segs(lo[i][1], lo[i][#lo[i]])
+function run()
+    p("v" .. iVersion)
+    if isReleaseVersion then
+        p("Release Version " .. iReleaseVersion)
+        p("Released on " .. strReleaseDate)
+    else -- if isReleaseVersion
+        p("No Released script so it's probably unsafe!")
+        p("Last version released on " .. strReleaseDate)
+        p("It was release version " .. iReleaseVersion)
+    end -- if isReleaseVersion
+    fMaxScore = get.score()
+    p("Starting Score: " .. fMaxScore)
+    report.start("Overall Gain")
+    saveSlotOverall = 1
+    saveSlot.save(saveSlotOverall)
+    check.ss()
+    check.ligand()
+    check.aa()
+    check.hydro()
+    check.mutable()
+    if isPredictingEnabled then
+        predict.getdata()
+        save.SaveSecondaryStructure()
+    elseif isStructureRebuildEnabled then
+        struct_rebuild()
+    elseif isCurlingEnabled then
+        struct_curler()
+    elseif isCompressingEnabled then
+        for i = 1, iCompressingTrys do
+            if bCompressingPredictedBonding or bCompressingPredictedLocalBonding then
+                calc.run()
+            end -- if bCompressingPredictedBonding
+            compress()
+        end -- for i
+    elseif isMutatingEnabled then
+        mutate()
+    elseif isRebuildingEnabled then
+        if bRebuildWorst then
+            get.worst(iWorstSegmentLength)
+            select.segs(workingSegmentLeft, workingSegmentRight)
+            set.ss("L")
             rebuild()
-            get.report(1, #lo, 1, i)
-        end
-    end
-elseif isFuzingEnabled then
-    p("Fuzing")
-    fuze.start(saveSlotOverall)
-end -- if isFuzingEnabled
-if (isRebuildingEnabled and not bRebuildWorst and not bRebuildLoops) or isLocalWiggleEnabled or isSnappingEnabled then
-    local i
-    for i = iStartSegment, iEndSegment do
-        set.segs(i,i)
-        if isSnappingEnabled then
-            snap()
-        end
-        local ii
-        for ii = iStartingWalk, iEndWalk do
-            if i + ii > iSegmentCount then
-                break
-            end -- if workingSegmentRight
-            set.segs(i,i + ii)
-            if isRebuildingEnabled then
-                if bRebuildWalking then
-                    select.segs()
-                    set.ss("L")
-                    rebuild()
-                end
-            elseif isLocalWiggleEnabled then
-                p(workingSegmentLeft .. "-" .. workingSegmentRight)
-                work.flow("wl")
-            end -- if isLocalWiggleEnabled
-        end -- for ii
-        get.report(iStartSegment, iEndSegment, 1, i)
-    end -- for i
+        end -- if bRebuildWorst
+        if bRebuildLoops then
+            check.struct()
+            local i
+            for i = 1, #lo do
+                set.segs(lo[i][1], lo[i][#lo[i]])
+                rebuild()
+                get.progress(1, #lo, 1, i)
+            end -- for i
+        end -- if RebuildLoops
+    elseif isFuzingEnabled then
+        p("Fuzing")
+        fuze.start(saveSlotOverall)
+    end -- if isFuzingEnabled
+    if (isRebuildingEnabled and not bRebuildWorst and not bRebuildLoops) or isLocalWiggleEnabled or isSnappingEnabled then
+        local i
+        for i = iStartSegment, iEndSegment do
+            set.segs(i,i)
+            if isSnappingEnabled then
+                snap()
+            end -- if isSnappingEnabled
+            local ii
+            for ii = iStartingWalk, iEndWalk do
+                if i + ii > iSegmentCount then
+                    break
+                end -- if workingSegmentRight
+                set.segs(i,i + ii)
+                if isRebuildingEnabled then
+                    if bRebuildWalking then
+                        select.segs()
+                        set.ss("L")
+                        rebuild()
+                    end -- if bRebuildWalking
+                elseif isLocalWiggleEnabled then
+                    p(workingSegmentLeft .. "-" .. workingSegmentRight)
+                    work.flow("wl")
+                end -- if isLocalWiggleEnabled
+            end -- for ii
+            get.progress(iStartSegment, iEndSegment, 1, i)
+        end -- for i
+    end -- if (isRebuildingEnabled
+    saveSlot.load(saveSlotOverall)
+    save.LoadSecondaryStructure()
+    saveSlot.release(saveSlotOverall)
+    p("+++ overall gain +++")
+    p("+++" .. report.stop() .. "+++")
 end
 
+run()
+
+--[[old/unused function
 if b_test then
     scoie=0
     for ii=1,70 do
@@ -2584,15 +2605,8 @@ if b_test then
         end
     end
 end
-saveSlot.load(saveSlotOverall)
-save.LoadSecondaryStructure()
-saveSlot.release(saveSlotOverall)
-s_1 = get.score()
-p("+++ overall gain +++")
-p("+++" .. s_1 - i_s0 .. "+++")
 
---old/unused function
---[[local function _HCI(a, b) -- hydropathy
+local function _HCI(a, b) -- hydropathy
     return 20 - math.abs((amino.hydroscale(a) - amino.hydroscale(b)) * 19 / 10.6)
 end
 
@@ -2602,9 +2616,8 @@ end
 
 local function _CCI(a, b) -- charge
     return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
-end]]
+end
 
---[[
 local ask = dialog.CreateDialog("Primary Settings")
 ask.lws = dialog.AddButton("local wiggle", 1)
 ask.rebuild = dialog.AddButton("rebuild", 2)
@@ -2681,4 +2694,5 @@ if bIsExploringPuzzle & ask.useExploreMultiplier.value then
     
     if not (dialog.Show(lws_dialog) == 1) then
         return showConfigDialog()
-    end]]--
+    end
+]]
