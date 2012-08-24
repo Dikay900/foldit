@@ -5,10 +5,10 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1236
+iVersion            = 1240
 iSegmentCount       = structure.GetCount()
 --#Release
-isReleaseVersion    = false
+isReleaseVersion    = true
 strReleaseDate      = "2012"
 iReleaseVersion     = 5
 --Release#
@@ -17,12 +17,12 @@ iReleaseVersion     = 5
 --#Settings: default
 --#Main                                     default         description
 isLocalWiggleEnabled        = false         -- false        do local wiggle and rewiggle
-isRebuildingEnabled         = false         -- false        rebuild | see #Rebuilding
+isRebuildingEnabled         = true         -- false        rebuild | see #Rebuilding
 isCompressingEnabled        = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 isStructureRebuildEnabled   = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 isCurlingEnabled            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
 isSnappingEnabled           = false         -- false        should we snap every sidechain to different positions
-isFuzingEnabled             = true         -- false        should we fuze | see #Fuzing
+isFuzingEnabled             = false         -- false        should we fuze | see #Fuzing
 isMutatingEnabled           = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 isPredictingEnabled         = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
 --isEvolutionEnabled                                        TODO: IDEA to fully automatic random methods -- rebuilding/pushing/pulling
@@ -33,16 +33,16 @@ bExploringWork              = false         -- false        if true then the ove
 iStartSegment   = 1             -- 1                the first segment to work with
 iEndSegment     = iSegmentCount -- iSegmentCount    the last segment to work with
 iStartingWalk   = 1             -- 1                with how many segs shall we work - Walker
-iEndWalk        = 3             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
+iEndWalk        = 2             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
 --Working#
 
 --#LocalWiggle
-fScoreMustChange = 0.0001         -- 0.01         an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos
+fScoreMustChange = 0.001         -- 0.01         an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos
 --LocalWiggle#
 
 --#Mutating
 -- TODO: all mutating things into the mutating category and method
-bRebuildAfterMutating   = false
+bRebuildAfterMutating   = true
 bOptimizeSidechain      = true
 bMutateSurroundingAfter = false
 fClashingForMutating    = 0.75  -- 0.75         cl for mutating
@@ -56,30 +56,28 @@ bCompressingConsiderStructure       = true      -- true     don't band segs of s
 fCompressingBondingPercentage       = 0.08      -- 0.08
 iCompressingBondingLength           = 4
 bCompressingFixxedBonding           = false     -- false
-iCompressingFixxedStartSegment      = 54        -- 0
-iCompressingFixxedEndSegment        = 57        -- 0
+iCompressingFixxedStartSegment      = 0         -- 0
+iCompressingFixxedEndSegment        = 0         -- 0
 bCompressingSoftBonding             = false
 bCompressingFuze                    = true
 bCompressingSoloBonding             = false     -- false    just one segment is used on every method and all segs are tested
 bCompressingLocalBonding            = false     -- false
 --Methods
 bCompressingPredictedBonding        = false     -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
-bCompressingPredictedLocalBonding   = false     -- false    TODO: check if there are bands
+bCompressingPredictedLocalBonding   = true     -- false    TODO: check if there are bands
 bCompressingEvolutionBonding        = false     -- true
 iCompressingEvolutionRounds         = 10
-bCompressingPushPull                = true     -- true
-bCompressingPull                    = true     -- true     hydrophobic segs are pulled together
+bCompressingEvolutionOnlyBetter     = true
+bCompressingPushPull                = false     -- true
+bCompressingPull                    = false     -- true     hydrophobic segs are pulled together
 -- TODO: First Push out then pull in -- test vs combined push,pull
-bCompressingCenterPushPull          = true     -- true
-bCompressingCenterPull              = true     -- true     hydrophobic segs are pulled to the center segment
+bCompressingCenterPushPull          = false     -- true
+bCompressingCenterPull              = false     -- true     hydrophobic segs are pulled to the center segment
 -- TODO: IDEA (ErichVanSterich: 'alternate(pictorial) work') creating herds for 'center' like working
-bCompressingVibrator                = false     -- false
-bCompressingRefineBonds             = false      -- false    pulls already bonded segments to maybe strengthen them | TODO: Maybe put into curler
 --Pull
 
 --#Fuzing
-bFuzingPinkFuze = false         -- false        Use Pink Fuze / Wiggle out used exclusively in some cases
-bFuzingBlueFuze = true          -- true         Use Bluefuse
+bFuzingBlueFuze = true          -- true         Use Bluefuse else wiggle out with pink fuze
 --Fuzing#
 
 --#Snapping
@@ -90,19 +88,20 @@ bFuzingBlueFuze = true          -- true         Use Bluefuse
 bRebuildWorst                       = false         -- false        rebuild worst scored parts of the protein | TODO: Do it some times with table of worst segments from worst to best
 iWorstSegmentLength                 = 4
 iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
-bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
+bRebuildLoops                       = true         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
 bRebuildWalking                     = false         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
 iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
 iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
-bRebuildInMutatingDeepRebuild       = true          -- true         rebuild length 3,4,5 else just 3
+bRebuildInMutatingDeepRebuild       = false          -- true         rebuild length 3,4,5 else just 3
 bRebuildTweakWholeRebuild           = false          -- false       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
 --Rebuilding#
 
 --#Predicting
-bPredictingFull                 = true      -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
+bPredictingFull                 = false      -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
 bPredictingAddPrefferedSegments = true      -- true
 bPredictingCombine              = false     -- false        TODO: Doesn't work at all
+bPredictingOtherMethod          = true
 --Predicting#
 
 --#Curler
@@ -131,17 +130,15 @@ fProgress           = 0
 bSpheredFuzing      = false
 bMutating           = false
 bTweaking           = false
-tSelectedSegments   = {}
 bChanged            = true
 bStructureChanged   = true
-bEvolutionIsWorking = false
 fCompressingBondingPercentage   = fCompressingBondingPercentage / iSegmentCount * 100
 if current.GetExplorationMultiplier() == 0 then
     bIsExploringPuzzle = false
 else
     bIsExploringPuzzle = true
 end
-math.randomseed(recipe.GetRandomSeed())
+math.randomseed(recipe.GetRandomSeed()*os.time())
 --Constants | Game vars#
 
 --#Optimizing
@@ -433,10 +430,6 @@ local function _pl(segment)
     return amino.table[aa[segment]][amino.part.pl]
 end
 
-local function _vdw_radius(segment)
-    return (amino.table[aa[segment]][amino.part.vdw_vol] * 3 / 4 / 3.14159) ^ (1 / 3)
-end
-
 amino =
 {   short       = _short,
     abbrev      = _abbrev,
@@ -446,45 +439,43 @@ amino =
     preffered   = _pref,
     size        = _mol,
     charge      = _pl,
-    vdw_radius  = _vdw_radius,
-    part        = {short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7, vdw_vol = 8},
+    part        = {short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7},
     segs        = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'},
     table       = {
-    -- short,  {abbrev,longname,           hydrophobic,scale,  pref,   mol,        pl,     vdw }
-    ['a'] = {'Ala', 'Alanine',          true,       -1.6,   'H',    89.09404,   6.01,   67  },
-    ['c'] = {'Cys', 'Cysteine',         true,       -17,    'E',    121.15404,  5.05,   86  },
-    ['d'] = {'Asp', 'Aspartic acid',    false,      6.7,    'L',    133.10384,  2.85,   91  },
-    ['e'] = {'Glu', 'Glutamic acid',    false,      8.1,    'H',    147.13074,  3.15,   109 },
-    ['f'] = {'Phe', 'Phenylalanine',    true,       -6.3,   'E',    165.19184,  5.49,   135 },
-    ['g'] = {'Gly', 'Glycine',          true,       1.7,    'L',    75.06714,   6.06,   48  },
-    ['h'] = {'His', 'Histidine',        false,      -5.6,   nil,    155.15634,  7.60,   118 },
-    ['i'] = {'Ile', 'Isoleucine',       true,       -2.4,   'E',    131.17464,  6.05,   124 },
-    ['k'] = {'Lys', 'Lysine',           false,      6.5,    'H',    146.18934,  9.60,   135 },
-    ['l'] = {'Leu', 'Leucine',          true,       1,      'H',    131.17464,  6.01,   124 },
-    ['m'] = {'Met', 'Methionine',       true,       3.4,    'H',    149.20784,  5.74,   124 },
-    ['n'] = {'Asn', 'Asparagine',       false,      8.9,    'L',    132.11904,  5.41,   96  },
-    ['p'] = {'Pro', 'Proline',          true,       -0.2,   'L',    115.13194,  6.30,   90  },
-    ['q'] = {'Gln', 'Glutamine',        false,      9.7,    'H',    146.14594,  5.65,   114 },
-    ['r'] = {'Arg', 'Arginine',         false,      9.8,    'H',    174.20274,  10.76,  148 },
-    ['s'] = {'Ser', 'Serine',           false,      3.7,    'L',    105.09344,  5.68,   73  },
-    ['t'] = {'Thr', 'Threonine',        false,      2.7,    'E',    119.12034,  5.60,   93  },
-    ['v'] = {'Val', 'Valine',           true,       -2.9,   'E',    117.14784,  6.00,   105 },
-    ['w'] = {'Trp', 'Tryptophan',       true,       -9.1,   'E',    204.22844,  5.89,   163 },
-    ['y'] = {'Tyr', 'Tyrosine',         true,       -5.1,   'E',    181.19124,  5.64,   141 }
+  --short = {abbrev,longname,       hydrophobic,scale,  pref,   mol,        pl
+    ['a'] = {'Ala', 'Alanine',          true,   -1.6,   'H',    89.094,     6.01},
+    ['c'] = {'Cys', 'Cysteine',         true,   -17,    'E',    121.154,    5.05},
+    ['d'] = {'Asp', 'Aspartic acid',    false,  6.7,    'L',    133.1038,   2.85},
+    ['e'] = {'Glu', 'Glutamic acid',    false,  8.1,    'H',    147.1307,   3.15},
+    ['f'] = {'Phe', 'Phenylalanine',    true,   -6.3,   'E',    165.1918,   5.49},
+    ['g'] = {'Gly', 'Glycine',          true,   1.7,    'L',    75.0671,    6.06},
+    ['h'] = {'His', 'Histidine',        false,  -5.6,   nil,    155.1563,   7.60},
+    ['i'] = {'Ile', 'Isoleucine',       true,   -2.4,   'E',    131.1746,   6.05},
+    ['k'] = {'Lys', 'Lysine',           false,  6.5,    'H',    146.1893,   9.60},
+    ['l'] = {'Leu', 'Leucine',          true,   1,      'H',    131.1746,   6.01},
+    ['m'] = {'Met', 'Methionine',       true,   3.4,    'H',    149.2078,   5.74},
+    ['n'] = {'Asn', 'Asparagine',       false,  8.9,    'L',    132.119,    5.41},
+    ['p'] = {'Pro', 'Proline',          true,   -0.2,   'L',    115.1319,   6.30},
+    ['q'] = {'Gln', 'Glutamine',        false,  9.7,    'H',    146.1459,   5.65},
+    ['r'] = {'Arg', 'Arginine',         false,  9.8,    'H',    174.2027,   10.76},
+    ['s'] = {'Ser', 'Serine',           false,  3.7,    'L',    105.0934,   5.68},
+    ['t'] = {'Thr', 'Threonine',        false,  2.7,    'E',    119.1203,   5.60},
+    ['v'] = {'Val', 'Valine',           true,   -2.9,   'E',    117.1478,   6.00},
+    ['w'] = {'Trp', 'Tryptophan',       true,   -9.1,   'E',    204.2284,   5.89},
+    ['y'] = {'Tyr', 'Tyrosine',         true,   -5.1,   'E',    181.1912,   5.64}
     }
 }
 
---#Precalculated Table
-tCalculatedStrength = {}
-function _setIt()
+function precalc()
+    --#Precalculated Table
+    local tCalculatedStrength = {}
+    tCalculatedStrength['a']['a'] = 32.37285621091;tCalculatedStrength['a']['c'] = 27.1852;tCalculatedStrength['a']['d'] = 27.7753;tCalculatedStrength['a']['e'] = 50.4563;tCalculatedStrength['a']['f'] = 20.3536;tCalculatedStrength['a']['g'] = 51.6725;tCalculatedStrength['a']['h'] = 49.4786;tCalculatedStrength['a']['i'] = 27.7753;tCalculatedStrength['a']['k'] = 8.37506;tCalculatedStrength['a']['l'] = 51.6725;tCalculatedStrength['a']['m'] = 51.6725;tCalculatedStrength['a']['n'] = 20.3536;tCalculatedStrength['a']['p'] = 20.3536;tCalculatedStrength['a']['q'] = 34.6395;tCalculatedStrength['a']['r'] = 27.7753;tCalculatedStrength['a']['s'] = 50.243;tCalculatedStrength['a']['t'] = -7.50419;tCalculatedStrength['a']['v'] = -11.1915;tCalculatedStrength['a']['w'] = 20.3536;tCalculatedStrength['a']['y'] = 51.6725;tCalculatedStrength['c']['a'] = 27.1852;tCalculatedStrength['c']['c'] = 48.8752;tCalculatedStrength['c']['d'] = 41.8555;tCalculatedStrength['c']['e'] = 26.6356;tCalculatedStrength['c']['f'] = 43.066;tCalculatedStrength['c']['g'] = 29.8568;tCalculatedStrength['c']['h'] = 36.5647;tCalculatedStrength['c']['i'] = 41.8555;tCalculatedStrength['c']['k'] = 31.0495;tCalculatedStrength['c']['l'] = 29.8568;tCalculatedStrength['c']['m'] = 29.8568;tCalculatedStrength['c']['n'] = 43.066;tCalculatedStrength['c']['p'] = 43.066;tCalculatedStrength['c']['q'] = 53.9513;tCalculatedStrength['c']['r'] = 41.8555;tCalculatedStrength['c']['s'] = 31.249;tCalculatedStrength['c']['t'] = 13.807;tCalculatedStrength['c']['v'] = 17.5416;tCalculatedStrength['c']['w'] = 43.066;tCalculatedStrength['c']['y'] = 29.8568;tCalculatedStrength['d']['a'] = 27.7753;tCalculatedStrength['d']['c'] = 41.8555;tCalculatedStrength['d']['d'] = 45.8231;tCalculatedStrength['d']['e'] = 42.1045;tCalculatedStrength['d']['f'] = 35.2602;tCalculatedStrength['d']['g'] = 52.6048;tCalculatedStrength['d']['h'] = 60.1862;tCalculatedStrength['d']['i'] = 45.8231;tCalculatedStrength['d']['k'] = 23.2728;tCalculatedStrength['d']['l'] = 52.6048;tCalculatedStrength['d']['m'] = 52.6048;tCalculatedStrength['d']['n'] = 35.2602;tCalculatedStrength['d']['p'] = 35.2602;tCalculatedStrength['d']['q'] = 49.2573;tCalculatedStrength['d']['r'] = 45.8231;tCalculatedStrength['d']['s'] = 47.4172;tCalculatedStrength['d']['t'] = 7.0786;tCalculatedStrength['d']['v'] = 5.10629;tCalculatedStrength['d']['w'] = 35.2602;tCalculatedStrength['d']['y'] = 52.6048;tCalculatedStrength['e']['a'] = 50.4563;tCalculatedStrength['e']['c'] = 26.6356;tCalculatedStrength['e']['d'] = 42.1045;tCalculatedStrength['e']['e'] = 49.5598;tCalculatedStrength['e']['f'] = 20.8448;tCalculatedStrength['e']['g'] = 41.1395;tCalculatedStrength['e']['h'] = 37.7893;tCalculatedStrength['e']['i'] = 42.1045;tCalculatedStrength['e']['k'] = 8.8277;tCalculatedStrength['e']['l'] = 41.1395;tCalculatedStrength['e']['m'] = 41.1395;tCalculatedStrength['e']['n'] = 20.8448;tCalculatedStrength['e']['p'] = 20.8448;tCalculatedStrength['e']['q'] = 33.8587;tCalculatedStrength['e']['r'] = 42.1045;tCalculatedStrength['e']['s'] = 48.4217;tCalculatedStrength['e']['t'] = -8.4392;tCalculatedStrength['e']['v'] = -4.57155;tCalculatedStrength['e']['w'] = 20.8448;tCalculatedStrength['e']['y'] = 41.1395;tCalculatedStrength['f']['a'] = 20.3536;tCalculatedStrength['f']['c'] = 43.066;tCalculatedStrength['f']['d'] = 35.2602;tCalculatedStrength['f']['e'] = 20.8448;tCalculatedStrength['f']['f'] = 54.409;tCalculatedStrength['f']['g'] = 24.5751;tCalculatedStrength['f']['h'] = 31.344;tCalculatedStrength['f']['i'] = 35.2602;tCalculatedStrength['f']['k'] = 42.395;tCalculatedStrength['f']['l'] = 24.5751;tCalculatedStrength['f']['m'] = 24.5751;tCalculatedStrength['f']['n'] = 54.409;tCalculatedStrength['f']['p'] = 54.409;tCalculatedStrength['f']['q'] = 48.1544;tCalculatedStrength['f']['r'] = 35.2602;tCalculatedStrength['f']['s'] = 25.507;tCalculatedStrength['f']['t'] = 25.2258;tCalculatedStrength['f']['v'] = 28.5612;tCalculatedStrength['f']['w'] = 54.409;tCalculatedStrength['f']['y'] = 24.5751;tCalculatedStrength['g']['a'] = 51.6725;tCalculatedStrength['g']['c'] = 29.8568;tCalculatedStrength['g']['d'] = 52.6048;tCalculatedStrength['g']['e'] = 41.1395;tCalculatedStrength['g']['f'] = 24.5751;tCalculatedStrength['g']['g'] = 39.4764;tCalculatedStrength['g']['h'] = 35.5605;tCalculatedStrength['g']['i'] = 52.6048;tCalculatedStrength['g']['k'] = 12.5391;tCalculatedStrength['g']['l'] = 39.4764;tCalculatedStrength['g']['m'] = 39.4764;tCalculatedStrength['g']['n'] = 24.5751;tCalculatedStrength['g']['p'] = 24.5751;tCalculatedStrength['g']['q'] = 36.9667;tCalculatedStrength['g']['r'] = 52.6048;tCalculatedStrength['g']['s'] = 45.2846;tCalculatedStrength['g']['t'] = -5.40665;tCalculatedStrength['g']['v'] = 2.1571;tCalculatedStrength['g']['w'] = 24.5751;tCalculatedStrength['g']['y'] = 39.4764;tCalculatedStrength['h']['a'] = 49.4786;tCalculatedStrength['h']['c'] = 36.5647;tCalculatedStrength['h']['d'] = 60.1862;tCalculatedStrength['h']['e'] = 37.7893;tCalculatedStrength['h']['f'] = 31.344;tCalculatedStrength['h']['g'] = 35.5605;tCalculatedStrength['h']['h'] = 41.6144;tCalculatedStrength['h']['i'] = 60.1862;tCalculatedStrength['h']['k'] = 19.3058;tCalculatedStrength['h']['l'] = 35.5605;tCalculatedStrength['h']['m'] = 35.5605;tCalculatedStrength['h']['n'] = 31.344;tCalculatedStrength['h']['p'] = 31.344;tCalculatedStrength['h']['q'] = 43.661;tCalculatedStrength['h']['r'] = 60.1862;tCalculatedStrength['h']['s'] = 41.8801;tCalculatedStrength['h']['t'] = 1.2786;tCalculatedStrength['h']['v'] = 9.28598;tCalculatedStrength['h']['w'] = 31.344;tCalculatedStrength['h']['y'] = 35.5605;tCalculatedStrength['i']['a'] = 27.7753;tCalculatedStrength['i']['c'] = 41.8555;tCalculatedStrength['i']['d'] = 45.8231;tCalculatedStrength['i']['e'] = 42.1045;tCalculatedStrength['i']['f'] = 35.2602;tCalculatedStrength['i']['g'] = 52.6048;tCalculatedStrength['i']['h'] = 60.1862;tCalculatedStrength['i']['i'] = 45.8231;tCalculatedStrength['i']['k'] = 23.2728;tCalculatedStrength['i']['l'] = 52.6048;tCalculatedStrength['i']['m'] = 52.6048;tCalculatedStrength['i']['n'] = 35.2602;tCalculatedStrength['i']['p'] = 35.2602;tCalculatedStrength['i']['q'] = 49.2573;tCalculatedStrength['i']['r'] = 45.8231;tCalculatedStrength['i']['s'] = 47.4172;tCalculatedStrength['i']['t'] = 7.0786;tCalculatedStrength['i']['v'] = 5.10629;tCalculatedStrength['i']['w'] = 35.2602;tCalculatedStrength['i']['y'] = 52.6048;tCalculatedStrength['k']['a'] = 8.37506;tCalculatedStrength['k']['c'] = 31.0495;tCalculatedStrength['k']['d'] = 23.2728;tCalculatedStrength['k']['e'] = 8.8277;tCalculatedStrength['k']['f'] = 42.395;tCalculatedStrength['k']['g'] = 12.5391;tCalculatedStrength['k']['h'] = 19.3058;tCalculatedStrength['k']['i'] = 23.2728;tCalculatedStrength['k']['k'] = 58.3427;tCalculatedStrength['k']['l'] = 12.5391;tCalculatedStrength['k']['m'] = 12.5391;tCalculatedStrength['k']['n'] = 42.395;tCalculatedStrength['k']['p'] = 42.395;tCalculatedStrength['k']['q'] = 36.1375;tCalculatedStrength['k']['r'] = 23.2728;tCalculatedStrength['k']['s'] = 13.4887;tCalculatedStrength['k']['t'] = 41.1708;tCalculatedStrength['k']['v'] = 44.521;tCalculatedStrength['k']['w'] = 42.395;tCalculatedStrength['k']['y'] = 12.5391;tCalculatedStrength['l']['a'] = 51.6725;tCalculatedStrength['l']['c'] = 29.8568;tCalculatedStrength['l']['d'] = 52.6048;tCalculatedStrength['l']['e'] = 41.1395;tCalculatedStrength['l']['f'] = 24.5751;tCalculatedStrength['l']['g'] = 39.4764;tCalculatedStrength['l']['h'] = 35.5605;tCalculatedStrength['l']['i'] = 52.6048;tCalculatedStrength['l']['k'] = 12.5391;tCalculatedStrength['l']['l'] = 39.4764;tCalculatedStrength['l']['m'] = 39.4764;tCalculatedStrength['l']['n'] = 24.5751;tCalculatedStrength['l']['p'] = 24.5751;tCalculatedStrength['l']['q'] = 36.9667;tCalculatedStrength['l']['r'] = 52.6048;tCalculatedStrength['l']['s'] = 45.2846;tCalculatedStrength['l']['t'] = -5.40665;tCalculatedStrength['l']['v'] = 2.1571;tCalculatedStrength['l']['w'] = 24.5751;tCalculatedStrength['l']['y'] = 39.4764;tCalculatedStrength['m']['a'] = 51.6725;tCalculatedStrength['m']['c'] = 29.8568;tCalculatedStrength['m']['d'] = 52.6048;tCalculatedStrength['m']['e'] = 41.1395;tCalculatedStrength['m']['f'] = 24.5751;tCalculatedStrength['m']['g'] = 39.4764;tCalculatedStrength['m']['h'] = 35.5605;tCalculatedStrength['m']['i'] = 52.6048;tCalculatedStrength['m']['k'] = 12.5391;tCalculatedStrength['m']['l'] = 39.4764;tCalculatedStrength['m']['m'] = 39.4764;tCalculatedStrength['m']['n'] = 24.5751;tCalculatedStrength['m']['p'] = 24.5751;tCalculatedStrength['m']['q'] = 36.9667;tCalculatedStrength['m']['r'] = 52.6048;tCalculatedStrength['m']['s'] = 45.2846;tCalculatedStrength['m']['t'] = -5.40665;tCalculatedStrength['m']['v'] = 2.1571;tCalculatedStrength['m']['w'] = 24.5751;tCalculatedStrength['m']['y'] = 39.4764;tCalculatedStrength['n']['a'] = 20.3536;tCalculatedStrength['n']['c'] = 43.066;tCalculatedStrength['n']['d'] = 35.2602;tCalculatedStrength['n']['e'] = 20.8448;tCalculatedStrength['n']['f'] = 54.409;tCalculatedStrength['n']['g'] = 24.5751;tCalculatedStrength['n']['h'] = 31.344;tCalculatedStrength['n']['i'] = 35.2602;tCalculatedStrength['n']['k'] = 42.395;tCalculatedStrength['n']['l'] = 24.5751;tCalculatedStrength['n']['m'] = 24.5751;tCalculatedStrength['n']['n'] = 54.409;tCalculatedStrength['n']['p'] = 54.409;tCalculatedStrength['n']['q'] = 48.1544;tCalculatedStrength['n']['r'] = 35.2602;tCalculatedStrength['n']['s'] = 25.507;tCalculatedStrength['n']['t'] = 25.2258;tCalculatedStrength['n']['v'] = 28.5612;tCalculatedStrength['n']['w'] = 54.409;tCalculatedStrength['n']['y'] = 24.5751;tCalculatedStrength['p']['a'] = 20.3536;tCalculatedStrength['p']['c'] = 43.066;tCalculatedStrength['p']['d'] = 35.2602;tCalculatedStrength['p']['e'] = 20.8448;tCalculatedStrength['p']['f'] = 54.409;tCalculatedStrength['p']['g'] = 24.5751;tCalculatedStrength['p']['h'] = 31.344;tCalculatedStrength['p']['i'] = 35.2602;tCalculatedStrength['p']['k'] = 42.395;tCalculatedStrength['p']['l'] = 24.5751;tCalculatedStrength['p']['m'] = 24.5751;tCalculatedStrength['p']['n'] = 54.409;tCalculatedStrength['p']['p'] = 54.409;tCalculatedStrength['p']['q'] = 48.1544;tCalculatedStrength['p']['r'] = 35.2602;tCalculatedStrength['p']['s'] = 25.507;tCalculatedStrength['p']['t'] = 25.2258;tCalculatedStrength['p']['v'] = 28.5612;tCalculatedStrength['p']['w'] = 54.409;tCalculatedStrength['p']['y'] = 24.5751;tCalculatedStrength['q']['a'] = 34.6395;tCalculatedStrength['q']['c'] = 53.9513;tCalculatedStrength['q']['d'] = 49.2573;tCalculatedStrength['q']['e'] = 33.8587;tCalculatedStrength['q']['f'] = 48.1544;tCalculatedStrength['q']['g'] = 36.9667;tCalculatedStrength['q']['h'] = 43.661;tCalculatedStrength['q']['i'] = 49.2573;tCalculatedStrength['q']['k'] = 36.1375;tCalculatedStrength['q']['l'] = 36.9667;tCalculatedStrength['q']['m'] = 36.9667;tCalculatedStrength['q']['n'] = 48.1544;tCalculatedStrength['q']['p'] = 48.1544;tCalculatedStrength['q']['q'] = 61.1758;tCalculatedStrength['q']['r'] = 49.2573;tCalculatedStrength['q']['s'] = 38.4618;tCalculatedStrength['q']['t'] = 18.8787;tCalculatedStrength['q']['v'] = 22.702;tCalculatedStrength['q']['w'] = 48.1544;tCalculatedStrength['q']['y'] = 36.9667;tCalculatedStrength['r']['a'] = 27.7753;tCalculatedStrength['r']['c'] = 41.8555;tCalculatedStrength['r']['d'] = 45.8231;tCalculatedStrength['r']['e'] = 42.1045;tCalculatedStrength['r']['f'] = 35.2602;tCalculatedStrength['r']['g'] = 52.6048;tCalculatedStrength['r']['h'] = 60.1862;tCalculatedStrength['r']['i'] = 45.8231;tCalculatedStrength['r']['k'] = 23.2728;tCalculatedStrength['r']['l'] = 52.6048;tCalculatedStrength['r']['m'] = 52.6048;tCalculatedStrength['r']['n'] = 35.2602;tCalculatedStrength['r']['p'] = 35.2602;tCalculatedStrength['r']['q'] = 49.2573;tCalculatedStrength['r']['r'] = 45.8231;tCalculatedStrength['r']['s'] = 47.4172;tCalculatedStrength['r']['t'] = 7.0786;tCalculatedStrength['r']['v'] = 5.10629;tCalculatedStrength['r']['w'] = 35.2602;tCalculatedStrength['r']['y'] = 52.6048;tCalculatedStrength['s']['a'] = 50.243;tCalculatedStrength['s']['c'] = 31.249;tCalculatedStrength['s']['d'] = 47.4172;tCalculatedStrength['s']['e'] = 48.4217;tCalculatedStrength['s']['f'] = 25.507;tCalculatedStrength['s']['g'] = 45.2846;tCalculatedStrength['s']['h'] = 41.8801;tCalculatedStrength['s']['i'] = 47.4172;tCalculatedStrength['s']['k'] = 13.4887;tCalculatedStrength['s']['l'] = 45.2846;tCalculatedStrength['s']['m'] = 45.2846;tCalculatedStrength['s']['n'] = 25.507;tCalculatedStrength['s']['p'] = 25.507;tCalculatedStrength['s']['q'] = 38.4618;tCalculatedStrength['s']['r'] = 47.4172;tCalculatedStrength['s']['s'] = 52.9759;tCalculatedStrength['s']['t'] = -3.84333;tCalculatedStrength['s']['v'] = 0.379152;tCalculatedStrength['s']['w'] = 25.507;tCalculatedStrength['s']['y'] = 45.2846;tCalculatedStrength['t']['a'] = -7.50419;tCalculatedStrength['t']['c'] = 13.807;tCalculatedStrength['t']['d'] = 7.0786;tCalculatedStrength['t']['e'] = -8.4392;tCalculatedStrength['t']['f'] = 25.2258;tCalculatedStrength['t']['g'] = -5.40665;tCalculatedStrength['t']['h'] = 1.2786;tCalculatedStrength['t']['i'] = 7.0786;tCalculatedStrength['t']['k'] = 41.1708;tCalculatedStrength['t']['l'] = -5.40665;tCalculatedStrength['t']['m'] = -5.40665;tCalculatedStrength['t']['n'] = 25.2258;tCalculatedStrength['t']['p'] = 25.2258;tCalculatedStrength['t']['q'] = 18.8787;tCalculatedStrength['t']['r'] = 7.0786;tCalculatedStrength['t']['s'] = -3.84333;tCalculatedStrength['t']['t'] = 39.6748;tCalculatedStrength['t']['v'] = 43.5572;tCalculatedStrength['t']['w'] = 25.2258;tCalculatedStrength['t']['y'] = -5.40665;tCalculatedStrength['v']['a'] = -11.1915;tCalculatedStrength['v']['c'] = 17.5416;tCalculatedStrength['v']['d'] = 5.10629;tCalculatedStrength['v']['e'] = -4.57155;tCalculatedStrength['v']['f'] = 28.5612;tCalculatedStrength['v']['g'] = 2.1571;tCalculatedStrength['v']['h'] = 9.28598;tCalculatedStrength['v']['i'] = 5.10629;tCalculatedStrength['v']['k'] = 44.521;tCalculatedStrength['v']['l'] = 2.1571;tCalculatedStrength['v']['m'] = 2.1571;tCalculatedStrength['v']['n'] = 28.5612;tCalculatedStrength['v']['p'] = 28.5612;tCalculatedStrength['v']['q'] = 22.702;tCalculatedStrength['v']['r'] = 5.10629;tCalculatedStrength['v']['s'] = 0.379152;tCalculatedStrength['v']['t'] = 43.5572;tCalculatedStrength['v']['v'] = 48.1268;tCalculatedStrength['v']['w'] = 28.5612;tCalculatedStrength['v']['y'] = 2.1571;tCalculatedStrength['w']['a'] = 20.3536;tCalculatedStrength['w']['c'] = 43.066;tCalculatedStrength['w']['d'] = 35.2602;tCalculatedStrength['w']['e'] = 20.8448;tCalculatedStrength['w']['f'] = 54.409;tCalculatedStrength['w']['g'] = 24.5751;tCalculatedStrength['w']['h'] = 31.344;tCalculatedStrength['w']['i'] = 35.2602;tCalculatedStrength['w']['k'] = 42.395;tCalculatedStrength['w']['l'] = 24.5751;tCalculatedStrength['w']['m'] = 24.5751;tCalculatedStrength['w']['n'] = 54.409;tCalculatedStrength['w']['p'] = 54.409;tCalculatedStrength['w']['q'] = 48.1544;tCalculatedStrength['w']['r'] = 35.2602;tCalculatedStrength['w']['s'] = 25.507;tCalculatedStrength['w']['t'] = 25.2258;tCalculatedStrength['w']['v'] = 28.5612;tCalculatedStrength['w']['w'] = 54.409;tCalculatedStrength['w']['y'] = 24.5751;tCalculatedStrength['y']['a'] = 51.6725;tCalculatedStrength['y']['c'] = 29.8568;tCalculatedStrength['y']['d'] = 52.6048;tCalculatedStrength['y']['e'] = 41.1395;tCalculatedStrength['y']['f'] = 24.5751;tCalculatedStrength['y']['g'] = 39.4764;tCalculatedStrength['y']['h'] = 35.5605;tCalculatedStrength['y']['i'] = 52.6048;tCalculatedStrength['y']['k'] = 12.5391;tCalculatedStrength['y']['l'] = 39.4764;tCalculatedStrength['y']['m'] = 39.4764;tCalculatedStrength['y']['n'] = 24.5751;tCalculatedStrength['y']['p'] = 24.5751;tCalculatedStrength['y']['q'] = 36.9667;tCalculatedStrength['y']['r'] = 52.6048;tCalculatedStrength['y']['s'] = 45.2846;tCalculatedStrength['y']['t'] = -5.40665;tCalculatedStrength['y']['v'] = 2.1571;tCalculatedStrength['y']['w'] = 24.5751;tCalculatedStrength['y']['y'] = 39.4764
     local i
     for i = 1, #amino.segs do
         tCalculatedStrength[amino.segs[i]] = {}
     end
+    --Precalculated Table#
 end
-_setIt()
-tCalculatedStrength['a']['a'] = 32.372856210914;tCalculatedStrength['a']['c'] = 27.185248498021;tCalculatedStrength['a']['d'] = 27.775347149814;tCalculatedStrength['a']['e'] = 50.456350961466;tCalculatedStrength['a']['f'] = 20.353692652058;tCalculatedStrength['a']['g'] = 51.672531784327;tCalculatedStrength['a']['h'] = 49.478695919409;tCalculatedStrength['a']['i'] = 27.775347149814;tCalculatedStrength['a']['k'] = 8.3750653242535;tCalculatedStrength['a']['l'] = 51.672531784327;tCalculatedStrength['a']['m'] = 51.672531784327;tCalculatedStrength['a']['n'] = 20.353692652058;tCalculatedStrength['a']['p'] = 20.353692652058;tCalculatedStrength['a']['q'] = 34.639588682129;tCalculatedStrength['a']['r'] = 27.775347149814;tCalculatedStrength['a']['s'] = 50.24328334011;tCalculatedStrength['a']['t'] = -7.5041917681561;tCalculatedStrength['a']['v'] = -11.191528474216;tCalculatedStrength['a']['w'] = 20.353692652058;tCalculatedStrength['a']['y'] = 51.672531784327;tCalculatedStrength['c']['a'] = 27.185248498021;tCalculatedStrength['c']['c'] = 48.875204881745;tCalculatedStrength['c']['d'] = 41.855546099553;tCalculatedStrength['c']['e'] = 26.635693125618;tCalculatedStrength['c']['f'] = 43.066057732232;tCalculatedStrength['c']['g'] = 29.856824872338;tCalculatedStrength['c']['h'] = 36.564715193754;tCalculatedStrength['c']['i'] = 41.855546099553;tCalculatedStrength['c']['k'] = 31.049563415669;tCalculatedStrength['c']['l'] = 29.856824872338;tCalculatedStrength['c']['m'] = 29.856824872338;tCalculatedStrength['c']['n'] = 43.066057732232;tCalculatedStrength['c']['p'] = 43.066057732232;tCalculatedStrength['c']['q'] = 53.951399737082;tCalculatedStrength['c']['r'] = 41.855546099553;tCalculatedStrength['c']['s'] = 31.24966683069;tCalculatedStrength['c']['t'] = 13.807094727994;tCalculatedStrength['c']['v'] = 17.541687818383;tCalculatedStrength['c']['w'] = 43.066057732232;tCalculatedStrength['c']['y'] = 29.856824872338;tCalculatedStrength['d']['a'] = 27.775347149814;tCalculatedStrength['d']['c'] = 41.855546099553;tCalculatedStrength['d']['d'] = 45.823199111111;tCalculatedStrength['d']['e'] = 42.104501069128;tCalculatedStrength['d']['f'] = 35.260244055958;tCalculatedStrength['d']['g'] = 52.604844798097;tCalculatedStrength['d']['h'] = 60.186240557383;tCalculatedStrength['d']['i'] = 45.823199111111;tCalculatedStrength['d']['k'] = 23.272866587324;tCalculatedStrength['d']['l'] = 52.604844798097;tCalculatedStrength['d']['m'] = 52.604844798097;tCalculatedStrength['d']['n'] = 35.260244055958;tCalculatedStrength['d']['p'] = 35.260244055958;tCalculatedStrength['d']['q'] = 49.257385438694;tCalculatedStrength['d']['r'] = 45.823199111111;tCalculatedStrength['d']['s'] = 47.417279124496;tCalculatedStrength['d']['t'] = 7.0786044250923;tCalculatedStrength['d']['v'] = 5.1062953213999;tCalculatedStrength['d']['w'] = 35.260244055958;tCalculatedStrength['d']['y'] = 52.604844798097;tCalculatedStrength['e']['a'] = 50.456350961466;tCalculatedStrength['e']['c'] = 26.635693125618;tCalculatedStrength['e']['d'] = 42.104501069128;tCalculatedStrength['e']['e'] = 49.559882678117;tCalculatedStrength['e']['f'] = 20.844876012496;tCalculatedStrength['e']['g'] = 41.139593752458;tCalculatedStrength['e']['h'] = 37.789381517717;tCalculatedStrength['e']['i'] = 42.104501069128;tCalculatedStrength['e']['k'] = 8.8277028056971;tCalculatedStrength['e']['l'] = 41.139593752458;tCalculatedStrength['e']['m'] = 41.139593752458;tCalculatedStrength['e']['n'] = 20.844876012496;tCalculatedStrength['e']['p'] = 20.844876012496;tCalculatedStrength['e']['q'] = 33.858758035763;tCalculatedStrength['e']['r'] = 42.104501069128;tCalculatedStrength['e']['s'] = 48.421713960905;tCalculatedStrength['e']['t'] = -8.4392059304994;tCalculatedStrength['e']['v'] = -4.5715503537188;tCalculatedStrength['e']['w'] = 20.844876012496;tCalculatedStrength['e']['y'] = 41.139593752458;tCalculatedStrength['f']['a'] = 20.353692652058;tCalculatedStrength['f']['c'] = 43.066057732232;tCalculatedStrength['f']['d'] = 35.260244055958;tCalculatedStrength['f']['e'] = 20.844876012496;tCalculatedStrength['f']['f'] = 54.40946764336;tCalculatedStrength['f']['g'] = 24.575175436732;tCalculatedStrength['f']['h'] = 31.34416587945;tCalculatedStrength['f']['i'] = 35.260244055958;tCalculatedStrength['f']['k'] = 42.395009997506;tCalculatedStrength['f']['l'] = 24.575175436732;tCalculatedStrength['f']['m'] = 24.575175436732;tCalculatedStrength['f']['n'] = 54.40946764336;tCalculatedStrength['f']['p'] = 54.40946764336;tCalculatedStrength['f']['q'] = 48.154472611832;tCalculatedStrength['f']['r'] = 35.260244055958;tCalculatedStrength['f']['s'] = 25.50772981461;tCalculatedStrength['f']['t'] = 25.225861455393;tCalculatedStrength['f']['v'] = 28.561267086612;tCalculatedStrength['f']['w'] = 54.40946764336;tCalculatedStrength['f']['y'] = 24.575175436732;tCalculatedStrength['g']['a'] = 51.672531784327;tCalculatedStrength['g']['c'] = 29.856824872338;tCalculatedStrength['g']['d'] = 52.604844798097;tCalculatedStrength['g']['e'] = 41.139593752458;tCalculatedStrength['g']['f'] = 24.575175436732;tCalculatedStrength['g']['g'] = 39.476487407462;tCalculatedStrength['g']['h'] = 35.560533308816;tCalculatedStrength['g']['i'] = 52.604844798097;tCalculatedStrength['g']['k'] = 12.539144167802;tCalculatedStrength['g']['l'] = 39.476487407462;tCalculatedStrength['g']['m'] = 39.476487407462;tCalculatedStrength['g']['n'] = 24.575175436732;tCalculatedStrength['g']['p'] = 24.575175436732;tCalculatedStrength['g']['q'] = 36.966741409703;tCalculatedStrength['g']['r'] = 52.604844798097;tCalculatedStrength['g']['s'] = 45.284680600725;tCalculatedStrength['g']['t'] = -5.4066548050812;tCalculatedStrength['g']['v'] = 2.157180949214;tCalculatedStrength['g']['w'] = 24.575175436732;tCalculatedStrength['g']['y'] = 39.476487407462;tCalculatedStrength['h']['a'] = 49.478695919409;tCalculatedStrength['h']['c'] = 36.564715193754;tCalculatedStrength['h']['d'] = 60.186240557383;tCalculatedStrength['h']['e'] = 37.789381517717;tCalculatedStrength['h']['f'] = 31.34416587945;tCalculatedStrength['h']['g'] = 35.560533308816;tCalculatedStrength['h']['h'] = 41.614426035558;tCalculatedStrength['h']['i'] = 60.186240557383;tCalculatedStrength['h']['k'] = 19.305871643064;tCalculatedStrength['h']['l'] = 35.560533308816;tCalculatedStrength['h']['m'] = 35.560533308816;tCalculatedStrength['h']['n'] = 31.34416587945;tCalculatedStrength['h']['p'] = 31.34416587945;tCalculatedStrength['h']['q'] = 43.661053926385;tCalculatedStrength['h']['r'] = 60.186240557383;tCalculatedStrength['h']['s'] = 41.880157147049;tCalculatedStrength['h']['t'] = 1.278605841779;tCalculatedStrength['h']['v'] = 9.2859832173762;tCalculatedStrength['h']['w'] = 31.34416587945;tCalculatedStrength['h']['y'] = 35.560533308816;tCalculatedStrength['i']['a'] = 27.775347149814;tCalculatedStrength['i']['c'] = 41.855546099553;tCalculatedStrength['i']['d'] = 45.823199111111;tCalculatedStrength['i']['e'] = 42.104501069128;tCalculatedStrength['i']['f'] = 35.260244055958;tCalculatedStrength['i']['g'] = 52.604844798097;tCalculatedStrength['i']['h'] = 60.186240557383;tCalculatedStrength['i']['i'] = 45.823199111111;tCalculatedStrength['i']['k'] = 23.272866587324;tCalculatedStrength['i']['l'] = 52.604844798097;tCalculatedStrength['i']['m'] = 52.604844798097;tCalculatedStrength['i']['n'] = 35.260244055958;tCalculatedStrength['i']['p'] = 35.260244055958;tCalculatedStrength['i']['q'] = 49.257385438694;tCalculatedStrength['i']['r'] = 45.823199111111;tCalculatedStrength['i']['s'] = 47.417279124496;tCalculatedStrength['i']['t'] = 7.0786044250923;tCalculatedStrength['i']['v'] = 5.1062953213999;tCalculatedStrength['i']['w'] = 35.260244055958;tCalculatedStrength['i']['y'] = 52.604844798097;tCalculatedStrength['k']['a'] = 8.3750653242535;tCalculatedStrength['k']['c'] = 31.049563415669;tCalculatedStrength['k']['d'] = 23.272866587324;tCalculatedStrength['k']['e'] = 8.8277028056971;tCalculatedStrength['k']['f'] = 42.395009997506;tCalculatedStrength['k']['g'] = 12.539144167802;tCalculatedStrength['k']['h'] = 19.305871643064;tCalculatedStrength['k']['i'] = 23.272866587324;tCalculatedStrength['k']['k'] = 58.342741070348;tCalculatedStrength['k']['l'] = 12.539144167802;tCalculatedStrength['k']['m'] = 12.539144167802;tCalculatedStrength['k']['n'] = 42.395009997506;tCalculatedStrength['k']['p'] = 42.395009997506;tCalculatedStrength['k']['q'] = 36.137525701776;tCalculatedStrength['k']['r'] = 23.272866587324;tCalculatedStrength['k']['s'] = 13.488746233845;tCalculatedStrength['k']['t'] = 41.170876967289;tCalculatedStrength['k']['v'] = 44.521067319218;tCalculatedStrength['k']['w'] = 42.395009997506;tCalculatedStrength['k']['y'] = 12.539144167802;tCalculatedStrength['l']['a'] = 51.672531784327;tCalculatedStrength['l']['c'] = 29.856824872338;tCalculatedStrength['l']['d'] = 52.604844798097;tCalculatedStrength['l']['e'] = 41.139593752458;tCalculatedStrength['l']['f'] = 24.575175436732;tCalculatedStrength['l']['g'] = 39.476487407462;tCalculatedStrength['l']['h'] = 35.560533308816;tCalculatedStrength['l']['i'] = 52.604844798097;tCalculatedStrength['l']['k'] = 12.539144167802;tCalculatedStrength['l']['l'] = 39.476487407462;tCalculatedStrength['l']['m'] = 39.476487407462;tCalculatedStrength['l']['n'] = 24.575175436732;tCalculatedStrength['l']['p'] = 24.575175436732;tCalculatedStrength['l']['q'] = 36.966741409703;tCalculatedStrength['l']['r'] = 52.604844798097;tCalculatedStrength['l']['s'] = 45.284680600725;tCalculatedStrength['l']['t'] = -5.4066548050812;tCalculatedStrength['l']['v'] = 2.157180949214;tCalculatedStrength['l']['w'] = 24.575175436732;tCalculatedStrength['l']['y'] = 39.476487407462;tCalculatedStrength['m']['a'] = 51.672531784327;tCalculatedStrength['m']['c'] = 29.856824872338;tCalculatedStrength['m']['d'] = 52.604844798097;tCalculatedStrength['m']['e'] = 41.139593752458;tCalculatedStrength['m']['f'] = 24.575175436732;tCalculatedStrength['m']['g'] = 39.476487407462;tCalculatedStrength['m']['h'] = 35.560533308816;tCalculatedStrength['m']['i'] = 52.604844798097;tCalculatedStrength['m']['k'] = 12.539144167802;tCalculatedStrength['m']['l'] = 39.476487407462;tCalculatedStrength['m']['m'] = 39.476487407462;tCalculatedStrength['m']['n'] = 24.575175436732;tCalculatedStrength['m']['p'] = 24.575175436732;tCalculatedStrength['m']['q'] = 36.966741409703;tCalculatedStrength['m']['r'] = 52.604844798097;tCalculatedStrength['m']['s'] = 45.284680600725;tCalculatedStrength['m']['t'] = -5.4066548050812;tCalculatedStrength['m']['v'] = 2.157180949214;tCalculatedStrength['m']['w'] = 24.575175436732;tCalculatedStrength['m']['y'] = 39.476487407462;tCalculatedStrength['n']['a'] = 20.353692652058;tCalculatedStrength['n']['c'] = 43.066057732232;tCalculatedStrength['n']['d'] = 35.260244055958;tCalculatedStrength['n']['e'] = 20.844876012496;tCalculatedStrength['n']['f'] = 54.40946764336;tCalculatedStrength['n']['g'] = 24.575175436732;tCalculatedStrength['n']['h'] = 31.34416587945;tCalculatedStrength['n']['i'] = 35.260244055958;tCalculatedStrength['n']['k'] = 42.395009997506;tCalculatedStrength['n']['l'] = 24.575175436732;tCalculatedStrength['n']['m'] = 24.575175436732;tCalculatedStrength['n']['n'] = 54.40946764336;tCalculatedStrength['n']['p'] = 54.40946764336;tCalculatedStrength['n']['q'] = 48.154472611832;tCalculatedStrength['n']['r'] = 35.260244055958;tCalculatedStrength['n']['s'] = 25.50772981461;tCalculatedStrength['n']['t'] = 25.225861455393;tCalculatedStrength['n']['v'] = 28.561267086612;tCalculatedStrength['n']['w'] = 54.40946764336;tCalculatedStrength['n']['y'] = 24.575175436732;tCalculatedStrength['p']['a'] = 20.353692652058;tCalculatedStrength['p']['c'] = 43.066057732232;tCalculatedStrength['p']['d'] = 35.260244055958;tCalculatedStrength['p']['e'] = 20.844876012496;tCalculatedStrength['p']['f'] = 54.40946764336;tCalculatedStrength['p']['g'] = 24.575175436732;tCalculatedStrength['p']['h'] = 31.34416587945;tCalculatedStrength['p']['i'] = 35.260244055958;tCalculatedStrength['p']['k'] = 42.395009997506;tCalculatedStrength['p']['l'] = 24.575175436732;tCalculatedStrength['p']['m'] = 24.575175436732;tCalculatedStrength['p']['n'] = 54.40946764336;tCalculatedStrength['p']['p'] = 54.40946764336;tCalculatedStrength['p']['q'] = 48.154472611832;tCalculatedStrength['p']['r'] = 35.260244055958;tCalculatedStrength['p']['s'] = 25.50772981461;tCalculatedStrength['p']['t'] = 25.225861455393;tCalculatedStrength['p']['v'] = 28.561267086612;tCalculatedStrength['p']['w'] = 54.40946764336;tCalculatedStrength['p']['y'] = 24.575175436732;tCalculatedStrength['q']['a'] = 34.639588682129;tCalculatedStrength['q']['c'] = 53.951399737082;tCalculatedStrength['q']['d'] = 49.257385438694;tCalculatedStrength['q']['e'] = 33.858758035763;tCalculatedStrength['q']['f'] = 48.154472611832;tCalculatedStrength['q']['g'] = 36.966741409703;tCalculatedStrength['q']['h'] = 43.661053926385;tCalculatedStrength['q']['i'] = 49.257385438694;tCalculatedStrength['q']['k'] = 36.137525701776;tCalculatedStrength['q']['l'] = 36.966741409703;tCalculatedStrength['q']['m'] = 36.966741409703;tCalculatedStrength['q']['n'] = 48.154472611832;tCalculatedStrength['q']['p'] = 48.154472611832;tCalculatedStrength['q']['q'] = 61.175822427701;tCalculatedStrength['q']['r'] = 49.257385438694;tCalculatedStrength['q']['s'] = 38.461869497048;tCalculatedStrength['q']['t'] = 18.878763648421;tCalculatedStrength['q']['v'] = 22.702065063071;tCalculatedStrength['q']['w'] = 48.154472611832;tCalculatedStrength['q']['y'] = 36.966741409703;tCalculatedStrength['r']['a'] = 27.775347149814;tCalculatedStrength['r']['c'] = 41.855546099553;tCalculatedStrength['r']['d'] = 45.823199111111;tCalculatedStrength['r']['e'] = 42.104501069128;tCalculatedStrength['r']['f'] = 35.260244055958;tCalculatedStrength['r']['g'] = 52.604844798097;tCalculatedStrength['r']['h'] = 60.186240557383;tCalculatedStrength['r']['i'] = 45.823199111111;tCalculatedStrength['r']['k'] = 23.272866587324;tCalculatedStrength['r']['l'] = 52.604844798097;tCalculatedStrength['r']['m'] = 52.604844798097;tCalculatedStrength['r']['n'] = 35.260244055958;tCalculatedStrength['r']['p'] = 35.260244055958;tCalculatedStrength['r']['q'] = 49.257385438694;tCalculatedStrength['r']['r'] = 45.823199111111;tCalculatedStrength['r']['s'] = 47.417279124496;tCalculatedStrength['r']['t'] = 7.0786044250923;tCalculatedStrength['r']['v'] = 5.1062953213999;tCalculatedStrength['r']['w'] = 35.260244055958;tCalculatedStrength['r']['y'] = 52.604844798097;tCalculatedStrength['s']['a'] = 50.24328334011;tCalculatedStrength['s']['c'] = 31.24966683069;tCalculatedStrength['s']['d'] = 47.417279124496;tCalculatedStrength['s']['e'] = 48.421713960905;tCalculatedStrength['s']['f'] = 25.50772981461;tCalculatedStrength['s']['g'] = 45.284680600725;tCalculatedStrength['s']['h'] = 41.880157147049;tCalculatedStrength['s']['i'] = 47.417279124496;tCalculatedStrength['s']['k'] = 13.488746233845;tCalculatedStrength['s']['l'] = 45.284680600725;tCalculatedStrength['s']['m'] = 45.284680600725;tCalculatedStrength['s']['n'] = 25.50772981461;tCalculatedStrength['s']['p'] = 25.50772981461;tCalculatedStrength['s']['q'] = 38.461869497048;tCalculatedStrength['s']['r'] = 47.417279124496;tCalculatedStrength['s']['s'] = 52.975945325148;tCalculatedStrength['s']['t'] = -3.8433359650727;tCalculatedStrength['s']['v'] = 0.37915290874912;tCalculatedStrength['s']['w'] = 25.50772981461;tCalculatedStrength['s']['y'] = 45.284680600725;tCalculatedStrength['t']['a'] = -7.5041917681561;tCalculatedStrength['t']['c'] = 13.807094727994;tCalculatedStrength['t']['d'] = 7.0786044250923;tCalculatedStrength['t']['e'] = -8.4392059304994;tCalculatedStrength['t']['f'] = 25.225861455393;tCalculatedStrength['t']['g'] = -5.4066548050812;tCalculatedStrength['t']['h'] = 1.278605841779;tCalculatedStrength['t']['i'] = 7.0786044250923;tCalculatedStrength['t']['k'] = 41.170876967289;tCalculatedStrength['t']['l'] = -5.4066548050812;tCalculatedStrength['t']['m'] = -5.4066548050812;tCalculatedStrength['t']['n'] = 25.225861455393;tCalculatedStrength['t']['p'] = 25.225861455393;tCalculatedStrength['t']['q'] = 18.878763648421;tCalculatedStrength['t']['r'] = 7.0786044250923;tCalculatedStrength['t']['s'] = -3.8433359650727;tCalculatedStrength['t']['t'] = 39.674837575805;tCalculatedStrength['t']['v'] = 43.557277873297;tCalculatedStrength['t']['w'] = 25.225861455393;tCalculatedStrength['t']['y'] = -5.4066548050812;tCalculatedStrength['v']['a'] = -11.191528474216;tCalculatedStrength['v']['c'] = 17.541687818383;tCalculatedStrength['v']['d'] = 5.1062953213999;tCalculatedStrength['v']['e'] = -4.5715503537188;tCalculatedStrength['v']['f'] = 28.561267086612;tCalculatedStrength['v']['g'] = 2.157180949214;tCalculatedStrength['v']['h'] = 9.2859832173762;tCalculatedStrength['v']['i'] = 5.1062953213999;tCalculatedStrength['v']['k'] = 44.521067319218;tCalculatedStrength['v']['l'] = 2.157180949214;tCalculatedStrength['v']['m'] = 2.157180949214;tCalculatedStrength['v']['n'] = 28.561267086612;tCalculatedStrength['v']['p'] = 28.561267086612;tCalculatedStrength['v']['q'] = 22.702065063071;tCalculatedStrength['v']['r'] = 5.1062953213999;tCalculatedStrength['v']['s'] = 0.37915290874912;tCalculatedStrength['v']['t'] = 43.557277873297;tCalculatedStrength['v']['v'] = 48.126818571993;tCalculatedStrength['v']['w'] = 28.561267086612;tCalculatedStrength['v']['y'] = 2.157180949214;tCalculatedStrength['w']['a'] = 20.353692652058;tCalculatedStrength['w']['c'] = 43.066057732232;tCalculatedStrength['w']['d'] = 35.260244055958;tCalculatedStrength['w']['e'] = 20.844876012496;tCalculatedStrength['w']['f'] = 54.40946764336;tCalculatedStrength['w']['g'] = 24.575175436732;tCalculatedStrength['w']['h'] = 31.34416587945;tCalculatedStrength['w']['i'] = 35.260244055958;tCalculatedStrength['w']['k'] = 42.395009997506;tCalculatedStrength['w']['l'] = 24.575175436732;tCalculatedStrength['w']['m'] = 24.575175436732;tCalculatedStrength['w']['n'] = 54.40946764336;tCalculatedStrength['w']['p'] = 54.40946764336;tCalculatedStrength['w']['q'] = 48.154472611832;tCalculatedStrength['w']['r'] = 35.260244055958;tCalculatedStrength['w']['s'] = 25.50772981461;tCalculatedStrength['w']['t'] = 25.225861455393;tCalculatedStrength['w']['v'] = 28.561267086612;tCalculatedStrength['w']['w'] = 54.40946764336;tCalculatedStrength['w']['y'] = 24.575175436732;tCalculatedStrength['y']['a'] = 51.672531784327;tCalculatedStrength['y']['c'] = 29.856824872338;tCalculatedStrength['y']['d'] = 52.604844798097;tCalculatedStrength['y']['e'] = 41.139593752458;tCalculatedStrength['y']['f'] = 24.575175436732;tCalculatedStrength['y']['g'] = 39.476487407462;tCalculatedStrength['y']['h'] = 35.560533308816;tCalculatedStrength['y']['i'] = 52.604844798097;tCalculatedStrength['y']['k'] = 12.539144167802;tCalculatedStrength['y']['l'] = 39.476487407462;tCalculatedStrength['y']['m'] = 39.476487407462;tCalculatedStrength['y']['n'] = 24.575175436732;tCalculatedStrength['y']['p'] = 24.575175436732;tCalculatedStrength['y']['q'] = 36.966741409703;tCalculatedStrength['y']['r'] = 52.604844798097;tCalculatedStrength['y']['s'] = 45.284680600725;tCalculatedStrength['y']['t'] = -5.4066548050812;tCalculatedStrength['y']['v'] = 2.157180949214;tCalculatedStrength['y']['w'] = 24.575175436732;tCalculatedStrength['y']['y'] = 39.476487407462
---Precalculated Table#
 
 --#Calculations
 local function _calc()
@@ -493,7 +484,7 @@ local function _calc()
     tPredictedStrength = {}
     for i = 1, iSegmentCount do
         tPredictedStrength[i] = {}
-        for ii = i + 2, iSegmentCount - 2 do
+        for ii = i + 1, iSegmentCount do
             tPredictedStrength[i][ii] = tCalculatedStrength[aa[i]][aa[ii]]
         end -- for ii
     end -- for i
@@ -507,8 +498,7 @@ calc =
 
 --#External functions
 report =
-{
-    status  = recipe.ReportStatus,
+{   status  = recipe.ReportStatus,
     start   = recipe.SectionStart,
     stop    = recipe.SectionEnd
 }
@@ -524,11 +514,11 @@ local function _request()
     return slot
 end
 
+Quicksave = save.Quicksave
+Qucikload = save.Quickload
 saveSlot =
 {   release = _release,
     request = _request,
-    save    = save.Quicksave,
-    load    = save.Quickload
 }
 --Saveslot manager#
 --External functions#
@@ -563,7 +553,7 @@ local function _sphere(segment, radius)
             if temp > segment then
                 temp, temp2 = segment, i
             end -- if temp
-            if tDistances[temp][temp2] <= radius and not tSelectedSegments[i] then
+            if tDistances[temp][temp2] <= radius and not selection.IsSelected(i) then
                 tSphere[#tSphere + 1] = i
             end -- if tDistances
         end -- if segment
@@ -596,44 +586,10 @@ local function _center()
     return indexCenter
 end -- function
 
-local function _segs()
-    start = workingSegmentLeft
-    _end = workingSegmentRight
-end
-
-local function _increase(sc1, sc2, slot, step)
-    local sc
-    if step then
-        if sc2 - sc1 < step then
-            saveSlot.load(slot)
-            return
-        end -- if sc2
-    end -- if step
-    if sc2 > sc1 then
-        sc = sc2 - sc1
-        if slot == saveSlotOverall then
-            if sc2 > fMaxScore then
-                saveSlot.save(slot)
-                p("Gain: " .. sc)
-                fMaxScore = get.score()
-                p("==NEW=MAX=" .. fMaxScore .. "==")
-            else -- if sc2
-                saveSlot.load(slot)
-            end -- if sc2
-        else
-            saveSlot.save(slot)
-        end -- if slot
-        return true
-    else -- if sc2 >
-        saveSlot.load(slot)
-        return false
-    end -- if sc2 >
-end -- function
-
-local function _increase2(sectionEnd, slot, step)
+local function _increase(sectionEnd, slot, step)
     if step then
         if sectionEnd < step then
-            saveSlot.load(slot)
+            Quickload(slot)
             return
         end -- if sc2
     end -- if step
@@ -641,19 +597,19 @@ local function _increase2(sectionEnd, slot, step)
         if slot == saveSlotOverall then
             local currentScore = get.score()
             if currentScore > fMaxScore then
-                saveSlot.save(slot)
-                p("Gain: " .. sectionEnd)
+                Quicksave(slot)
+                p("Gain: " .. currentScore - fMaxScore)
                 fMaxScore = currentScore
                 p("==NEW=MAX=" .. fMaxScore .. "==")
             else -- if sc2
-                saveSlot.load(slot)
+                Quickload(slot)
             end -- if sc2
         else
-            saveSlot.save(slot)
+            Quicksave(slot)
         end -- if slot
         return true
     else -- if sc2 >
-        saveSlot.load(slot)
+        Quickload(slot)
         return false
     end -- if sc2 >
 end -- function
@@ -669,7 +625,7 @@ end
 
 local function _score()
     local s = 0
-    if bExploringWork then
+    if not bExploringWork then
         s = score.current.rankedScore()
     else -- if
         s = score.current.energyScore()
@@ -682,10 +638,7 @@ local function _hydro(s)
     if s then
         hydro[s] = get.hydro(s)
     else -- if
-        hydro = {}
-        for i = 1, iSegmentCount do
-            hydro[i] = get.hydro(i)
-        end -- for i
+        check.aa()
     end -- if
 end -- function
 --Hydrocheck#
@@ -718,8 +671,10 @@ local function _aa(s)
         aa[s] = get.aa(s)
     else -- if
         aa = {}
+        hydro = {}
         for i = 1, iSegmentCount do
             aa[i] = get.aa(i)
+            hydro[i] = amino.hydro[aa[i]]
         end -- for i
     end -- if
 end -- function
@@ -873,8 +828,8 @@ local function _formatTime(secs)
 end -- function
 
 local function _time()
-    currentTime = os.time()
-    if currentTime - timeStart > (60 + iTimeChecked*60) then
+    local currentTime = os.time()
+    if currentTime - timeStart > (60 + iTimeChecked * 60) then
         iTimeChecked = iTimeChecked + 1
         local elapsedSecs = currentTime - timeStart
         estimatedTime = math.floor(elapsedSecs * fEstimatedTimeMod + 0.5)
@@ -889,7 +844,7 @@ local function _time()
     end
 end
 
-local function _report(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
+local function _progress(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
     if start2 then
         if iter1 == -1 then
             local start = (vari2 +(start1 - vari1) *end2)
@@ -913,7 +868,7 @@ local function _midTable(left, right)
     end
     tWorkingMiddleSegs = {}
     if right == left then
-        tWorkingMiddleSegs[1] = right 
+        tWorkingMiddleSegs[1] = right
     end
 end
 
@@ -926,10 +881,8 @@ local function _rangeTable(left, right)
 end
 
 check =
-{
-    distances   = _distances,
+{   distances   = _distances,
     increase    = _increase,
-    increaseNew = _increase2,
     mutable     = _mutable,
     ss          = _ss,
     aa          = _aa,
@@ -942,8 +895,7 @@ check =
 }
 
 get =
-{
-    midTable        = _midTable,
+{   midTable        = _midTable,
     rangeTable      = _rangeTable,
     mid             = _mid,
     formattedTime   = _formatTime,
@@ -953,7 +905,7 @@ get =
     score           = _score,
     segscores       = _segscores,
     worst           = _worst,
-    report          = _report,
+    progress        = _progress,
     distance        = structure.GetDistance,
     ss              = structure.GetSecondaryStructure,
     aa              = structure.GetAminoAcid,
@@ -976,7 +928,7 @@ local function _freeze(f)
     else -- if
         freeze.FreezeSelected(true, true)
     end -- if
-end -- function
+end
 
 do_ =
 {   freeze      = _freeze,
@@ -990,178 +942,119 @@ do_ =
 local function _loss(option, cl1, cl2)
     if option == 1 then
         if not bTweaking then work.step("s", 1, cl1, bSpheredFuzing) end
+        report.start("Fuzing Part")
         work.step("wa", 2, cl2, bSpheredFuzing)
         work.step("wa", 1, 1, bSpheredFuzing)
         work.step("s", 1, 1, bSpheredFuzing)
+        check.increase(report.stop(), sl_f)
+        report.start("Fuzing Part")
         work.step("wa", 1, cl2, bSpheredFuzing)
         work.step("wa", 2, 1, bSpheredFuzing)
-    elseif option == 2 then
-        work.step("s", 1, 1, bSpheredFuzing)
-        work.step("wa", 2, 1, bSpheredFuzing)
-    else
+        check.increase(report.stop(), sl_f)
+    else -- if option
         if bTweaking then work.step("wa", 2, 1, bSpheredFuzing) end
-        if work.step("s", 1, cl1, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+        report.start("Fuzing Part")
+        if work.step("s", 1, cl1, bSpheredFuzing) or get.score() < 0 then work.step("wa", 2, 1, bSpheredFuzing) end
+        check.increase(report.stop(), sl_f)
+        report.start("Fuzing Part")
         if work.step("s", 1, cl2, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+        check.increase(report.stop(), sl_f)
+        report.start("Fuzing Part")
         if work.step("s", 1, cl1 - 0.02, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
+        check.increase(report.stop(), sl_f)
         if work.step("s", 1, 1, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
-    end
-end
-
-local function _part(option, cl1, cl2)
-    report.start("Fuzing Part") 
-    fuze.loss(option, cl1, cl2)
-    check.increaseNew(report.stop(), sl_f)
+    end -- if option
 end
 
 local function _start(slot)
     sl_f = saveSlot.request()
     report.start("Fuzing Complete")
-    saveSlot.save(sl_f)
-    if bFuzingPinkFuze or bTweaking then
-        fuze.part(1, 0.1, 0.6)
-    elseif bFuzingBlueFuze then
-        fuze.part(3, 0.05, 0.07)
+    Quicksave(sl_f)
+    if bFuzingBlueFuze and not bTweaking then
+        fuze.loss(2, 0.05, 0.07)
     else
-        fuze.part(2)
+        fuze.loss(1, 0.1, 0.6)
     end
-    saveSlot.load(sl_f)
+    Quickload(sl_f)
     saveSlot.release(sl_f)
-    check.increaseNew(report.end(), slot)
+    check.increase(report.stop(), slot)
 end
 
 fuze =
-{   loss    =   _loss,
-    part    =   _part,
-    start   =   _start
+{   loss    = _loss,
+    start   = _start
 }
 --Fuzing#
 
 --#Universal select
-local function _segs(sphered, start, _end, more)
+function selection.segs(sphered, startSegment, endSegment, more)
     local i
     if sphered ~= false and sphered ~= true then
-        local temp = start
-        start = sphered
+        local temp = startSegment
+        startSegment = sphered
         sphered = nil
-        if start then
-            _end, temp = temp, _end
-            if _end then
+        if startSegment then
+            endSegment, temp = temp, endSegment
+            if endSegment then
                 more = temp
-            end
-        end
-    end
+            end -- if endSegment
+        end -- if startSegment
+    end -- if sphered
     if not more then
-        deselect.all()
-    end -- if more
-    if start then
+        selection.DeselectAll()
+    end -- if not more
+    if startSegment then
         if sphered then
             local list1
-            if _end then
-                if start ~= _end then
-                    if start > _end then
-                        start, _end = _end, start
+            if endSegment then
+                if startSegment ~= endSegment then
+                    if startSegment > endSegment then
+                        startSegment, endSegment = endSegment, startSegment
                     end -- if > end
-                    select.range(start, _end)
-                    for i = start, _end do
+                    selection.SelectRange(startSegment, endSegment)
+                    for i = startSegment, endSegment do
                         list1 = get.sphere(i, 10)
-                        select.list(list1)
+                        selection.list(list1)
                     end -- for i
                 end -- if ~= end
-            end -- if _end
-            list1 = get.sphere(start, 10)
-            select.list(list1)
-            select.index(start)
-        elseif _end and start ~= _end then
-            if start > _end then
-                start, _end = _end, start
+            end -- if endSegment
+            list1 = get.sphere(startSegment, 10)
+            selection.list(list1)
+            selection.Select(startSegment)
+        elseif endSegment and startSegment ~= endSegment then
+            if startSegment > endSegment then
+                startSegment, endSegment = endSegment, startSegment
             end -- if > end
-            select.range(start, _end)
+            selection.SelectRange(startSegment, endSegment)
         else -- if sphered
-            select.index(start)
+            selection.Select(startSegment)
         end -- if sphered
-    else -- if start
-        select.all()
-    end -- if start
+    else -- if startSegment
+        selection.SelectAll()
+    end -- if startSegment
 end -- function
 
-local function _list(_list, sphered)
+function selection.list(_list, sphered)
     local i
     local list1
     if _list then
         for i = 1, #_list do
             if sphered then
                 list1 = get.sphere(_list[i], 10)
-                select.list(list1)
+                selection.list(list1)
             end -- for i
-            select.index(_list[i])
+            selection.Select(_list[i])
         end -- for
     end -- if _list
 end -- function
 
-local function _range(a, b)
-    local i
-    local bool
-    for i = a, b do
-        if not tSelectedSegments[i] then
-            bool = true
-        end
-    end
-    if bool then
-        selection.SelectRange(a, b)
-        for i = a, b do
-            tSelectedSegments[i] = true
-        end
-    end
-end
-
-local function _index(a)
-    if not tSelectedSegments[a] then
-        selection.Select(a)
-        tSelectedSegments[a] = true
-    end
-end
-
-local function _all()
-    for i = 1, iSegmentCount do
-        tSelectedSegments[i] = true
-    end
-    selection.SelectAll()
-end
-
-select =
-{   segs    = _segs,
-    list    = _list,
-    index   = _index,
-    range   = _range,
-    all     = _all
-}
-
-local function _deindex(segment)
-    if tSelectedSegments[segment] then
-        selection.Deselect(segment)
-        tSelectedSegments[segment] = false
-    end
-end
-
-local function _deall()
-    selection.DeselectAll()
-    tSelectedSegments = {}
-end
-
-local function _delist(list)
+function selection.deselectList(list)
     local i
     for i = 1, #list do
-        tSelectedSegments[list[i]] = false
         selection.Deselect(list[i])
     end
 end
 
-deselect =
-{
-    index   = _deindex,
-    all     = _deall,
-    list    = _delist
-}
 --Universal select#
 
 --#working
@@ -1173,12 +1066,12 @@ local function _step(a, iter, cl, sphered)
         cl = nil
     end
     if sphered == nil then
-        select.segs()
+        selection.segs()
     elseif sphered ~= 0 then
         if sphered then
-            select.segs(true, workingSegmentLeft, workingSegmentRight)
+            selection.segs(true, workingSegmentLeft, workingSegmentRight)
         else -- if sphered
-            select.segs(workingSegmentLeft, workingSegmentRight)
+            selection.segs(workingSegmentLeft, workingSegmentRight)
         end -- if sphered
     end -- if
     if a ~= "s" then
@@ -1196,11 +1089,15 @@ local function _step(a, iter, cl, sphered)
         wiggle.selectedBackbone(iter)
     elseif a == "ws" then
         wiggle.selectedSidechains(iter)
-    elseif a == "wl" then
-        select.segs(workingSegmentLeft, workingSegmentRight)
-        score.recent.save()
+    elseif a == "wla" or a == "wlb" then
+        selection.segs(workingSegmentLeft, workingSegmentRight)
+        score.recent.Quicksave()
         s1 = get.score()
-        wiggle.localSelected(iter)
+        if a == "wla" then
+            wiggle.localSelected(iter)
+        elseif a == "wlb" then
+            wiggle.localSelectedBackbone(iter)
+        end
         s2 = get.score()
         if s2 < s1 then
             score.recent.restore()
@@ -1222,7 +1119,7 @@ local function _flow(a, more)
     repeat
         iter = iter + 1
         if iter ~= 1 then
-            saveSlot.save(work_sl)
+            Quicksave(work_sl)
         end -- if iter
         s1 = get.score()
         work.step(a, iter)
@@ -1233,13 +1130,13 @@ local function _flow(a, more)
         end
     until s2 - s1 < (0.01 * iter)
     if s2 < s1 then
-        saveSlot.load(work_sl)
+        Quickload(work_sl)
     else -- if <
         s1 = s2
     end -- if <
     saveSlot.release(work_sl)
     if not more then
-        check.increaseNew(report.end(), slot, fScoreMustChange)
+        check.increase(report.stop(), slot, fScoreMustChange)
     end -- if not more
 end -- function
 
@@ -1254,9 +1151,9 @@ function _quake(ii)
     local cbands = get.bandcount()
     local quake = saveSlot.request()
     if workingSegmentLeft or workingSegmentRight then
-        select.segs(workingSegmentLeft, workingSegmentRight)
+        selection.segs(workingSegmentLeft, workingSegmentRight)
     else -- if workingSegmentLeft
-        select.segs()
+        selection.segs()
     end -- if workingSegmentLeft
     if isCompressingEnabled then
         if bCompressingPredictedLocalBonding then
@@ -1292,17 +1189,17 @@ function _quake(ii)
                 end
             end -- for
         end -- if b_solo
-        score.recent.save()
+        score.recent.Quicksave()
         set.clashImportance(1)
         wiggle.selectedBackbone(1)
-        saveSlot.save(quake)
+        Quicksave(quake)
         score.recent.restore()
         local s2 = get.score()
         if s2 > s1 then
             score.recent.restore()
-            saveSlot.save(saveSlotOverall)
+            Quicksave(saveSlotOverall)
         end -- if >
-        saveSlot.load(quake)
+        Quickload(quake)
         local s2 = get.score()
         tPredictedStrength = round(tPredictedStrength * 2 - tPredictedStrength * 10 / 11, 4)
         if bCompressingPredictedLocalBonding or isCurlingEnabled or bCompressingSoloBonding then
@@ -1316,8 +1213,8 @@ function _quake(ii)
 end -- function
 
 local function _dist()
-    select.segs()
-    saveSlot.save(saveSlotOverall)
+    selection.segs()
+    Quicksave(saveSlotOverall)
     dist = saveSlot.request()
     local bandcount = get.bandcount()
     if bCompressingSoloBonding then
@@ -1325,10 +1222,10 @@ local function _dist()
         bSpheredFuzing = true
         for ii = 1, bandcount do
             report.start("Solo Work")
-            saveSlot.save(dist)
+            Quicksave(dist)
             work.quake(ii)
             if bMutateAfterCompressing then
-                select.all()
+                selection.SelectAll()
                 structure.MutateSidechainsSelected(1)
             end -- if bMutateAfterCompressing
             bands.delete(ii)
@@ -1337,12 +1234,12 @@ local function _dist()
             else
                 work.step("wa", 3)
             end
-            check.increaseNew(report.end(), saveSlotOverall)
+            check.increase(report.stop(), saveSlotOverall)
         end -- for ii
         bSpheredFuzing = false
     else -- if bCompressingSoloBonding
         report.start("Compressing Work")
-        saveSlot.save(dist)
+        Quicksave(dist)
         work.quake()
         bands.disable()
         if bCompressingFuze then
@@ -1350,8 +1247,8 @@ local function _dist()
         else
             work.step("wa", 3)
         end
-        if not bEvolutionIsWorking then
-            check.increaseNew(report.end(), saveSlotOverall)
+        if bCompressingEvolutionOnlyBetter then
+            check.increase(report.stop(), saveSlotOverall)
         end
     end -- if bCompressingSoloBonding
     saveSlot.release(dist)
@@ -1369,9 +1266,9 @@ local function _rebuild(trys, str)
             set.clashImportance(0)
             iter = iter + 1
             if iter > 10 then
-            p("Rebuilding aborted! Backbone unrebuildable")
-            return false
-            end
+                p("Rebuilding aborted! Backbone unrebuildable")
+                return false
+            end -- if iter
         end -- while
         iter = 1
     end -- for i
@@ -1392,7 +1289,6 @@ work =
 --#Center
 local function _cpl(_local)
     local indexCenter = get.center()
-    get.segs()
     for i = 1, iSegmentCount do
         if i ~= indexCenter then
             local x = i
@@ -1415,7 +1311,6 @@ end -- function
 
 local function _cps(_local)
     local indexCenter = get.center()
-    get.segs()
     check.distances()
     for i = 1, iSegmentCount do
         if i ~= indexCenter then
@@ -1440,7 +1335,6 @@ end -- function
 
 local function _ps(_local, bandsp)
     local c_temp
-    get.segs()
     check.distances()
     for x = 1, iSegmentCount - 2 do
         if not hydro[x] then
@@ -1462,7 +1356,6 @@ local function _ps(_local, bandsp)
 end
 
 local function _pl(_local, bandsp)
-    get.segs()
     check.distances()
     if bCompressingFixxedBonding then
         for x = 1, iSegmentCount do
@@ -1503,7 +1396,6 @@ local function _pl(_local, bandsp)
 end -- function
 
 local function _strong(_local)
-    get.segs()
     check.distances()
     for i = 1, iSegmentCount do
         local max_str = 0
@@ -1536,22 +1428,40 @@ end -- function
 local function _one(_seg)
     check.distances()
     local max_str = 0
-    for ii = _seg + 2, iSegmentCount - 2 do
-        if max_str <= tPredictedStrength[_seg][ii] then
-            max_str = tPredictedStrength[_seg][ii]
-        end -- if max_str <=
-    end -- for ii
-    for ii = _seg + 2, iSegmentCount - 2 do
-        if tPredictedStrength[_seg][ii] == max_str then
-            if check.same(_seg, ii) then
-                bands.addToSegs(_seg , ii)
-                if bCompressingSoftBonding then
-                    local cband = get.bandcount()
-                    bands.length(cband, tDistances[_seg][ii] - iCompressingBondingLength)
-                end
-            end
-        end -- if tPredictedStrength
-    end -- for ii
+    local i
+    for i = 1, iSegmentCount do
+        if i ~= _seg then
+            local otherSegment = i
+            local segment = _seg
+            if otherSegment < segment then
+                otherSegment, segment = segment , otherSegment
+            end -- if otherSegment
+            if max_str <= tPredictedStrength[segment][otherSegment] then
+                max_str = tPredictedStrength[segment][otherSegment]
+            end -- if max_str <=
+        end -- if i ~=
+    end -- for otherSegment
+    for i = 1, iSegmentCount do
+        if i ~= _seg then
+            local segment = _seg
+            local otherSegment = i
+            if otherSegment < segment then
+                otherSegment, segment = segment , otherSegment
+            end -- if otherSegment
+            if tPredictedStrength[segment][otherSegment] == max_str then
+                if check.same(segment, otherSegment) then
+                    if not bands.addToSegs(segment , otherSegment) then
+                        return false
+                    end -- if not bands.
+                    if bCompressingSoftBonding then
+                        local cband = get.bandcount()
+                        bands.length(cband, tDistances[segment][otherSegment] - iCompressingBondingLength)
+                    end -- if bCompressingSoftBonding
+                end -- if check.same
+            end -- if tPredictedStrength
+        end -- if i ~=
+    end -- for otherSegment
+    return true
 end -- function
 
 local function _helix(_he)
@@ -1564,7 +1474,7 @@ local function _helix(_he)
         for i = he[_he][1], he[_he][#he[_he]] - 3 do
             bands.addToSegs(i, i + 3)
         end -- for i
-    else
+    else -- if _he
         for i = 1, #he do
             for ii = he[i][1], he[i][#he[i]] - 4 do
                 bands.addToSegs(ii, ii + 4)
@@ -1579,6 +1489,11 @@ end -- function
 local function _sheet(_sh)
     if _sh then
         for ii = sh[_sh][1], sh[_sh][#sh[_sh]] - 1 do
+            if ii - 1 < 1 then
+                ii = 2
+            elseif ii > iSegmentCount then
+                ii = iSegmentCount - 2
+            end
             bands.addToSegs(ii - 1, ii + 2)
             local cbands = get.bandcount()
             bands.strength(cbands, 10)
@@ -1587,6 +1502,11 @@ local function _sheet(_sh)
     else
         for i = 1, #sh do
             for ii = 1, #sh[i] - 1 do
+                if ii - 1 < 1 then
+                    ii = 2
+                elseif ii + 2 > iSegmentCount then
+                    ii = iSegmentCount - 2
+                end
                 bands.addToSegs(sh[i][ii] - 1, sh[i][ii] + 2)
                 local cbands = get.bandcount()
                 bands.strength(cbands, 10)
@@ -1628,110 +1548,6 @@ local function _rndband(vib)
     end
 end
 
-local function _vib()
-    check.distances()
-    local i
-    local _i
-    local ii
-    local iii
-    local list
-    local bandcount
-    for i = 1, iSegmentCount do
-        list = get.sphere(i, 15)
-        for ii = 1, #list do
-            _i = i
-            bandcount = get.bandcount()
-            bool = true
-            for iii = 1, bandcount do
-                if (bands.info[iii][start] == i and bands.info[iii][_end] == list[ii]) or (bands.info[iii][_end] == i and bands.info[iii][start] == list[ii]) then
-                    bool = false
-                end
-            end
-            if bool then
-                bands.addToSegs(i, list[ii])
-                if list[ii] < i then
-                    list[ii], _i = i, list[ii]
-                end
-                bandcount = get.bandcount()
-                bands.length(bandcount, tDistances[_i][list[ii]] + math.random(-0.1, 0.1))
-            end
-        end
-    end
-end
-
-local function _bonds(range, pts)
-    local i
-    local _i
-    local ii
-    local list
-    local bandcount
-    local iii
-    local bool
-    check.distances()
-    for i = 1, iSegmentCount do
-        list = get.sphere(i, range)
-        for ii = 1, #list do
-            if list[ii] ~= i and list[ii] + 1 ~= i and list[ii] - 1 ~= i then
-                if list[ii] < i then
-                    _i, list[ii] = list[ii], i
-                else
-                    _i = i
-                end
-                if score.current.segmentScorePart(_i, "bonding") == score.current.segmentScorePart(list[ii], "bonding") and score.current.segmentScorePart(list[ii], "bonding") ~= 0 then
-                    bands.addToSegs(_i, list[ii])
-                end
-            end
-        end
-    end
-end
-
-local function _void(a)
-    p("Banding segment " .. a)
-    check.distances()
-    local t = {}
-    for b = 1, iSegmentCount do
-        if a > b then
-           a, b = b, a
-        end -- if x
-        local ab = tDistances[a][b]
-        if ab > 3 then
-            local void = true
-            for c = 1, iSegmentCount do
-            if a > c then
-           a, c = c, a
-        end -- if x
-        if b > c then
-           b, c = c, b
-        end -- if x
-                local ac = tDistances[a][c]
-                local bc = tDistances[b][c]
-                if ac ~= 0 and bc ~= 0 and ac < ab and bc < ab and ac > 4 and bc > 4 then
-                    if ac + bc < ab + 1.5 then
-                        void = false
-                        break
-                    end
-                end
-            end
-            if void then
-                if math.abs(a - b) >= 3 then
-                    t[#t + 1] = {a, b}
-                end
-            end
-        end
-    end
-    if #t > 0 then
-        p("Found " .. #t .. " possible bands across voids")
-        for i = 1, #t do
-            band.addToSegs(t[i][1], t[i][2])
-        end
-        return true
-    else
-        p("No voids found")
-        return false
-    end
-end
-
-
 bonding =
 {   centerpull  = _cpl,
     centerpush  = _cps,
@@ -1742,9 +1558,6 @@ bonding =
     sheet       = _sheet,
     comp_sheet  = _comp_sheet,
     rnd         = _rndband,
-    vib         = _vib,
-    bonds       = _bonds,
-    void        = _void,
     matrix      =
     {   strong  = _strong,
         one     = _one
@@ -1753,151 +1566,9 @@ bonding =
 --Bonding#
 --Header#
 
---#Snapping
-function snap()
-    bTweaking = true
-    bSpheredFuzing = true
-    sl_snaps = saveSlot.request()
-    cs = get.score()
-    c_snap = cs
-    local s_1
-    local s_2
-    local c_s
-    local c_s2
-    saveSlot.save(sl_snaps)
-    sidechain_tweak(workingSegmentLeft)
-    check.increase(cs, get.score(), sl_snaps)
-    --[[iii = get.snapcount(workingSegmentLeft)
-    p("Snapcount: " .. iii .. " - segment " .. workingSegmentLeft)
-    if iii > 1 then
-        snapwork = saveSlot.request()
-        ii = 1
-        while ii <= iii do
-            saveSlot.load(sl_snaps)
-            c_s = get.score()
-            c_s2 = c_s
-            do_.snap(workingSegmentLeft, ii)
-            c_s2 = get.score()
-            saveSlot.save(snapwork)
-            select.segs(true, workingSegmentLeft)
-            fuze.start(snapwork)
-            if c_snap < get.score() then
-                c_snap = get.score()
-                saveSlot.save(sl_snaps)
-            end
-            ii = ii + 1
-        end
-        saveSlot.load(snapwork)
-        saveSlot.release(snapwork)
-        if cs < c_snap then
-            saveSlot.save(sl_snaps)
-            c_snap = get.score()
-        else
-            saveSlot.load(sl_snaps)
-        end
-    else
-        p("Skipping...")
-    end
-    if cs < get.score() then
-    saveSlot.load(sl_snaps)
-    else
-    saveSlot.save(sl_snaps)
-    cs = get.score()
-    end]]
-    bSpheredFuzing = false
-    bTweaking = false
-    saveSlot.release(sl_snaps)
-    --[[if mutated then
-        s_snap = get.score()
-        if s_mut < s_snap then
-            saveSlot.save(saveSlotOverall)
-        else
-            saveSlot.load(sl_mut)
-        end
-    else
-        saveSlot.save(saveSlotOverall)
-    end]]--
-end
---Snapping#
-
---#Rebuilding
-function rebuild(tweaking_seg)
-    bSpheredFuzing = true
-    sl_re = saveSlot.request()
-    saveSlot.save(sl_re)
-    select.segs(workingSegmentLeft, workingSegmentRight)
-    if workingSegmentRight == workingSegmentLeft then
-        p("Rebuilding Segment " .. workingSegmentLeft)
-    else -- if workingSegmentRight
-        p("Rebuilding Segment " .. workingSegmentLeft .. "-" .. workingSegmentRight)
-    end -- if workingSegmentRight
-    report.start("Rebuilding")
-    rs_0 = get.score()
-    local sl_r = {}
-    local i
-    local ii
-    for ii = 1, iRebuildTrys do
-        if not work.rebuild(iRebuildsTillSave, iRebuildStrength) then
-            saveSlot.load(sl_re)
-            saveSlot.release(sl_re)
-            bSpheredFuzing = false
-            sl_r = nil
-            if math.abs(workingSegmentLeft - workingSegmentRight) == 2 then
-                p("Detected rebuild length of 3; splitting to 2x2")
-                set.segs(workingSegmentLeft + 1, workingSegmentRight)
-                rebuild(tweaking_seg)
-                set.segs(workingSegmentLeft - 1, workingSegmentRight - 1)
-                rebuild(tweaking_seg)
-            end
-            return
-        end
-        sl_r[ii] = saveSlot.request()
-        saveSlot.save(sl_r[ii])
-    end
-    set.clashImportance(1)
-    local slot
-    if bMutating then
-        slot = sl_mut
-    else
-        slot = saveSlotOverall
-    end
-    for ii = 1, #sl_r do
-        saveSlot.load(sl_r[ii])
-        saveSlot.release(sl_r[ii])
-        sl_r[ii] = nil
-        saveSlot.save(sl_re)
-        if rs_1 ~= get.score() then
-            rs_1 = get.score()
-            if rs_1 ~= rs_0 then
-                p("Stabilize try "..ii)
-                fuze.start(sl_re)
-                rs_2 = get.score()
-                if (fMaxScore - rs_2 ) < 30 then
-                    if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops or bRebuildWalking then
-                        for i = workingSegmentLeft, workingSegmentRight do
-                            sidechain_tweak(i)
-                        end
-                    else
-                        sidechain_tweak(tweaking_seg)
-                    end
-                end
-                if check.increaseNew(report.end(), slot) then
-                    rs_0 = get.score()
-                end
-            end
-        end
-    end
-    saveSlot.load(slot)
-    sl_r = nil
-    saveSlot.release(sl_re)
-    bSpheredFuzing = false
-end -- function
---Rebuilding#
-
 function evolution()
-    bEvolutionIsWorking = true
     local i
-    for i = 1, 50 do
+    for i = 1, 5*iCompressingEvolutionRounds do
         bonding.rnd()
     end
     bands.disable()
@@ -1913,25 +1584,13 @@ function evolution()
         end
         work.dist()
     end
-    bEvolutionIsWorking = false
 end
 
 --#Pull
 function compress()
-    saveSlot.save(saveSlotOverall)
+    Quicksave(saveSlotOverall)
     dist_score = get.score()
     bands.delete()
-    if bCompressingVibrator then
-    for i = 1, 1 do
-for iiiii = 0, 180, 45 do
-for iiii = 0, 360, 45 do
-bands.addToArea(i, i + 1, i + 2, 5, math.rad(iiiii),math.rad(iiii))
-end
-end
-end
-work.dist()
-        bands.delete()
-end
     if bCompressingPredictedBonding then
         bonding.matrix.strong()
         work.dist()
@@ -1939,14 +1598,14 @@ end
     end -- if isCompressingEnabled_predicted
     if bCompressingPredictedLocalBonding then
         for i = iStartSegment, iEndSegment do
-            bonding.matrix.one(i)
-            work.dist()
-            bands.delete()
+            if bonding.matrix.one(i) then
+                work.dist()
+                bands.delete()
+            end
         end
     end -- if isCompressingEnabled_predicted
     if bCompressingPushPull then
         bonding.pull(bCompressingLocalBonding, fCompressingBondingPercentage / 2)
-        p(fCompressingBondingPercentage)
         bonding.push(bCompressingLocalBonding, fCompressingBondingPercentage)
         work.dist()
         bands.delete()
@@ -1970,17 +1629,6 @@ end
         work.dist()
         bands.delete()
     end -- if bCompressingCenterPull
-    --[[if bCompressingVibrator then
-        bonding.vib()
-        work.dist()
-        bands.delete()
-    end]]--
-    if bCompressingRefineBonds then
-        bonding.bonds(12, 10)
-        bonding.bonds(5, 2)
-        work.dist()
-        bands.delete()
-    end
 end -- function
 --Pull#
 
@@ -1996,45 +1644,87 @@ local function _getdata()
     while i < iSegmentCount do
         ui = i
         loop = false
-        if hydro[i] then
-            if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if aa[i] ~= "p" then
-                    if not helix then
-                        helix = true
-                        p_he[#p_he + 1] = {}
-                    end
-                else
+        if bPredictingOtherMethod then
+            if hydro[i] then
+                if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] and not hydro[i + 4] or hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] and not hydro[i + 4] or not hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] and hydro[i + 4] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] or hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- hydro i +
                     loop = true
-                    helix = false
-                end -- if helix
-            elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
-                if not sheet then
-                    sheet = true
-                    p_sh[#p_sh + 1] = {}
-                end -- if sheet
-            else -- hydro i +
-                loop = true
-            end -- hydro i +
-        elseif not hydro[i] then
-            if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
-                if aa[i] ~= "p" then
-                    if not helix then
-                        helix = true
-                        p_he[#p_he + 1] = {}
-                    end
-                else
+                end -- hydro i +
+            elseif not hydro[i] then
+                if not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] and hydro[i + 4] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] and hydro[i + 4] or hydro[i + 1] and hydro[i + 2] and hydro[i + 3] and not hydro[i + 4] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- if hydro +
                     loop = true
-                    helix = false
-                end -- if helix
-            elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
-                if not sheet then
-                    sheet = true
-                    p_sh[#p_sh + 1] = {}
-                end -- if sheet
-            else -- if hydro +
-                loop = true
-            end -- if hydro +
-        end -- hydro[i]
+                end -- if hydro +
+            end -- hydro[i]
+        else -- if bPredictingOtherMethod
+            if hydro[i] then
+                if hydro[i + 1] and not hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif not hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- hydro i +
+                    loop = true
+                end -- hydro i +
+            elseif not hydro[i] then
+                if hydro[i + 1] and hydro[i + 2] and not hydro[i + 3] or not hydro[i + 1] and hydro[i + 2] and hydro[i + 3] then
+                    if aa[i] ~= "p" then
+                        if not helix then
+                            helix = true
+                            p_he[#p_he + 1] = {}
+                        end -- if not helix
+                    else -- if aa[i]
+                        loop = true
+                        helix = false
+                    end -- if helix
+                elseif hydro[i + 1] and not hydro[i + 2] and hydro[i + 3] then
+                    if not sheet then
+                        sheet = true
+                        p_sh[#p_sh + 1] = {}
+                    end -- if sheet
+                else -- if hydro +
+                    loop = true
+                end -- if hydro +
+            end -- hydro[i]
+        end -- if bPredictingOtherMethod
         if helix then
             p_he[#p_he][#p_he[#p_he] + 1] = i
             if loop or sheet then
@@ -2075,34 +1765,34 @@ local function _getdata()
         end -- if bPredictingFull
     end -- while
     p("Found " .. #p_he .. " Helix and " .. #p_sh .. " Sheet parts... Combining...")
-    select.segs()
+    selection.segs()
     set.ss("L")
-    deselect.all()
+    selection.DeselectAll()
     for i = 1, #p_he do
-        select.list(p_he[i])
+        selection.list(p_he[i])
     end -- for
     set.ss("H")
-    deselect.all()
+    selection.DeselectAll()
     for i = 1, #p_sh do
-        select.list(p_sh[i])
+        selection.list(p_sh[i])
     end -- for
     set.ss("E")
     predict.combine()
     bStructureChanged = true
-    saveSlot.save(saveSlotOverall)
+    Quicksave(saveSlotOverall)
 end
 
 local function _combine()
     for i = 1, iSegmentCount - 1 do
         check.struct()
-        deselect.all()
+        selection.DeselectAll()
         if ss[i] == "L" then
             if aa[i] ~= "p" then
                 for ii = 1, #he - 1 do
                     if bPredictingCombine then
                         for iii = he[ii][1], he[ii][#he[ii]] do
                             if iii + 1 == i and he[ii + 1][1] == i + 1 then
-                                select.segs(i)
+                                selection.segs(i)
                             end -- if iii
                         end -- for iii
                     end -- if b_pre
@@ -2112,20 +1802,20 @@ local function _combine()
                         for iii = he[ii][1] - 1, he[ii][#he[ii]] + 1, he[ii][#he[ii]] - he[ii][1] + 1 do
                             if iii > 0 and iii <= iSegmentCount then
                                 if amino.preffered(iii) == "H" then
-                                    select.segs(iii)
+                                    selection.segs(iii)
                                 end -- if iii
                             end -- if iii
                         end -- for iii
                     end -- if b_pre
                 end -- for ii
                 set.ss("H")
-                deselect.all()
+                selection.DeselectAll()
             end -- if aa
             if bPredictingCombine then
                 for ii = 1, #sh - 1 do
                     for iii = sh[ii][1], sh[ii][#sh[ii]] do
                         if iii + 1 == i and sh[ii + 1][1] == i + 1 then
-                            select.segs(i)
+                            selection.segs(i)
                         end -- if iii
                     end -- for iii
                 end -- for ii
@@ -2135,7 +1825,7 @@ local function _combine()
                     for iii = sh[ii][1] - 1, sh[ii][#sh[ii]] + 1, sh[ii][#sh[ii]] - sh[ii][1] + 1 do
                         if iii > 0 and iii <= iSegmentCount then
                             if amino.preffered(iii) == "E" then
-                                select.segs(iii)
+                                selection.segs(iii)
                             end -- if iii
                         end
                     end -- for iii
@@ -2170,7 +1860,7 @@ function struct_curler()
                     right = iSegmentCount
                 end -- if right
                 set.segs(left, right)
-                select.segs(workingSegmentLeft, workingSegmentRight)
+                selection.segs(workingSegmentLeft, workingSegmentRight)
                 bonding.helix(i)
                 bSpheredFuzing = true
                 work.dist()
@@ -2193,7 +1883,7 @@ function struct_curler()
                 end -- if right
                 set.segs(left, right)
                 bonding.sheet(i)
-                select.segs(workingSegmentLeft, workingSegmentRight)
+                selection.segs(workingSegmentLeft, workingSegmentRight)
                 bSpheredFuzing = true
                 work.dist()
                 bands.delete()
@@ -2202,7 +1892,7 @@ function struct_curler()
         end -- for i
     end -- if bCurlingSheet
     saveSlot.release(str_re_best)
-    saveSlot.save(saveSlotOverall)
+    Quicksave(saveSlotOverall)
 end
 
 function struct_rebuild()
@@ -2212,9 +1902,9 @@ function struct_rebuild()
     check.struct()
     p("Found " .. #he .. " Helixes " .. #sh .. " Sheets and " .. #lo .. " Loops")
     if bStructuredRebuildHelix then
-        deselect.all()
+        selection.DeselectAll()
         for i = 1, #sh do
-            select.list(sh[i])
+            selection.list(sh[i])
         end -- for i
         set.ss("L")
         for i = 1, #he do
@@ -2229,8 +1919,8 @@ function struct_rebuild()
             end -- if right
             set.segs(left, right)
             bonding.helix(i)
-            deselect.all()
-            select.range(workingSegmentLeft, workingSegmentRight)
+            selection.DeselectAll()
+            selection.SelectRange(workingSegmentLeft, workingSegmentRight)
             set.clashImportance(0.4)
             wiggle.selectedBackbone(1)
             set.clashImportance(0)
@@ -2245,22 +1935,22 @@ function struct_rebuild()
             if bStructuredRebuildFuze then
                 bSpheredFuzing = true
                 fuze.start(str_re_best)
-                saveSlot.load(str_re_best)
+                Quickload(str_re_best)
                 bSpheredFuzing = false
             end -- if bStructuredRebuildFuze
             str_sc = nil
             str_rs = nil
         end -- for i
-        deselect.all()
+        selection.DeselectAll()
         for i = 1, #sh do
-            select.list(sh[i])
+            selection.list(sh[i])
         end -- for i
         set.ss("E")
     end -- if bStructuredRebuildHelix
     if bStructuredRebuildSheet then
-        deselect.all()
+        selection.DeselectAll()
         for i = 1, #he do
-            select.list(he[i])
+            selection.list(he[i])
         end -- for i
         set.ss("L")
         for i = 1, #sh do
@@ -2275,8 +1965,8 @@ function struct_rebuild()
             end -- if right
             set.segs(left, right)
             bonding.sheet(i)
-            deselect.all()
-            select.range(workingSegmentLeft, workingSegmentRight)
+            selection.DeselectAll()
+            selection.SelectRange(workingSegmentLeft, workingSegmentRight)
             set.clashImportance(0.1)
             wiggle.selectedBackbone(1)
             set.clashImportance(0.4)
@@ -2285,23 +1975,24 @@ function struct_rebuild()
             if bStructuredRebuildFuze then
                 bSpheredFuzing = true
                 fuze.start(str_re_best)
-                saveSlot.load(str_re_best)
+                Quickload(str_re_best)
                 bSpheredFuzing = false
             end -- if bStructuredRebuildFuze
         end -- for i
-        deselect.all()
+        selection.DeselectAll()
         for i = 1, #he do
-            select.list(he[i])
+            selection.list(he[i])
         end -- for i
         set.ss("H")
         bonding.comp_sheet()
     end -- if bStructuredRebuildSheet
-    saveSlot.save(saveSlotOverall)
+    Quicksave(saveSlotOverall)
     saveSlot.release(str_re_best)
 end
 
 --#Mutate function
 function mutate()
+    sl_mut = saveSlot.request()
     bMutating = true
     local i
     local ii
@@ -2309,30 +2000,31 @@ function mutate()
     local i_will_be = #mutable - 3
     for i = i_will_be, 1, -1 do
         p("Mutating segment " .. mutable[i])
-        saveSlot.save(saveSlotOverall)
+        Quicksave(saveSlotOverall)
         sc_mut = get.score()
         local ii
         for ii = 1, #amino.segs do
-           mutate2(i, ii)
-            get.report(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
+            mutate2(i, ii)
+            get.progress(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
         end
-        saveSlot.load(saveSlotOverall)
+        Quickload(saveSlotOverall)
     end
     bMutating = false
+    saveSlot.release(sl_mut)
 end
 
 function mutate2(mut, aa, more)
     report.start("Mutating Work")
     local i
-    select.segs(mutable[mut])
+    selection.segs(mutable[mut])
     set.aa(amino.segs[aa])
-    saveSlot.save(sl_mut)
+    Quicksave(sl_mut)
     check.aa()
     p(#amino.segs - aa .. " Mutations left")
     p("Mutating segment " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
     if bMutateSurroundingAfter then
-        select.list(mutable)
-        deselect.index(mutable[mut])
+        selection.list(mutable)
+        selection.Deselect(mutable[mut])
         for i = 1, #mutable do
             local temp = false
             if i ~= mut then
@@ -2344,7 +2036,7 @@ function mutate2(mut, aa, more)
                     temp = true
                 end
                 if temp then
-                    deselect.index(mutable[i])
+                    selection.Deselect(mutable[i])
                 end
             end
         end
@@ -2370,7 +2062,7 @@ function mutate2(mut, aa, more)
                 end
             else
                 rebuild(mutable[mut])
-            end            
+            end
         end
         set.segs(mutable[mut] - 1, mutable[mut] + 1)
         if not bRebuildInMutatingIgnoreStructures then
@@ -2382,26 +2074,91 @@ function mutate2(mut, aa, more)
         end
     elseif bOptimizeSidechain then
         set.segs(mutable[mut], mutable[mut])
-        if not sidechain_tweak(mutable[mut]) then
+        if not snap.tweak(mutable[mut]) then
             bSpheredFuzing = true
             fuze.start(sl_mut)
             bSpheredFuzing = false
         end
     end
     if not more then
-        if check.increaseNew(report.end(), saveSlotOverall) then
+        if check.increase(report.stop(), saveSlotOverall) then
         end
     end
 end -- function
-
 --Mutate#
 
-function getNear(segment)
+--#Snapping
+local function _run()
+    bTweaking = true
+    bSpheredFuzing = true
+    sl_snaps = saveSlot.request()
+    cs = get.score()
+    c_snap = cs
+    local s_1
+    local s_2
+    local c_s
+    local c_s2
+    Quicksave(sl_snaps)
+    snap.tweak(workingSegmentLeft)
+    check.increase(cs, get.score(), sl_snaps)
+    --[[iii = get.snapcount(workingSegmentLeft)
+    p("Snapcount: " .. iii .. " - segment " .. workingSegmentLeft)
+    if iii > 1 then
+        snapwork = saveSlot.request()
+        ii = 1
+        while ii <= iii do
+            Quickload(sl_snaps)
+            c_s = get.score()
+            c_s2 = c_s
+            do_.snap(workingSegmentLeft, ii)
+            c_s2 = get.score()
+            Quicksave(snapwork)
+            selection.segs(true, workingSegmentLeft)
+            fuze.start(snapwork)
+            if c_snap < get.score() then
+                c_snap = get.score()
+                Quicksave(sl_snaps)
+            end
+            ii = ii + 1
+        end
+        Quickload(snapwork)
+        saveSlot.release(snapwork)
+        if cs < c_snap then
+            Quicksave(sl_snaps)
+            c_snap = get.score()
+        else
+            Quickload(sl_snaps)
+        end
+    else
+        p("Skipping...")
+    end
+    if cs < get.score() then
+    Quickload(sl_snaps)
+    else
+    Quicksave(sl_snaps)
+    cs = get.score()
+    end]]
+    bSpheredFuzing = false
+    bTweaking = false
+    saveSlot.release(sl_snaps)
+    --[[if mutated then
+        s_snap = get.score()
+        if s_mut < s_snap then
+            Quicksave(saveSlotOverall)
+        else
+            Quickload(sl_mut)
+        end
+    else
+        Quicksave(saveSlotOverall)
+    end]]--
+end
+
+function _near(segment)
     if(get.score() < g_total_score-1000) then
-        deselect.index(segment)
+        selection.Deselect(segment)
         work.step("s", 1, 0.75, 0)
         work.step("ws", 1, 0)
-        select.index(segment)
+        selection.Select(segment)
         set.clashImportance(1)
     end
     if(get.score() < g_total_score-1000) then
@@ -2410,58 +2167,58 @@ function getNear(segment)
     return true
 end
 
-function sidechain_tweak(tweak_seg)
+local function _tweak(tweak_seg)
     if tweak_seg == nil then
         tweak_seg = tWorkingMiddleSegs[1]
     end
-    score.recent.save()
+    score.recent.Quicksave()
     if aa[tweak_seg] ~= "a" or aa[tweak_seg] ~= "g" then
         bool = true
         bTweaking = true
         sl_reset = saveSlot.request()
-        saveSlot.save(sl_reset)
-        deselect.all()
-        select.segs(false,tweak_seg)
+        Quicksave(sl_reset)
+        selection.DeselectAll()
+        selection.segs(false,tweak_seg)
         local ss = get.score()
         g_total_score = get.score()
         if work.step("s", 2, 0, 0) then
             p("AT: Sidechain tweak")
             sl_tweak_work = saveSlot.request()
-            saveSlot.save(sl_tweak_work)
-            select.segs(true, tweak_seg)
-            if getNear(tweak_seg) then
+            Quicksave(sl_tweak_work)
+            selection.segs(true, tweak_seg)
+            if snap.near(tweak_seg) then
                 sl_tweak = saveSlot.request()
                 fuze.start(sl_tweak)
                 saveSlot.release(sl_tweak)
             end
             if ss < get.score() then
-                saveSlot.save(sl_reset)
-                deselect.all()  
-                select.segs(false,tweak_seg)
+                Quicksave(sl_reset)
+                selection.DeselectAll()
+                selection.segs(false,tweak_seg)
                 local ss = get.score()
                 g_total_score = get.score()
                 work.step("s", 2, 0, 0)
-                saveSlot.save(sl_tweak_work)
+                Quicksave(sl_tweak_work)
             else
-                saveSlot.load(sl_tweak_work)
+                Quickload(sl_tweak_work)
             end
-            deselect.all()
-            select.segs(tweak_seg)
+            selection.DeselectAll()
+            selection.segs(tweak_seg)
             local ss=get.score()
             g_total_score = get.score()
             if get.score() > g_total_score - 30 then
                 p("AT: Sidechain tweak around")
-                select.segs(true, tweak_seg)
-                deselect.index(tweak_seg)
+                selection.segs(true, tweak_seg)
+                selection.Deselect(tweak_seg)
                 work.step("s", 1, 0.1, 0)
-                select.index(tweak_seg)
-                if getNear(i) then
+                selection.Select(tweak_seg)
+                if snap.near(i) then
                     sl_tweak = saveSlot.request()
                     fuze.start(sl_tweak)
                     saveSlot.release(sl_tweak)
                 end
                 if ss > get.score() then
-                    saveSlot.load(sl_reset)
+                    Quickload(sl_reset)
                 end
             end
         else
@@ -2476,92 +2233,196 @@ function sidechain_tweak(tweak_seg)
     score.recent.restore()
     return bool
 end
+--Snapping#
 
-i_s0 = get.score()
-fMaxScore = get.score()
-saveSlotOverall = 1
-p("v" .. iVersion)
-if isReleaseVersion then
-    p("Release Version " .. iReleaseVersion)
-    p("Released on " .. strReleaseDate)
-else -- if isReleaseVersion
-    p("No Released script so it's probably unsafe!")
-    p("Last version released on " .. strReleaseDate)
-    p("It was release version " .. iReleaseVersion)
-end -- if isReleaseVersion
-p("Starting Score: " .. i_s0)
-saveSlot.save(saveSlotOverall)
-check.ss()
-check.ligand()
-check.aa()
-check.hydro()
-check.mutable()
-if isPredictingEnabled then
-    predict.getdata()
-    save.SaveSecondaryStructure()
-elseif isStructureRebuildEnabled then
-    struct_rebuild()
-elseif isCurlingEnabled then
-    struct_curler()
-elseif isCompressingEnabled then
-    for i = 1, iCompressingTrys do
-        if bCompressingPredictedBonding or bCompressingPredictedLocalBonding then
-            calc.run()
-        end
-        compress()
-    end -- for i
-elseif isMutatingEnabled then
-    sl_mut = saveSlot.request()
-    mutate()
-    saveSlot.release(sl_mut)
-elseif isRebuildingEnabled then
-    if bRebuildWorst then
-        get.worst(iWorstSegmentLength)
-        select.segs(workingSegmentLeft, workingSegmentRight)
-        set.ss("L")
-        rebuild()
-    end
-    if bRebuildLoops then
-        check.struct()
-        local i
-        for i = 1, #lo do
-            set.segs(lo[i][1], lo[i][#lo[i]])
-            rebuild()
-            get.report(1, #lo, 1, i)
-        end
-    end
-elseif isFuzingEnabled then
-    p("Fuzing")
-    fuze.start(saveSlotOverall)
-end -- if isFuzingEnabled
-if (isRebuildingEnabled and not bRebuildWorst and not bRebuildLoops) or isLocalWiggleEnabled or isSnappingEnabled then
+snap =
+{
+    run     = _snap,
+    tweak   = _tweak,
+    near    = _near
+}
+
+--#Rebuilding
+function rebuild(tweaking_seg)
+    bSpheredFuzing = true
+    sl_re = saveSlot.request()
+    Quicksave(sl_re)
+    selection.segs(workingSegmentLeft, workingSegmentRight)
+    if workingSegmentRight == workingSegmentLeft then
+        p("Rebuilding Segment " .. workingSegmentLeft)
+    else -- if workingSegmentRight
+        p("Rebuilding Segment " .. workingSegmentLeft .. "-" .. workingSegmentRight)
+    end -- if workingSegmentRight
+    report.start("Rebuilding")
+    rs_0 = get.score()
+    local sl_r = {}
     local i
-    for i = iStartSegment, iEndSegment do
-        set.segs(i,i)
-        if isSnappingEnabled then
-            snap()
+    local ii
+    for ii = 1, iRebuildTrys do
+        if not work.rebuild(iRebuildsTillSave, iRebuildStrength) then
+            Quickload(sl_re)
+            saveSlot.release(sl_re)
+            bSpheredFuzing = false
+            sl_r = nil
+            if math.abs(workingSegmentLeft - workingSegmentRight) == 2 then
+                p("Detected rebuild length of 3; splitting to 2x2")
+                set.segs(workingSegmentLeft + 1, workingSegmentRight)
+                rebuild(tweaking_seg)
+                set.segs(workingSegmentLeft - 1, workingSegmentRight - 1)
+                rebuild(tweaking_seg)
+            end
+            return
         end
-        local ii
-        for ii = iStartingWalk, iEndWalk do
-            if i + ii > iSegmentCount then
-                break
-            end -- if workingSegmentRight
-            set.segs(i,i + ii)
-            if isRebuildingEnabled then
-                if bRebuildWalking then
-                    select.segs()
-                    set.ss("L")
-                    rebuild()
+        sl_r[ii] = saveSlot.request()
+        Quicksave(sl_r[ii])
+    end
+    set.clashImportance(1)
+    for ii = 1, #sl_r do
+        report.start("Rebuild" .. ii)
+    end
+    local slot
+    if bMutating then
+        slot = sl_mut
+    else
+        slot = saveSlotOverall
+    end
+    for ii = 1, #sl_r do
+        Quickload(sl_r[ii])
+        saveSlot.release(sl_r[ii])
+        sl_r[ii] = nil
+        Quicksave(sl_re)
+        if rs_1 ~= get.score() then
+            rs_1 = get.score()
+            if rs_1 ~= rs_0 then
+                p("Stabilize try "..ii)
+                fuze.start(sl_re)
+                rs_2 = get.score()
+                if (fMaxScore - rs_2 ) < 30 then
+                    if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops or bRebuildWalking then
+                        for i = workingSegmentLeft, workingSegmentRight do
+                            snap.tweak(i)
+                        end
+                    else
+                        snap.tweak(tweaking_seg)
+                    end
                 end
-            elseif isLocalWiggleEnabled then
-                p(workingSegmentLeft .. "-" .. workingSegmentRight)
-                work.flow("wl")
-            end -- if isLocalWiggleEnabled
-        end -- for ii
-        get.report(iStartSegment, iEndSegment, 1, i)
-    end -- for i
+                if check.increase(report.stop(), slot) then
+                    rs_0 = get.score()
+                end
+            else
+                report.stop()
+            end
+        else
+            report.stop()
+        end
+    end
+    report.stop()
+    Quickload(slot)
+    sl_r = nil
+    saveSlot.release(sl_re)
+    bSpheredFuzing = false
+end -- function
+--Rebuilding#
+
+function run()
+    precalc()
+    precalc = nil
+    p("v" .. iVersion)
+    if isReleaseVersion then
+        p("Release Version " .. iReleaseVersion)
+        p("Released on " .. strReleaseDate)
+    else -- if isReleaseVersion
+        p("No Released script so it's probably unsafe!")
+        p("Last version released on " .. strReleaseDate)
+        p("It was release version " .. iReleaseVersion)
+    end -- if isReleaseVersion
+    fMaxScore = get.score()
+    p("Starting Score: " .. fMaxScore)
+    report.start("Overall Gain")
+    saveSlotOverall = 1
+    Quicksave(saveSlotOverall)
+    check.ss()
+    check.ligand()
+    check.ligand = nil
+    check.aa()
+    check.mutable()
+    save.SaveSecondaryStructure()
+    if isPredictingEnabled then
+        predict.getdata()
+        save.SaveSecondaryStructure()
+    elseif isStructureRebuildEnabled then
+        struct_rebuild()
+    elseif isCurlingEnabled then
+        struct_curler()
+    elseif isCompressingEnabled then
+        for i = 1, iCompressingTrys do
+            if bCompressingPredictedBonding or bCompressingPredictedLocalBonding then
+                calc.run()
+            end -- if bCompressingPredictedBonding
+            compress()
+        end -- for i
+    elseif isMutatingEnabled then
+        mutate()
+    elseif isRebuildingEnabled then
+        if bRebuildWorst then
+            get.worst(iWorstSegmentLength)
+            selection.segs(workingSegmentLeft, workingSegmentRight)
+            set.ss("L")
+            rebuild()
+        end -- if bRebuildWorst
+        if bRebuildLoops then
+            check.struct()
+            local i
+            for i = 1, #lo do
+                set.segs(lo[i][1], lo[i][#lo[i]])
+                rebuild()
+                get.progress(1, #lo, 1, i)
+            end -- for i
+        end -- if RebuildLoops
+    elseif isFuzingEnabled then
+        p("Fuzing")
+        fuze.start(saveSlotOverall)
+    end -- if isFuzingEnabled
+    if (isRebuildingEnabled and not bRebuildWorst and not bRebuildLoops) or isLocalWiggleEnabled or isSnappingEnabled then
+        local i
+        for i = iStartSegment, iEndSegment do
+            set.segs(i,i)
+            if isSnappingEnabled then
+                snap.run()
+            end -- if isSnappingEnabled
+            local ii
+            for ii = iStartingWalk, iEndWalk do
+                if i + ii > iSegmentCount then
+                    break
+                end -- if workingSegmentRight
+                set.segs(i,i + ii)
+                if isRebuildingEnabled then
+                    if bRebuildWalking then
+                        selection.segs()
+                        set.ss("L")
+                        rebuild()
+                    end -- if bRebuildWalking
+                elseif isLocalWiggleEnabled then
+                    p(workingSegmentLeft .. "-" .. workingSegmentRight)
+                    work.flow("wla")
+                    work.flow("wlb")
+                    work.flow("wla")
+                    work.flow("wlb")
+                end -- if isLocalWiggleEnabled
+            end -- for ii
+            get.progress(iStartSegment, iEndSegment, 1, i)
+        end -- for i
+    end -- if (isRebuildingEnabled
+    Quickload(saveSlotOverall)
+    save.LoadSecondaryStructure()
+    saveSlot.release(saveSlotOverall)
+    p("+++ overall gain +++")
+    p("+++" .. report.stop() .. "+++")
 end
 
+run()
+
+--[[old/unused function
 if b_test then
     scoie=0
     for ii=1,70 do
@@ -2569,11 +2430,11 @@ if b_test then
         p("Wiggle: " .. behavior.GetWiggleAccuracy())
         for iii=1,4 do
             reset.puzzle()
-            saveSlot.save(saveSlotOverall)
+            Quicksave(saveSlotOverall)
             behavior.SetShakeAccuracy(iii)
             p("Shake: " .. behavior.GetShakeAccuracy())
             fuze.start(overall)
-            saveSlot.load(saveSlotOverall)
+            Quickload(saveSlotOverall)
             s_1 = get.score()
             if (s_1 - i_s0) > scoie then
                 scoie = s_1 - i_s0
@@ -2584,15 +2445,8 @@ if b_test then
         end
     end
 end
-saveSlot.load(saveSlotOverall)
-save.LoadSecondaryStructure()
-saveSlot.release(saveSlotOverall)
-s_1 = get.score()
-p("+++ overall gain +++")
-p("+++" .. s_1 - i_s0 .. "+++")
 
---old/unused function
---[[local function _HCI(a, b) -- hydropathy
+local function _HCI(a, b) -- hydropathy
     return 20 - math.abs((amino.hydroscale(a) - amino.hydroscale(b)) * 19 / 10.6)
 end
 
@@ -2602,9 +2456,8 @@ end
 
 local function _CCI(a, b) -- charge
     return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
-end]]
+end
 
---[[
 local ask = dialog.CreateDialog("Primary Settings")
 ask.lws = dialog.AddButton("local wiggle", 1)
 ask.rebuild = dialog.AddButton("rebuild", 2)
@@ -2663,7 +2516,7 @@ if dialog.result == 1 then
     sec_dialog.walking_re = dialog.AddCheckbox("Fixxed Work", false)
     sec_dialog.startseg_fixxed = dialog.AddSlider("Fixxed start Segment", 1, 1, iSegmentCount, 1)
     sec_dialog.endseg_fixxed = dialog.AddSlider("Fixxed end Segment", iSegmentCount, 1, iSegmentCount, 1)
-    
+
     sec_dialog.Iterations = dialog.AddLabel("Iterations="..ask.Iterations.value)
     sec_dialog.BandStrength = dialog.AddLabel("Band Strength="..ask.BandStrength.value)
     sec_dialog.Comment = dialog.AddLabel("Comment="..ask.Comment.value)
@@ -2678,7 +2531,8 @@ if bIsExploringPuzzle & ask.useExploreMultiplier.value then
     if (ask.sphere.value) then
         bSpheredFuzing = true
     end
-    
+
     if not (dialog.Show(lws_dialog) == 1) then
         return showConfigDialog()
-    end]]--
+    end
+]]
