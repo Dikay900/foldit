@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1241
+iVersion            = 1242
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
@@ -16,12 +16,12 @@ iReleaseVersion     = 5
 
 --#Settings: default
 --#Main                                     default         description
-isLocalWiggleEnabled        = true         -- false        do local wiggle and rewiggle
+isLocalWiggleEnabled        = false         -- false        do local wiggle and rewiggle
 isRebuildingEnabled         = false         -- false        rebuild | see #Rebuilding
 isCompressingEnabled        = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 isStructureRebuildEnabled   = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 isCurlingEnabled            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
-isSnappingEnabled           = false         -- false        should we snap every sidechain to different positions
+isSnappingEnabled           = true         -- false        should we snap every sidechain to different positions
 isFuzingEnabled             = false         -- false        should we fuze | see #Fuzing
 isMutatingEnabled           = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 isPredictingEnabled         = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
@@ -50,7 +50,7 @@ fClashingForMutating    = 0.75  -- 0.75         cl for mutating
 
 --#Pull                                         default     description
 iCompressingTrys                    = 3         -- 1        how often should the pull start over?
-fCompressingLoss                    = 0.75         -- 1        the score / 100 * fCompressingLoss is the general formula for calculating the points we must lose till we fuze
+fCompressingLoss                    = 1         -- 1        the score / 100 * fCompressingLoss is the general formula for calculating the points we must lose till we fuze
 bMutateAfterCompressing             = false
 bCompressingConsiderStructure       = true      -- true     don't band segs of same structure together if segs are in one struct (between one helix or sheet)
 fCompressingBondingPercentage       = 0.08      -- 0.08
@@ -60,7 +60,7 @@ iCompressingFixxedStartSegment      = 0         -- 0
 iCompressingFixxedEndSegment        = 0         -- 0
 bCompressingSoftBonding             = true
 bCompressingFuze                    = true
-bCompressingSoloBonding             = true     -- false    just one segment is used on every method and all segs are tested
+bCompressingSoloBonding             = false     -- false    just one segment is used on every method and all segs are tested
 bCompressingLocalBonding            = false     -- false
 --Methods
 bCompressingPredictedBonding        = true     -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
@@ -958,22 +958,36 @@ local function _loss(option, cl1, cl2)
     end -- if option
 end
 
-local function _start(slot)
+local function _releases(slot)
+    sl_fuzing_compressing = saveSlot.request()
+    Quicksave(sl_fuzing_compressing)
+    fuze.start(slot)
+	Quickload(sl_fuzing_compressing)
+    fuze.start(slot, true)
+	saveSlot.release(sl_fuzing_compressing)
+end
+
+local function _start(slot, pink)
     sl_f = saveSlot.request()
     report.start("Fuzing Complete")
     Quicksave(sl_f)
-    if bFuzingBlueFuze and not bTweaking then
+	if not pink then
+    if (bFuzingBlueFuze and not bTweaking) then
         fuze.loss(2, 0.05, 0.07)
     else
         fuze.loss(1, 0.1, 0.6)
     end
+	else
+	fuze.loss(1, 0.1, 0.6)
+	end
     saveSlot.release(sl_f)
     check.increase(report.stop(), slot)
 end
 
 fuze =
-{   loss    = _loss,
-    start   = _start
+{   loss        = _loss,
+    start       = _start,
+    releases    = _releases
 }
 --Fuzing#
 
@@ -1218,7 +1232,7 @@ local function _dist()
             end -- if bMutateAfterCompressing
             bands.delete(ii)
             if bCompressingFuze then
-                fuze.start(dist)
+                fuze.releases(dist)
             else
                 work.step("wa", 3)
             end
@@ -1231,7 +1245,7 @@ local function _dist()
         work.quake()
         bands.disable()
         if bCompressingFuze then
-            fuze.start(dist)
+            fuze.releases(dist)
         else
             work.step("wa", 3)
         end
@@ -1730,7 +1744,11 @@ local function _getdata()
                     end -- if aa i + 1
                 end -- if i + 1
                 ui = i
-                i = i + 2
+                if bPredictingOtherMethod then
+                    i = i + 5
+                else
+                    i = i + 4
+                end
             end -- if loop | sheet
         elseif sheet then
             p_sh[#p_sh][#p_sh[#p_sh] + 1] = i
@@ -2079,16 +2097,17 @@ end -- function
 local function _run()
     bTweaking = true
     bSpheredFuzing = true
-    sl_snaps = saveSlot.request()
+	report.start("Snap")
+    --[[sl_snaps = saveSlot.request()
     cs = get.score()
     c_snap = cs
     local s_1
     local s_2
     local c_s
     local c_s2
-    Quicksave(sl_snaps)
+    Quicksave(sl_snaps)]]
     snap.tweak(workingSegmentLeft)
-    check.increase(cs, get.score(), sl_snaps)
+    check.increase(report.stop(), saveSlotOverall)
     --[[iii = get.snapcount(workingSegmentLeft)
     p("Snapcount: " .. iii .. " - segment " .. workingSegmentLeft)
     if iii > 1 then
@@ -2128,7 +2147,7 @@ local function _run()
     end]]
     bSpheredFuzing = false
     bTweaking = false
-    saveSlot.release(sl_snaps)
+    --saveSlot.release(sl_snaps)
     --[[if mutated then
         s_snap = get.score()
         if s_mut < s_snap then
@@ -2225,7 +2244,7 @@ end
 
 snap =
 {
-    run     = _snap,
+    run     = _run,
     tweak   = _tweak,
     near    = _near
 }
