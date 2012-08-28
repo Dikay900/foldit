@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1242
+iVersion            = 1243
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
@@ -16,12 +16,13 @@ iReleaseVersion     = 5
 
 --#Settings: default
 --#Main                                     default         description
+bDontUseDialog              = false         -- false        If you dont want to use the dialog everytime set the settings like you wish and set this to true to get no Dialog shown at start
 isLocalWiggleEnabled        = false         -- false        do local wiggle and rewiggle
 isRebuildingEnabled         = false         -- false        rebuild | see #Rebuilding
 isCompressingEnabled        = false         -- false        pull hydrophobic amino acids in different modes then fuze | see #Pull
 isStructureRebuildEnabled   = false         -- false        rebuild the protein based on the secondary structures | see #Structed rebuilding
 isCurlingEnabled            = false         -- false        Do bond the structures and curl it, try to improve it and get some points
-isSnappingEnabled           = true         -- false        should we snap every sidechain to different positions
+isSnappingEnabled           = false         -- false        should we snap every sidechain to different positions
 isFuzingEnabled             = false         -- false        should we fuze | see #Fuzing
 isMutatingEnabled           = false         -- false        it's a mutating puzzle so we should mutate to get the best out of every single option see #Mutating
 isPredictingEnabled         = false         -- false        reset and predict then the secondary structure based on the amino acids of the protein
@@ -37,27 +38,28 @@ iEndWalk        = 3             -- 3                starting at the current segm
 --Working#
 
 --#LocalWiggle
-fScoreMustChange = 0.001         -- 0.01         an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos
+fScoreMustChange = 0.001        -- 0.001            an action tries to get this score, then it will repeat itself | adjust a lower value to get the lws script working on high evo- / solos
 --LocalWiggle#
 
---#Mutating
--- TODO: all mutating things into the mutating category and method
-bRebuildAfterMutating   = true
-bOptimizeSidechain      = true
-bMutateSurroundingAfter = false
-fClashingForMutating    = 0.75  -- 0.75         cl for mutating
---Mutating#
+--#Rebuilding
+bRebuildWorst                       = false         -- false        rebuild worst scored parts of the protein | TODO: Do it some times with table of worst segments from worst to best
+iWorstSegmentLength                 = 4
+iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
+bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
+bRebuildWalking                     = true         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
+iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
+iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
+--Rebuilding#
 
 --#Pull                                         default     description
-iCompressingTrys                    = 3         -- 1        how often should the pull start over?
+iCompressingTrys                    = 1         -- 1        how often should the pull start over?
 fCompressingLoss                    = 1         -- 1        the score / 100 * fCompressingLoss is the general formula for calculating the points we must lose till we fuze
-bMutateAfterCompressing             = false
 bCompressingConsiderStructure       = true      -- true     don't band segs of same structure together if segs are in one struct (between one helix or sheet)
-fCompressingBondingPercentage       = 0.08      -- 0.08
+fCompressingBondingPercentage       = 8         -- 8
 iCompressingBondingLength           = 4
 bCompressingFixxedBonding           = false     -- false
-iCompressingFixxedStartSegment      = 0         -- 0
-iCompressingFixxedEndSegment        = 0         -- 0
+iCompressingFixxedStartSegment      = 1         -- 1
+iCompressingFixxedEndSegment        = 1         -- 1
 bCompressingSoftBonding             = true
 bCompressingFuze                    = true
 bCompressingSoloBonding             = false     -- false    just one segment is used on every method and all segs are tested
@@ -77,6 +79,18 @@ bCompressingCenterPull              = true     -- true     hydrophobic segs are 
 -- TODO: IDEA (ErichVanSterich: 'alternate(pictorial) work') creating herds for 'center' like working
 --Pull
 
+--#Mutating
+-- TODO: all mutating things into the mutating category and method
+bOptimizeSidechain                  = true
+bMutateSurroundingAfter             = false
+fClashingForMutating                = 0.75          -- 0.75         cl for mutating
+bRebuildAfterMutating               = true
+bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
+bRebuildInMutatingDeepRebuild       = false         -- true         rebuild length 3,4,5 else just 3
+bRebuildTweakWholeRebuild           = false         -- false       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
+bMutateAfterCompressing             = false
+--Mutating#
+
 --#Fuzing
 bFuzingBlueFuze = true          -- true         Use Bluefuse else wiggle out with pink fuze
 --Fuzing#
@@ -84,19 +98,6 @@ bFuzingBlueFuze = true          -- true         Use Bluefuse else wiggle out wit
 --#Snapping
 -- TODO: Rework Snapping :/ make use of AT implemention | just sidechain snapping with rotamers need new code
 --Snapping#
-
---#Rebuilding
-bRebuildWorst                       = false         -- false        rebuild worst scored parts of the protein | TODO: Do it some times with table of worst segments from worst to best
-iWorstSegmentLength                 = 4
-iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
-bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
-bRebuildWalking                     = false         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
-iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
-iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
-bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
-bRebuildInMutatingDeepRebuild       = false          -- true         rebuild length 3,4,5 else just 3
-bRebuildTweakWholeRebuild           = false          -- false       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
---Rebuilding#
 
 --#Predicting
 bPredictingFull                 = false      -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
@@ -117,6 +118,10 @@ bStructuredRebuildHelix     = true          -- true         should we rebuild he
 bStructuredRebuildSheet     = true          -- true         should we rebuild sheets
 bStructuredRebuildFuze      = false         -- false        should we fuze after one rebuild | better let it rebuild then handwork it yourself and then fuze!
 --Structed rebuilding#
+
+--#General
+iTimeSecsBetweenReports = 60
+--General#
 --Settings#
 
 --#Constants | Game vars
@@ -133,7 +138,7 @@ bMutating           = false
 bTweaking           = false
 bChanged            = true
 bStructureChanged   = true
-fCompressingBondingPercentage   = fCompressingBondingPercentage / iSegmentCount * 100
+fCompressingBondingPercentageWork   = iSegmentCount / 100 * fCompressingBondingPercentage
 if current.GetExplorationMultiplier() == 0 then
     bIsExploringPuzzle = false
 else
@@ -825,7 +830,7 @@ end -- function
 
 local function _time()
     local currentTime = os.time()
-    if currentTime - timeStart > (60 + iTimeChecked * 60) then
+    if currentTime - timeStart > (iTimeSecsBetweenReports + iTimeChecked * iTimeSecsBetweenReports) then
         iTimeChecked = iTimeChecked + 1
         local elapsedSecs = currentTime - timeStart
         estimatedTime = math.floor(elapsedSecs * fEstimatedTimeMod + 0.5)
@@ -939,47 +944,44 @@ local function _loss(option, cl1, cl2)
     if not bTweaking then score.recent.save() end
     if option == 1 then
         if not bTweaking then work.step("s", 1, cl1, bSpheredFuzing) end
-        report.start("Fuzing Part")
         work.step("wa", 2, cl2, bSpheredFuzing)
         work.step("wa", 1, 1, bSpheredFuzing)
         work.step("s", 1, 1, bSpheredFuzing)
-        check.increase(report.stop(), sl_f)
-        report.start("Fuzing Part")
         work.step("wa", 1, cl2, bSpheredFuzing)
         work.step("wa", 2, 1, bSpheredFuzing)
-        check.increase(report.stop(), sl_f)
     else -- if option
         if bTweaking then work.step("wa", 2, 1, bSpheredFuzing) end
-        if work.step("s", 1, cl1, bSpheredFuzing) or get.score() < 0 then work.step("wa", 2, 1, bSpheredFuzing) end
+        work.step("s", 1, cl1, bSpheredFuzing)
+        work.step("wa", 2, 1, bSpheredFuzing)
         if work.step("s", 1, cl2, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
         if work.step("s", 1, cl1 - 0.02, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
         if work.step("s", 1, 1, bSpheredFuzing) then work.step("wa", 2, 1, bSpheredFuzing) end
-        score.recent.restore()
     end -- if option
+    score.recent.restore()
 end
 
 local function _releases(slot)
     sl_fuzing_compressing = saveSlot.request()
     Quicksave(sl_fuzing_compressing)
     fuze.start(slot)
-	Quickload(sl_fuzing_compressing)
+    Quickload(sl_fuzing_compressing)
     fuze.start(slot, true)
-	saveSlot.release(sl_fuzing_compressing)
+    saveSlot.release(sl_fuzing_compressing)
 end
 
 local function _start(slot, pink)
     sl_f = saveSlot.request()
     report.start("Fuzing Complete")
     Quicksave(sl_f)
-	if not pink then
-    if (bFuzingBlueFuze and not bTweaking) then
-        fuze.loss(2, 0.05, 0.07)
+    if not pink then
+        if bFuzingBlueFuze and not bTweaking then
+            fuze.loss(2, 0.05, 0.07)
+        else
+            fuze.loss(1, 0.1, 0.6)
+        end
     else
         fuze.loss(1, 0.1, 0.6)
     end
-	else
-	fuze.loss(1, 0.1, 0.6)
-	end
     saveSlot.release(sl_f)
     check.increase(report.stop(), slot)
 end
@@ -1607,8 +1609,8 @@ function compress()
         end
     end -- if isCompressingEnabled_predicted
     if bCompressingPushPull then
-        bonding.pull(bCompressingLocalBonding, fCompressingBondingPercentage / 2)
-        bonding.push(bCompressingLocalBonding, fCompressingBondingPercentage)
+        bonding.pull(bCompressingLocalBonding, fCompressingBondingPercentageWork / 2)
+        bonding.push(bCompressingLocalBonding, fCompressingBondingPercentageWork)
         work.dist()
         bands.delete()
     end -- if isCompressingEnabled_combined
@@ -1616,7 +1618,7 @@ function compress()
         evolution()
     end -- if isCompressingEnabled_rnd
     if bCompressingPull then
-        bonding.pull(bCompressingLocalBonding, fCompressingBondingPercentage)
+        bonding.pull(bCompressingLocalBonding, fCompressingBondingPercentageWork)
         work.dist()
         bands.delete()
     end -- if bCompressingPull
@@ -2097,7 +2099,7 @@ end -- function
 local function _run()
     bTweaking = true
     bSpheredFuzing = true
-	report.start("Snap")
+    report.start("Snap")
     --[[sl_snaps = saveSlot.request()
     cs = get.score()
     c_snap = cs
@@ -2349,7 +2351,6 @@ function run()
     Quicksave(saveSlotOverall)
     check.ss()
     check.ligand()
-    check.ligand = nil
     check.aa()
     check.mutable()
     save.SaveSecondaryStructure()
@@ -2426,7 +2427,137 @@ function run()
     p("+++" .. report.stop() .. "+++")
 end
 
-run()
+function showConfigDialog()
+    local primaryDialog = dialog.CreateDialog("Darkknights All-in-One-Recipe v"..iVersion)
+    primaryDialog.bLws = dialog.AddButton("lws", 1)
+    primaryDialog.bRebuild = dialog.AddButton("rebuild", 2)
+    primaryDialog.bBonding = dialog.AddButton("compress", 3)
+    primaryDialog.bStructuredRebuild = dialog.AddButton("structure rebuild", 4)
+    primaryDialog.bCurler = dialog.AddButton("curler", 4)
+    primaryDialog.bSnap = dialog.AddButton("sidechain", 5)
+    primaryDialog.bFuze = dialog.AddButton("fuze", 6)
+    primaryDialog.bMutate = dialog.AddButton("mutate", 7)
+    primaryDialog.bPredict = dialog.AddButton("predict", 8)
+    primaryDialog.generalSettings = dialog.AddLabel("General Settings:")
+    primaryDialog.iTimeSecsBetweenReportsTooltip = dialog.AddLabel("")
+    primaryDialog.iTimeSecsBetweenReports = dialog.AddSlider([[Seconds between
+a report:]], iTimeSecsBetweenReports, 1, 600, 0)
+    if bIsExploringPuzzle then
+        primaryDialog.explore = dialog.AddLabel([[Use the Energy Score
+or the Exploration Score?]])
+        primaryDialog.useExploreMultiplier = dialog.AddCheckbox("Use Exploration Score", bExploringWork)
+    end
+    primaryDialog.addOpt = dialog.AddLabel("What to do:")
+    primaryDialog.cancel = dialog.AddButton("Cancel", 0)
+    local result = dialog.Show(primaryDialog)
+    if result > 0 then
+        local secondaryDialog
+        iTimeSecsBetweenReports = primaryDialog.iTimeSecsBetweenReports.value
+        if result == 1 or result == 2 then
+            if result == 1 then
+                isLocalWiggleEnabled = true
+                secondaryDialog = dialog.CreateDialog("Local Wiggle Settings")
+                secondaryDialog.scoreChangeTooltip = dialog.AddLabel("Local Wiggle tries to get this score then it will save the score and rewiggle")
+                secondaryDialog.fScoreMustChange = dialog.AddSlider("Score change", fScoreMustChange, 0, 1, 4)
+            else
+                isRebuildingEnabled = true
+                secondaryDialog = dialog.CreateDialog("Rebuilding Settings")
+                secondaryDialog.iRebuildTrys = dialog.AddSlider("Trys", iRebuildTrys, 1, 20, 0)
+                secondaryDialog.iRebuildTrysTooltip = dialog.AddLabel("Select a rebuilding mode:")
+                secondaryDialog.bRebuildWorst = dialog.AddCheckbox("Worst Rebuild", bRebuildWorst)
+                secondaryDialog.iWorstSegmentLength = dialog.AddSlider("Worst Length", iWorstSegmentLength, 1, 20, 0)
+                secondaryDialog.bRebuildLoops = dialog.AddCheckbox("Rebuild Loops", bRebuildLoops)
+                secondaryDialog.iRebuildsTillSave = dialog.AddSlider([[Rebuilds calls till
+rebuild will be chosen:]], iRebuildsTillSave, 1, 10, 0)
+                secondaryDialog.iRebuildStrength = dialog.AddSlider("Rebuild iteration:", iRebuildStrength, 0, 10, 0)
+                if b_mutable then
+                    secondaryDialog.re_mutating = dialog.AddCheckbox("Try some mutating after rebuilds", false)
+                end
+                secondaryDialog.bRebuildWalking = dialog.AddCheckbox("Walking Rebuilder", bRebuildWalking)
+                secondaryDialog.bRebuildWalkingTooltip = dialog.AddLabel("Only for Walking Rebuilder:")
+            end
+            secondaryDialog.iStartSegment = dialog.AddSlider("Start Segment", iStartSegment, 1, iSegmentCount, 0)
+            secondaryDialog.iEndSegment = dialog.AddSlider("End Segment", iEndSegment, 1, iSegmentCount, 0)
+            secondaryDialog.walkTooltip = dialog.AddLabel("Walking from Segment + walking start to Segment + walking end")
+            secondaryDialog.iStartingWalk = dialog.AddSlider("Walking Start", iStartingWalk, 0, iSegmentCount, 0)
+            secondaryDialog.iEndWalk = dialog.AddSlider("Walking End", iEndWalk, 0, iSegmentCount, 0)
+            secondaryDialog.dummy1 = dialog.AddButton("", 0)
+            secondaryDialog.dummy2 = dialog.AddButton("", 0)
+            secondaryDialog.dummy3 = dialog.AddButton("", 0)
+            secondaryDialog.start = dialog.AddButton("Start", 1)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+            secondaryDialog.dummy5 = dialog.AddButton("", 0)
+            secondaryDialog.dummy6 = dialog.AddButton("", 0)
+            secondaryDialog.dummy7 = dialog.AddButton("", 0)
+        elseif result == 3 then
+            isCompressingEnabled = true
+            secondaryDialog = dialog.CreateDialog("Compressing Settings")
+            secondaryDialog.iCompressingTrys = dialog.AddSlider([[How often should
+the compressing
+be tried]], 1, 1, iSegmentCount, 1)
+            secondaryDialog.fCompressingLoss = dialog.AddSlider([[Score loss till
+accepting work
+in %]], 1, 0.1, 100, 1)
+            secondaryDialog.fCompressingBondingPercentage = dialog.AddSlider("Bonding percentage", fCompressingBondingPercentage, 0, 100, 2)
+            secondaryDialog.iCompressingBondingLength = dialog.AddSlider("Band length", iCompressingBondingLength, 1, 20, 2)
+            secondaryDialog.bCompressingConsiderStructure = dialog.AddCheckbox("Do not band same structure within itself", bCompressingConsiderStructure)
+            secondaryDialog.bCompressingSoftBonding = dialog.AddCheckbox("Create 'softer' bands normalizing the bands reducing the force of them", bCompressingSoftBonding)
+            secondaryDialog.bCompressingFuze = dialog.AddCheckbox("Do a fuze after the work is done else it will just wiggle", bCompressingFuze)
+            secondaryDialog.bCompressingSoloBonding = dialog.AddCheckbox("Use every single band created for working", bCompressingSoloBonding)
+            secondaryDialog.bCompressingLocalBonding = dialog.AddCheckbox("Iterate through segments generate work for every single segment! [Alpha]", bCompressingLocalBonding)
+            secondaryDialog.bCompressingFixxedBonding = dialog.AddCheckbox("Fixxed Work [ALPHA]", bCompressingFixxedBonding)
+            secondaryDialog.iCompressingFixxedStartSegment = dialog.AddSlider("Fixxed start", iCompressingFixxedStartSegment, 1, iSegmentCount, 0)
+            secondaryDialog.iCompressingFixxedEndSegment = dialog.AddSlider("Fixxed end", iCompressingFixxedEndSegment, 1, iSegmentCount, 0)
+            secondaryDialog.methodTooltip = dialog.AddLabel("Which methods: ")
+            secondaryDialog.bCompressingPredictedBonding = dialog.AddCheckbox("Bonding between segments with predicted 'friendly' amino acids", bCompressingPredictedBonding)
+            secondaryDialog.bCompressingPredictedLocalBonding = dialog.AddCheckbox("Every single segment will get bonded with predicted bands", bCompressingPredictedLocalBonding)
+            secondaryDialog.bCompressingPull = dialog.AddCheckbox("Bonding between hydrophobic segments (Pull)", bCompressingPull)
+            secondaryDialog.bCompressingPushPull = dialog.AddCheckbox("Bonding between both hydrophilic and hydrophobic segments in one (Push & Pull)", bCompressingPushPull)
+            secondaryDialog.bCompressingCenterPull = dialog.AddCheckbox("Bonding between hydrophobic segments and the centersegment (Pull)", bCompressingCenterPull)
+            secondaryDialog.bCompressingCenterPushPull = dialog.AddCheckbox("Bonding between both hydrophilic and hydrophobic segments and the centersegment in one (Push & Pull)", bCompressingCenterPushPull)
+            secondaryDialog.bCompressingEvolutionBonding = dialog.AddCheckbox("Random bands", bCompressingEvolutionBonding)
+            secondaryDialog.bCompressingEvolutionOnlyBetter = dialog.AddCheckbox("Save just gains else it will just evo through and save if there is a score gain accidently", bCompressingEvolutionOnlyBetter)
+            secondaryDialog.iCompressingEvolutionRounds = dialog.AddSlider("How many rounds", iCompressingEvolutionRounds, 1, 100, 0)
+            secondaryDialog.dummy1 = dialog.AddButton("", 0)
+            secondaryDialog.dummy2 = dialog.AddButton("", 0)
+            secondaryDialog.dummy3 = dialog.AddButton("", 0)
+            secondaryDialog.dummy4 = dialog.AddButton("", 0)
+            secondaryDialog.dummy5 = dialog.AddButton("", 0)
+            secondaryDialog.dummy6 = dialog.AddButton("", 0)
+            secondaryDialog.start = dialog.AddButton("Start", 1)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+            secondaryDialog.dummy7 = dialog.AddButton("", 0)
+            secondaryDialog.dummy8 = dialog.AddButton("", 0)
+            secondaryDialog.dummy9 = dialog.AddButton("", 0)
+            secondaryDialog.dummy10 = dialog.AddButton("", 0)
+            secondaryDialog.dummy11 = dialog.AddButton("", 0)
+            secondaryDialog.dummy12 = dialog.AddButton("", 0)
+        elseif result == 4 then
+            isStructureRebuildEnabled = true
+            secondaryDialog = dialog.CreateDialog("Structure Settings")
+            secondaryDialog.bRebuilder = dialog.AddButton("Rebuilder", 1)
+            secondaryDialog.bCurler = dialog.AddButton("Curler", 2)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+        else
+            print("Dialog cancelled")
+        end
+        if bIsExploringPuzzle and primaryDialog.useExploreMultiplier.value then
+                bExploringWork = true
+        end
+        if dialog.Show(secondaryDialog) > 0 then
+            run()
+        else
+            isLocalWiggleEnabled, isRebuildingEnabled, isCompressingEnabled, isStructureRebuildEnabled, isCurlingEnabled, isSnappingEnabled, isFuzingEnabled, isMutatingEnabled, isPredictingEnabled = false, false, false, false, false, false, false, false, false
+            return showConfigDialog()
+        end
+    end
+end
+
+if not bDontUseDialog then
+    showConfigDialog()
+else
+    run()
+end
 
 --[[old/unused function
 if b_test then
@@ -2464,81 +2595,5 @@ local function _CCI(a, b) -- charge
     return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
 end
 
-local ask = dialog.CreateDialog("Primary Settings")
-ask.lws = dialog.AddButton("local wiggle", 1)
-ask.rebuild = dialog.AddButton("rebuild", 2)
-ask.bonding = dialog.AddButton("compressing/pull/push", 3)
-ask.structuredRebuild = dialog.AddButton("structure based rebuild", 4)
-ask.curler = dialog.AddButton("structure curler", 5)
-ask.snap = dialog.AddButton("sidechain snap", 6)
-ask.fuze = dialog.AddButton("fuze", 7)
-ask.mutate = dialog.AddButton("mutate", 8)
-ask.predict = dialog.AddButton("predict", 9)
 
-dialog.AddLabel("Additional options:")
-dialog.AddLabel("most of the work can be done in a sphere")
-ask.sphere = dialog.AddCheckbox("sphered work", false)
-dialog.AddLabel("Action tries to get this score then it will save the score")
-ask.scoreChange = dialog.AddSlider("score change", 0.01, 0, 10, 0.001)
-
-if bIsExploringPuzzle then
-    dialog.AddLabel("Use the Energy Score or the Exploration Score?")
-    ask.useExploreMultiplier = dialog.AddCheckbox("Use Exploration Score", false)
-end
-dialog.AddButton("Cancel", 0)
-
-dialog.result = dialog.Show(ask)
-
-if dialog.result > 0 then
-local sec_dialog
-if dialog.result == 1 or dialog.result == 2 then
-if dialog.result == 1 then
-    sec_dialog = dialog.CreateDialog("Local Wiggle Settings")
-    isLocalWiggleEnabled = true
-    else
-    sec_dialog = dialog.CreateDialog("Rebuilding Settings")
-    isRebuildingEnabled = true
-    sec_dialog.worstlen = dialog.AddSlider("Trys", 5, 1, 20, 1)
-    dialog.AddLabel("Select a rebuilding mode:")
-    sec_dialog.worst = dialog.AddCheckbox("Worst Rebuild", false)
-    sec_dialog.worstlen = dialog.AddSlider("Worst Length", 3, 1, 20, 1)
-    sec_dialog.loops = dialog.AddCheckbox("Rebuild Loops", false)
-    sec_dialog.max_rebuilds = dialog.AddSlider("Rebuilds calls till rebuild will be chosen:", 1, 0, 10, 1)
-    sec_dialog.rebuild_iters = dialog.AddSlider("Rebuild iteration:", 1, 0, 10, 1)
-    if b_mutable then
-        sec_dialog.re_mutating = dialog.AddCheckbox("Try some mutating after rebuilds", false)
-    end
-    sec_dialog.walking_re = dialog.AddCheckbox("Walking Rebuilder", false)
-    dialog.AddLabel("Only for Walking Rebuilder:")
-    end
-    sec_dialog.startseg = dialog.AddSlider("Start Segment", 1, 1, iSegmentCount, 1)
-    sec_dialog.endseg = dialog.AddSlider("End Segment", iSegmentCount, 1, iSegmentCount, 1)
-    sec_dialog.startwalk = dialog.AddSlider("Walking Area Start", 1, 0, iSegmentCount, 1)
-    sec_dialog.endwalk = dialog.AddSlider("Walking Area End", 3, 0, iSegmentCount, 1)
-    elseif dialog.result == 3 then
-    sec_dialog.bondingpercentage = dialog.AddSlider("Bonding Percentage in %", 1, 1, 100, 1)
-    sec_dialog.bandlength = dialog.AddSlider("Band length", 4, 1, 20, 1)
-
-    sec_dialog.walking_re = dialog.AddCheckbox("Fixxed Work", false)
-    sec_dialog.startseg_fixxed = dialog.AddSlider("Fixxed start Segment", 1, 1, iSegmentCount, 1)
-    sec_dialog.endseg_fixxed = dialog.AddSlider("Fixxed end Segment", iSegmentCount, 1, iSegmentCount, 1)
-
-    sec_dialog.Iterations = dialog.AddLabel("Iterations="..ask.Iterations.value)
-    sec_dialog.BandStrength = dialog.AddLabel("Band Strength="..ask.BandStrength.value)
-    sec_dialog.Comment = dialog.AddLabel("Comment="..ask.Comment.value)
-    sec_dialog.OK = dialog.AddButton("OK", 1)
-    sec_dialog.OK = dialog.AddButton("Cancel", 0)
-else
-    print("Dialog cancelled")
-end
-if bIsExploringPuzzle & ask.useExploreMultiplier.value then
-        bExploringWork = true
-    end
-    if (ask.sphere.value) then
-        bSpheredFuzing = true
-    end
-
-    if not (dialog.Show(lws_dialog) == 1) then
-        return showConfigDialog()
-    end
 ]]
