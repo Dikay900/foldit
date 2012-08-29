@@ -120,11 +120,11 @@ bPredictingOtherMethod          = true
 --Predicting#
 
 --#General
-iTimeSecsBetweenReports = 30
+iTimeSecsBetweenReports = 60
 iTimeMaxHoursToUse      = 0
-iTimeMaxMinsToUse      	= 5
+iTimeMaxMinsToUse      	= 0
 iTimeMaxSecsToUse      	= 0
-bUseTimeOptimization    = true
+bUseTimeOptimization    = false
 --General#
 --Settings#
 
