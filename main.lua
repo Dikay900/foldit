@@ -5,11 +5,11 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1243
+iVersion            = 1244
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
-strReleaseDate      = "2012"
+strReleaseDate      = "29th August, 2012"
 iReleaseVersion     = 5
 --Release#
 --Game vars#
@@ -46,7 +46,7 @@ bRebuildWorst                       = false         -- false        rebuild wors
 iWorstSegmentLength                 = 4
 iRebuildTrys                        = 10            -- 10           how many different shapes we try to get
 bRebuildLoops                       = false         -- false        rebuild whole loops | TODO: implement max length of loop rebuild max 5 would be good i think then walk through the structure
-bRebuildWalking                     = true         -- true         walk through the protein rebuilding every segment with different lengths of rebuilds
+bRebuildWalking                     = false         -- false        walk through the protein rebuilding every segment with different lengths of rebuilds
 iRebuildsTillSave                   = 1             -- 2            max rebuilds till best rebuild will be chosen
 iRebuildStrength                    = 1             -- 1            the iterations a rebuild will do at default, automatically increased if no change in score
 --Rebuilding#
@@ -65,51 +65,19 @@ bCompressingFuze                    = true
 bCompressingSoloBonding             = false     -- false    just one segment is used on every method and all segs are tested
 bCompressingLocalBonding            = false     -- false
 --Methods
-bCompressingPredictedBonding        = true     -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
+bCompressingPredictedBonding        = true      -- true     bands are created which pull segs together based on the size, charge and isoelectric point of the amino acids
 bCompressingPredictedLocalBonding   = false     -- false    TODO: check if there are bands
 bCompressingEvolutionBonding        = false     -- true
 iCompressingEvolutionRounds         = 10
 bCompressingEvolutionOnlyBetter     = true
-bCompressingPushPull                = true     -- true
-bCompressingPull                    = true     -- true     hydrophobic segs are pulled together
+bCompressingPushPull                = true      -- true
+bCompressingPull                    = true      -- true     hydrophobic segs are pulled together
 -- TODO: First Push out then pull in -- test vs combined push,pull
 -- TODO: Band Sheets togehter then work, make Helices stable with inner bonding
-bCompressingCenterPushPull          = true     -- true
-bCompressingCenterPull              = true     -- true     hydrophobic segs are pulled to the center segment
+bCompressingCenterPushPull          = true      -- true
+bCompressingCenterPull              = true      -- true     hydrophobic segs are pulled to the center segment
 -- TODO: IDEA (ErichVanSterich: 'alternate(pictorial) work') creating herds for 'center' like working
 --Pull
-
---#Mutating
--- TODO: all mutating things into the mutating category and method
-bOptimizeSidechain                  = true
-bMutateSurroundingAfter             = false
-fClashingForMutating                = 0.75          -- 0.75         cl for mutating
-bRebuildAfterMutating               = true
-bRebuildInMutatingIgnoreStructures  = false         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
-bRebuildInMutatingDeepRebuild       = false         -- true         rebuild length 3,4,5 else just 3
-bRebuildTweakWholeRebuild           = false         -- false       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
-bMutateAfterCompressing             = false
---Mutating#
-
---#Fuzing
-bFuzingBlueFuze = true          -- true         Use Bluefuse else wiggle out with pink fuze
---Fuzing#
-
---#Snapping
--- TODO: Rework Snapping :/ make use of AT implemention | just sidechain snapping with rotamers need new code
---Snapping#
-
---#Predicting
-bPredictingFull                 = false      -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
-bPredictingAddPrefferedSegments = true      -- true
-bPredictingCombine              = false     -- false        TODO: Doesn't work at all
-bPredictingOtherMethod          = true
---Predicting#
-
---#Curler
-bCurlingHelix         = true          -- true
-bCurlingSheet         = true          -- true
---Curler#
 
 --#Structed rebuilding
 iStructuredRebuildTillSave  = 2             -- 2            same as iRebuildsTillSave at #Rebuilding
@@ -118,6 +86,38 @@ bStructuredRebuildHelix     = true          -- true         should we rebuild he
 bStructuredRebuildSheet     = true          -- true         should we rebuild sheets
 bStructuredRebuildFuze      = false         -- false        should we fuze after one rebuild | better let it rebuild then handwork it yourself and then fuze!
 --Structed rebuilding#
+
+--#Curler
+bCurlingHelix         = true          -- true
+bCurlingSheet         = true          -- true
+--Curler#
+
+--#Snapping
+-- TODO: Rework Snapping :/ make use of AT implemention | just sidechain snapping with rotamers need new code
+--Snapping#
+
+--#Fuzing
+bFuzingBlueFuze = true          -- true         Use Bluefuse else wiggle out with pink fuze
+--Fuzing#
+
+--#Mutating
+-- TODO: all mutating things into the mutating category and method
+bOptimizeSidechain                  = true
+bRebuildAfterMutating               = true
+bRebuildInMutatingIgnoreStructures  = true         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
+bRebuildInMutatingDeepRebuild       = true         -- true         rebuild length 3,4,5 else just 3
+bRebuildTweakWholeRebuild           = true         -- true       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
+bMutateAfterCompressing             = false
+bMutateSurroundingAfter             = false
+fClashingForMutating                = 0.75          -- 0.75         cl for mutating
+--Mutating#
+
+--#Predicting
+bPredictingFull                 = false     -- false        try to detect the secondary structure between every segment, there can be less loops but the protein become difficult to rebuild
+bPredictingAddPrefferedSegments = true      -- true
+bPredictingCombine              = false     -- false        TODO: Doesn't work at all
+bPredictingOtherMethod          = true
+--Predicting#
 
 --#General
 iTimeSecsBetweenReports = 60
@@ -2005,7 +2005,7 @@ function mutate()
     local i
     local ii
     check.distances()
-    local i_will_be = #mutable - 3
+    local i_will_be = #mutable
     for i = i_will_be, 1, -1 do
         p("Mutating segment " .. mutable[i])
         Quicksave(saveSlotOverall)
@@ -2433,11 +2433,11 @@ function showConfigDialog()
     primaryDialog.bRebuild = dialog.AddButton("rebuild", 2)
     primaryDialog.bBonding = dialog.AddButton("compress", 3)
     primaryDialog.bStructuredRebuild = dialog.AddButton("structure rebuild", 4)
-    primaryDialog.bCurler = dialog.AddButton("curler", 4)
-    primaryDialog.bSnap = dialog.AddButton("sidechain", 5)
-    primaryDialog.bFuze = dialog.AddButton("fuze", 6)
-    primaryDialog.bMutate = dialog.AddButton("mutate", 7)
-    primaryDialog.bPredict = dialog.AddButton("predict", 8)
+    primaryDialog.bCurler = dialog.AddButton("curler", 5)
+    primaryDialog.bSnap = dialog.AddButton("sidechain", 6)
+    primaryDialog.bFuze = dialog.AddButton("fuze", 7)
+    primaryDialog.bMutate = dialog.AddButton("mutate", 8)
+    primaryDialog.bPredict = dialog.AddButton("predict", 9)
     primaryDialog.generalSettings = dialog.AddLabel("General Settings:")
     primaryDialog.iTimeSecsBetweenReportsTooltip = dialog.AddLabel("")
     primaryDialog.iTimeSecsBetweenReports = dialog.AddSlider([[Seconds between
@@ -2463,16 +2463,13 @@ or the Exploration Score?]])
                 isRebuildingEnabled = true
                 secondaryDialog = dialog.CreateDialog("Rebuilding Settings")
                 secondaryDialog.iRebuildTrys = dialog.AddSlider("Trys", iRebuildTrys, 1, 20, 0)
+                secondaryDialog.iRebuildsTillSave = dialog.AddSlider([[Rebuilds call till
+rebuild will be chosen:]], iRebuildsTillSave, 1, 10, 0)
+                secondaryDialog.iRebuildStrength = dialog.AddSlider("Rebuild iteration:", iRebuildStrength, 1, 10, 0)
                 secondaryDialog.iRebuildTrysTooltip = dialog.AddLabel("Select a rebuilding mode:")
+                secondaryDialog.bRebuildLoops = dialog.AddCheckbox("Rebuild Loops", bRebuildLoops)
                 secondaryDialog.bRebuildWorst = dialog.AddCheckbox("Worst Rebuild", bRebuildWorst)
                 secondaryDialog.iWorstSegmentLength = dialog.AddSlider("Worst Length", iWorstSegmentLength, 1, 20, 0)
-                secondaryDialog.bRebuildLoops = dialog.AddCheckbox("Rebuild Loops", bRebuildLoops)
-                secondaryDialog.iRebuildsTillSave = dialog.AddSlider([[Rebuilds calls till
-rebuild will be chosen:]], iRebuildsTillSave, 1, 10, 0)
-                secondaryDialog.iRebuildStrength = dialog.AddSlider("Rebuild iteration:", iRebuildStrength, 0, 10, 0)
-                if b_mutable then
-                    secondaryDialog.re_mutating = dialog.AddCheckbox("Try some mutating after rebuilds", false)
-                end
                 secondaryDialog.bRebuildWalking = dialog.AddCheckbox("Walking Rebuilder", bRebuildWalking)
                 secondaryDialog.bRebuildWalkingTooltip = dialog.AddLabel("Only for Walking Rebuilder:")
             end
@@ -2484,7 +2481,7 @@ rebuild will be chosen:]], iRebuildsTillSave, 1, 10, 0)
             secondaryDialog.dummy1 = dialog.AddButton("", 0)
             secondaryDialog.dummy2 = dialog.AddButton("", 0)
             secondaryDialog.dummy3 = dialog.AddButton("", 0)
-            secondaryDialog.start = dialog.AddButton("Start", 1)
+            secondaryDialog.start = dialog.AddButton("Start", result)
             secondaryDialog.back = dialog.AddButton("Back", 0)
             secondaryDialog.dummy5 = dialog.AddButton("", 0)
             secondaryDialog.dummy6 = dialog.AddButton("", 0)
@@ -2494,15 +2491,15 @@ rebuild will be chosen:]], iRebuildsTillSave, 1, 10, 0)
             secondaryDialog = dialog.CreateDialog("Compressing Settings")
             secondaryDialog.iCompressingTrys = dialog.AddSlider([[How often should
 the compressing
-be tried]], 1, 1, iSegmentCount, 1)
+be tried]], 1, 1, iSegmentCount, 0)
             secondaryDialog.fCompressingLoss = dialog.AddSlider([[Score loss till
 accepting work
 in %]], 1, 0.1, 100, 1)
-            secondaryDialog.fCompressingBondingPercentage = dialog.AddSlider("Bonding percentage", fCompressingBondingPercentage, 0, 100, 2)
-            secondaryDialog.iCompressingBondingLength = dialog.AddSlider("Band length", iCompressingBondingLength, 1, 20, 2)
+            secondaryDialog.fCompressingBondingPercentage = dialog.AddSlider("Bonding percentage", fCompressingBondingPercentage, 0.01, 100, 2)
+            secondaryDialog.iCompressingBondingLength = dialog.AddSlider("Band length", iCompressingBondingLength, 0, 20, 2)
             secondaryDialog.bCompressingConsiderStructure = dialog.AddCheckbox("Do not band same structure within itself", bCompressingConsiderStructure)
             secondaryDialog.bCompressingSoftBonding = dialog.AddCheckbox("Create 'softer' bands normalizing the bands reducing the force of them", bCompressingSoftBonding)
-            secondaryDialog.bCompressingFuze = dialog.AddCheckbox("Do a fuze after the work is done else it will just wiggle", bCompressingFuze)
+            secondaryDialog.bCompressingFuze = dialog.AddCheckbox("Do a fuze after the work is done (if not ticked it will just wiggle)", bCompressingFuze)
             secondaryDialog.bCompressingSoloBonding = dialog.AddCheckbox("Use every single band created for working", bCompressingSoloBonding)
             secondaryDialog.bCompressingLocalBonding = dialog.AddCheckbox("Iterate through segments generate work for every single segment! [Alpha]", bCompressingLocalBonding)
             secondaryDialog.bCompressingFixxedBonding = dialog.AddCheckbox("Fixxed Work [ALPHA]", bCompressingFixxedBonding)
@@ -2524,7 +2521,7 @@ in %]], 1, 0.1, 100, 1)
             secondaryDialog.dummy4 = dialog.AddButton("", 0)
             secondaryDialog.dummy5 = dialog.AddButton("", 0)
             secondaryDialog.dummy6 = dialog.AddButton("", 0)
-            secondaryDialog.start = dialog.AddButton("Start", 1)
+            secondaryDialog.start = dialog.AddButton("Start", result)
             secondaryDialog.back = dialog.AddButton("Back", 0)
             secondaryDialog.dummy7 = dialog.AddButton("", 0)
             secondaryDialog.dummy8 = dialog.AddButton("", 0)
@@ -2534,22 +2531,148 @@ in %]], 1, 0.1, 100, 1)
             secondaryDialog.dummy12 = dialog.AddButton("", 0)
         elseif result == 4 then
             isStructureRebuildEnabled = true
-            secondaryDialog = dialog.CreateDialog("Structure Settings")
-            secondaryDialog.bRebuilder = dialog.AddButton("Rebuilder", 1)
-            secondaryDialog.bCurler = dialog.AddButton("Curler", 2)
+            secondaryDialog = dialog.CreateDialog("Structure Rebuilder Settings")
+            secondaryDialog.bStructuredRebuildHelix = dialog.AddCheckbox("Rebuild Helices", bStructuredRebuildHelix)
+            secondaryDialog.bStructuredRebuildSheet = dialog.AddCheckbox("Rebuild Sheets", bStructuredRebuildSheet)
+            secondaryDialog.bStructuredRebuildFuze = dialog.AddCheckbox("Fuze after rebuild", bStructuredRebuildSheet)
+            secondaryDialog.iStructuredRebuildTillSave = dialog.AddSlider([[Rebuild calls till
+rebuild will be chosen:]], iStructuredRebuildTillSave, 1, 10, 0)
+            secondaryDialog.iStructuredRebuildStrength = dialog.AddSlider("Rebuild iteration:", iStructuredRebuildStrength, 1, 10, 0)
+            secondaryDialog.start = dialog.AddButton("Start", result)
             secondaryDialog.back = dialog.AddButton("Back", 0)
+        elseif result == 5 then
+            isCurlingEnabled = true
+            secondaryDialog = dialog.CreateDialog("Structure Curler Settings")
+            secondaryDialog.bCurlingHelix = dialog.AddCheckbox("Curl Helices", bCurlingHelix)
+            secondaryDialog.bCurlingSheet = dialog.AddCheckbox("Curl Sheets", bCurlingSheet)
+            secondaryDialog.start = dialog.AddButton("Start", result)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+        elseif result == 6 then
+            isSnappingEnabled = true
+            secondaryDialog = dialog.CreateDialog("Snapping Settings")
+            secondaryDialog.snapSettings = dialog.AddLabel("No Settings available")
+            secondaryDialog.start = dialog.AddButton("Start", result)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+        elseif result == 7 then
+            isFuzingEnabled = true
+            secondaryDialog = dialog.CreateDialog("Fuzing Settings")
+            secondaryDialog.bFuzingBlueFuze = dialog.AddCheckbox("Blue fuse (if not ticked then Pink fuse)", bFuzingBlueFuze)
+            secondaryDialog.start = dialog.AddButton("Start", result)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+        elseif result == 8 then
+            isMutatingEnabled = true
+            secondaryDialog = dialog.CreateDialog("Mutating Settings")
+            secondaryDialog.bOptimizeSidechain = dialog.AddCheckbox("Optimize Sideshains", bOptimizeSidechain)
+            secondaryDialog.bRebuildAfterMutating = dialog.AddCheckbox("Rebuild after each mutation", bRebuildAfterMutating)
+            secondaryDialog.bRebuildInMutatingIgnoreStructures = dialog.AddCheckbox("ignore structures while rebuilding", bRebuildInMutatingIgnoreStructures)
+            secondaryDialog.bRebuildInMutatingDeepRebuild = dialog.AddCheckbox("Try different rebuild lengths", bRebuildInMutatingDeepRebuild)
+            secondaryDialog.bRebuildTweakWholeRebuild = dialog.AddCheckbox("Tweak every segment after rebuild else just the mutating one will be tweaked", bRebuildTweakWholeRebuild)
+            secondaryDialog.dummy3 = dialog.AddButton("", 0)
+            secondaryDialog.dummy4 = dialog.AddButton("", 0)
+            secondaryDialog.dummy5 = dialog.AddButton("", 0)
+            secondaryDialog.dummy6 = dialog.AddButton("", 0)
+            secondaryDialog.start = dialog.AddButton("Start", result)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+            secondaryDialog.dummy7 = dialog.AddButton("", 0)
+            secondaryDialog.dummy8 = dialog.AddButton("", 0)
+            secondaryDialog.dummy9 = dialog.AddButton("", 0)
+            secondaryDialog.dummy10 = dialog.AddButton("", 0)
+        elseif result == 9 then
+            isPredictingEnabled = true
+            secondaryDialog = dialog.CreateDialog("Predicting Settings")
+            secondaryDialog.bPredictingFull = dialog.AddCheckbox("Predict structure for every single seg (less loops)", bPredictingFull)
+            secondaryDialog.bPredictingAddPrefferedSegments = dialog.AddCheckbox("Add preffered amino acids after predicting to start and end of structures", bPredictingAddPrefferedSegments)
+            secondaryDialog.bPredictingCombine = dialog.AddCheckbox("Combine predicted structures if possible", bPredictingCombine)
+            secondaryDialog.bPredictingOtherMethod = dialog.AddCheckbox("Try different method", bPredictingOtherMethod)
+            secondaryDialog.dummy3 = dialog.AddButton("", 0)
+            secondaryDialog.dummy4 = dialog.AddButton("", 0)
+            secondaryDialog.dummy5 = dialog.AddButton("", 0)
+            secondaryDialog.dummy6 = dialog.AddButton("", 0)
+            secondaryDialog.start = dialog.AddButton("Start", result)
+            secondaryDialog.back = dialog.AddButton("Back", 0)
+            secondaryDialog.dummy7 = dialog.AddButton("", 0)
+            secondaryDialog.dummy8 = dialog.AddButton("", 0)
+            secondaryDialog.dummy9 = dialog.AddButton("", 0)
+            secondaryDialog.dummy10 = dialog.AddButton("", 0)
         else
-            print("Dialog cancelled")
+            p("Unknown dialog option. Something is wrong here...")
         end
         if bIsExploringPuzzle and primaryDialog.useExploreMultiplier.value then
                 bExploringWork = true
         end
-        if dialog.Show(secondaryDialog) > 0 then
+        result = dialog.Show(secondaryDialog)
+        if result > 0 then
+            if result == 1 or result == 2 then
+                if result == 1 then
+                    fScoreMustChange = secondaryDialog.fScoreMustChange.value
+                elseif result == 2 then
+                    iRebuildTrys = secondaryDialog.iRebuildTrys.value
+                    bRebuildWorst = secondaryDialog.bRebuildWorst.value
+                    iWorstSegmentLength = secondaryDialog.iWorstSegmentLength.value
+                    bRebuildLoops = secondaryDialog.bRebuildLoops.value
+                    iRebuildsTillSave = secondaryDialog.iRebuildsTillSave.value
+                    iRebuildStrength = secondaryDialog.iRebuildStrength.value
+                    bRebuildWalking = secondaryDialog.bRebuildWalking.value
+                end
+                iStartSegment = secondaryDialog.iStartSegment.value
+                iEndSegment = secondaryDialog.iEndSegment.value
+                iStartingWalk = secondaryDialog.iStartingWalk.value
+                iEndWalk = secondaryDialog.iEndWalk.value
+            elseif result == 3 then
+                iCompressingTrys = secondaryDialog.iCompressingTrys.value
+                fCompressingLoss = secondaryDialog.fCompressingLoss.value
+                fCompressingBondingPercentage = secondaryDialog.fCompressingBondingPercentage.value
+                iCompressingBondingLength = secondaryDialog.iCompressingBondingLength.value
+                bCompressingConsiderStructure = secondaryDialog.bCompressingConsiderStructure.value
+                bCompressingSoftBonding = secondaryDialog.bCompressingSoftBonding.value
+                bCompressingFuze = secondaryDialog.bCompressingFuze.value
+                bCompressingSoloBonding = secondaryDialog.bCompressingSoloBonding.value
+                bCompressingLocalBonding = secondaryDialog.bCompressingLocalBonding.value
+                bCompressingFixxedBonding = secondaryDialog.bCompressingFixxedBonding.value
+                iCompressingFixxedStartSegment = secondaryDialog.iCompressingFixxedStartSegment.value
+                iCompressingFixxedEndSegment = secondaryDialog.iCompressingFixxedEndSegment.value
+                bCompressingPredictedBonding = secondaryDialog.bCompressingPredictedBonding.value
+                bCompressingPredictedLocalBonding = secondaryDialog.bCompressingPredictedLocalBonding.value
+                bCompressingPull = secondaryDialog.bCompressingPull.value
+                bCompressingPushPull = secondaryDialog.bCompressingPushPull.value
+                bCompressingCenterPull = secondaryDialog.bCompressingCenterPull.value
+                bCompressingCenterPushPull = secondaryDialog.bCompressingCenterPushPull.value
+                bCompressingEvolutionBonding = secondaryDialog.bCompressingEvolutionBonding.value
+                bCompressingEvolutionOnlyBetter = secondaryDialog.bCompressingEvolutionOnlyBetter.value
+                iCompressingEvolutionRounds = secondaryDialog.iCompressingEvolutionRounds.value
+            elseif result == 4 then
+                bStructuredRebuildHelix = secondaryDialog.bStructuredRebuildHelix.value
+                bStructuredRebuildSheet = secondaryDialog.bStructuredRebuildSheet.value
+                bStructuredRebuildFuze = secondaryDialog.bStructuredRebuildFuze.value
+                iStructuredRebuildTillSave = secondaryDialog.iStructuredRebuildTillSave.value
+                iStructuredRebuildStrength = secondaryDialog.iStructuredRebuildStrength.value
+            elseif result == 5 then
+                bCurlingHelix = secondaryDialog.bCurlingHelix.value
+                bCurlingSheet = secondaryDialog.bCurlingSheet.value
+            elseif resutl == 6 then
+            elseif result == 7 then
+                bFuzingBlueFuze = secondaryDialog.bFuzingBlueFuze.value
+            elseif result == 8 then
+                bOptimizeSidechain = secondaryDialog.bOptimizeSidechain.value
+                bRebuildAfterMutating = secondaryDialog.bRebuildAfterMutating.value
+                bRebuildInMutatingIgnoreStructures = secondaryDialog.bRebuildInMutatingIgnoreStructures.value
+                bRebuildInMutatingDeepRebuild = secondaryDialog.bRebuildInMutatingDeepRebuild.value
+                bRebuildTweakWholeRebuild = secondaryDialog.bRebuildTweakWholeRebuild.value
+            elseif result == 9 then
+                bPredictingFull = secondaryDialog.bPredictingFull.value
+                bPredictingAddPrefferedSegments = secondaryDialog.bPredictingAddPrefferedSegments.value
+                bPredictingCombine = secondaryDialog.bPredictingCombine.value
+                bPredictingOtherMethod = secondaryDialog.bPredictingOtherMethod.value
+            else
+                p("Unknown dialog option. Something is wrong here...")
+            end
             run()
         else
             isLocalWiggleEnabled, isRebuildingEnabled, isCompressingEnabled, isStructureRebuildEnabled, isCurlingEnabled, isSnappingEnabled, isFuzingEnabled, isMutatingEnabled, isPredictingEnabled = false, false, false, false, false, false, false, false, false
             return showConfigDialog()
         end
+    else
+        print("Dialog cancelled")
     end
 end
 
