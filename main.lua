@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1245
+iVersion            = 1246
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
@@ -517,8 +517,8 @@ local function _request()
     return slot
 end
 
-Quicksave = save.Quicksave
-Quickload = save.Quickload
+QuickSave = save.Quicksave
+QuickLoad = save.Quickload
 saveSlot =
 {   release = _release,
     request = _request,
@@ -592,7 +592,7 @@ end -- function
 local function _increase(sectionEnd, slot, step)
     if step then
         if sectionEnd < step then
-            Quickload(slot)
+            QuickLoad(slot)
             return
         end -- if sc2
     end -- if step
@@ -600,19 +600,19 @@ local function _increase(sectionEnd, slot, step)
         if slot == saveSlotOverall then
             local currentScore = get.score()
             if currentScore > fMaxScore then
-                Quicksave(slot)
+                QuickSave(slot)
                 p("Gain: " .. currentScore - fMaxScore)
                 fMaxScore = currentScore
                 p("==NEW=MAX=" .. fMaxScore .. "==")
             else -- if sc2
-                Quickload(slot)
+                QuickLoad(slot)
             end -- if sc2
         else
-            Quicksave(slot)
+            QuickSave(slot)
         end -- if slot
         return true
     else -- if sc2 >
-        Quickload(slot)
+        QuickLoad(slot)
         return false
     end -- if sc2 >
 end -- function
@@ -964,9 +964,9 @@ end
 
 local function _releases(slot)
     sl_fuzing_compressing = saveSlot.request()
-    Quicksave(sl_fuzing_compressing)
+    QuickSave(sl_fuzing_compressing)
     fuze.start(slot)
-    Quickload(sl_fuzing_compressing)
+    QuickLoad(sl_fuzing_compressing)
     fuze.start(slot, true)
     saveSlot.release(sl_fuzing_compressing)
 end
@@ -974,7 +974,7 @@ end
 local function _start(slot, pink)
     sl_f = saveSlot.request()
     report.start("Fuzing Complete")
-    Quicksave(sl_f)
+    QuickSave(sl_f)
     if not pink then
         if bFuzingBlueFuze and not bTweaking then
             fuze.loss(2, 0.05, 0.07)
@@ -1125,7 +1125,7 @@ local function _flow(a, more)
     repeat
         iter = iter + 1
         if iter ~= 1 then
-            Quicksave(work_sl)
+            QuickSave(work_sl)
         end -- if iter
         s1 = get.score()
         work.step(a, iter)
@@ -1136,7 +1136,7 @@ local function _flow(a, more)
         end
     until s2 - s1 < (0.01 * iter)
     if s2 < s1 then
-        Quickload(work_sl)
+        QuickLoad(work_sl)
     else -- if <
         s1 = s2
     end -- if <
@@ -1198,14 +1198,14 @@ function _quake(ii)
         score.recent.save()
         set.clashImportance(1)
         wiggle.selectedBackbone(1)
-        Quicksave(quake)
+        QuickSave(quake)
         score.recent.restore()
         local s2 = get.score()
         if s2 > s1 then
             score.recent.restore()
-            Quicksave(saveSlotOverall)
+            QuickSave(saveSlotOverall)
         end -- if >
-        Quickload(quake)
+        QuickLoad(quake)
         local s2 = get.score()
         tPredictedStrength = round(tPredictedStrength * 2 - tPredictedStrength * 10 / 11, 4)
         if bCompressingPredictedLocalBonding or isCurlingEnabled or bCompressingSoloBonding then
@@ -1220,7 +1220,7 @@ end -- function
 
 local function _dist()
     selection.segs()
-    Quicksave(saveSlotOverall)
+    QuickSave(saveSlotOverall)
     dist = saveSlot.request()
     local bandcount = get.bandcount()
     if bCompressingSoloBonding then
@@ -1228,7 +1228,7 @@ local function _dist()
         bSpheredFuzing = true
         for ii = 1, bandcount do
             report.start("Solo Work")
-            Quicksave(dist)
+            QuickSave(dist)
             work.quake(ii)
             if bMutateAfterCompressing then
                 selection.SelectAll()
@@ -1245,7 +1245,7 @@ local function _dist()
         bSpheredFuzing = false
     else -- if bCompressingSoloBonding
         report.start("Compressing Work")
-        Quicksave(dist)
+        QuickSave(dist)
         work.quake()
         bands.disable()
         if bCompressingFuze then
@@ -1594,7 +1594,7 @@ end
 
 --#Pull
 function compress()
-    Quicksave(saveSlotOverall)
+    QuickSave(saveSlotOverall)
     dist_score = get.score()
     bands.delete()
     if bCompressingPredictedBonding then
@@ -1789,7 +1789,7 @@ local function _getdata()
     set.ss("E")
     predict.combine()
     bStructureChanged = true
-    Quicksave(saveSlotOverall)
+    QuickSave(saveSlotOverall)
 end
 
 local function _combine()
@@ -1902,7 +1902,7 @@ function struct_curler()
         end -- for i
     end -- if bCurlingSheet
     saveSlot.release(str_re_best)
-    Quicksave(saveSlotOverall)
+    QuickSave(saveSlotOverall)
 end
 
 function struct_rebuild()
@@ -1945,7 +1945,7 @@ function struct_rebuild()
             if bStructuredRebuildFuze then
                 bSpheredFuzing = true
                 fuze.start(str_re_best)
-                Quickload(str_re_best)
+                QuickLoad(str_re_best)
                 bSpheredFuzing = false
             end -- if bStructuredRebuildFuze
             str_sc = nil
@@ -1985,7 +1985,7 @@ function struct_rebuild()
             if bStructuredRebuildFuze then
                 bSpheredFuzing = true
                 fuze.start(str_re_best)
-                Quickload(str_re_best)
+                QuickLoad(str_re_best)
                 bSpheredFuzing = false
             end -- if bStructuredRebuildFuze
         end -- for i
@@ -1996,7 +1996,7 @@ function struct_rebuild()
         set.ss("H")
         bonding.comp_sheet()
     end -- if bStructuredRebuildSheet
-    Quicksave(saveSlotOverall)
+    QuickSave(saveSlotOverall)
     saveSlot.release(str_re_best)
 end
 
@@ -2010,14 +2010,14 @@ function mutate()
     local i_will_be = #mutable
     for i = i_will_be, 1, -1 do
         p("Mutating segment " .. mutable[i])
-        Quicksave(saveSlotOverall)
+        QuickSave(saveSlotOverall)
         sc_mut = get.score()
         local ii
         for ii = 1, #amino.segs do
             mutate2(i, ii)
             get.progress(i_will_be, 1, -1, i, 1, #amino.segs, 1, ii)
         end
-        Quickload(saveSlotOverall)
+        QuickLoad(saveSlotOverall)
     end
     bMutating = false
     saveSlot.release(sl_mut)
@@ -2028,7 +2028,7 @@ function mutate2(mut, aa, more)
     local i
     selection.segs(mutable[mut])
     set.aa(amino.segs[aa])
-    Quicksave(sl_mut)
+    QuickSave(sl_mut)
     check.aa()
     p(#amino.segs - aa .. " Mutations left")
     p("Mutating segment " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
@@ -2070,6 +2070,16 @@ function mutate2(mut, aa, more)
         end
     end
     if not bSurroundMutatingCurrently and bMutateSurroundingAfter then
+        sl_temp_mut = saveSlot.request()
+        QuickSave(sl_temp_mut)
+    end
+    if not more then
+        if check.increase(report.stop(), saveSlotOverall) then
+        end
+    end
+    if not bSurroundMutatingCurrently and bMutateSurroundingAfter then
+        QuickLoad(sl_temp_mut)
+        saveSlot.release(sl_temp_mut)
         report.start("Surrounding mutating")
         bSurroundMutatingCurrently = true
         selection.list(mutable)
@@ -2105,7 +2115,9 @@ function mutate2(mut, aa, more)
         if check.increase(report.stop(), saveSlotOverall) then
         end
     end
-    bSurroundMutatingCurrently = false
+    if bSurroundMutatingCurrently and bMutateSurroundingAfter then
+        bSurroundMutatingCurrently = false
+    end
 end -- function
 --Mutate#
 
@@ -2121,7 +2133,7 @@ local function _run()
     local s_2
     local c_s
     local c_s2
-    Quicksave(sl_snaps)]]
+    QuickSave(sl_snaps)]]
     snap.tweak(workingSegmentLeft)
     check.increase(report.stop(), saveSlotOverall)
     --[[iii = get.snapcount(workingSegmentLeft)
@@ -2130,35 +2142,35 @@ local function _run()
         snapwork = saveSlot.request()
         ii = 1
         while ii <= iii do
-            Quickload(sl_snaps)
+            QuickLoad(sl_snaps)
             c_s = get.score()
             c_s2 = c_s
             do_.snap(workingSegmentLeft, ii)
             c_s2 = get.score()
-            Quicksave(snapwork)
+            QuickSave(snapwork)
             selection.segs(true, workingSegmentLeft)
             fuze.start(snapwork)
             if c_snap < get.score() then
                 c_snap = get.score()
-                Quicksave(sl_snaps)
+                QuickSave(sl_snaps)
             end
             ii = ii + 1
         end
-        Quickload(snapwork)
+        QuickLoad(snapwork)
         saveSlot.release(snapwork)
         if cs < c_snap then
-            Quicksave(sl_snaps)
+            QuickSave(sl_snaps)
             c_snap = get.score()
         else
-            Quickload(sl_snaps)
+            QuickLoad(sl_snaps)
         end
     else
         p("Skipping...")
     end
     if cs < get.score() then
-    Quickload(sl_snaps)
+    QuickLoad(sl_snaps)
     else
-    Quicksave(sl_snaps)
+    QuickSave(sl_snaps)
     cs = get.score()
     end]]
     bSpheredFuzing = false
@@ -2167,12 +2179,12 @@ local function _run()
     --[[if mutated then
         s_snap = get.score()
         if s_mut < s_snap then
-            Quicksave(saveSlotOverall)
+            QuickSave(saveSlotOverall)
         else
-            Quickload(sl_mut)
+            QuickLoad(sl_mut)
         end
     else
-        Quicksave(saveSlotOverall)
+        QuickSave(saveSlotOverall)
     end]]--
 end
 
@@ -2199,7 +2211,7 @@ local function _tweak(tweak_seg)
         bool = true
         bTweaking = true
         sl_reset = saveSlot.request()
-        Quicksave(sl_reset)
+        QuickSave(sl_reset)
         selection.DeselectAll()
         selection.segs(false,tweak_seg)
         local ss = get.score()
@@ -2207,7 +2219,7 @@ local function _tweak(tweak_seg)
         if work.step("s", 2, 0, 0) then
             p("AT: Sidechain tweak")
             sl_tweak_work = saveSlot.request()
-            Quicksave(sl_tweak_work)
+            QuickSave(sl_tweak_work)
             selection.segs(true, tweak_seg)
             if snap.near(tweak_seg) then
                 sl_tweak = saveSlot.request()
@@ -2215,15 +2227,15 @@ local function _tweak(tweak_seg)
                 saveSlot.release(sl_tweak)
             end
             if ss < get.score() then
-                Quicksave(sl_reset)
+                QuickSave(sl_reset)
                 selection.DeselectAll()
                 selection.segs(false,tweak_seg)
                 local ss = get.score()
                 g_total_score = get.score()
                 work.step("s", 2, 0, 0)
-                Quicksave(sl_tweak_work)
+                QuickSave(sl_tweak_work)
             else
-                Quickload(sl_tweak_work)
+                QuickLoad(sl_tweak_work)
             end
             selection.DeselectAll()
             selection.segs(tweak_seg)
@@ -2241,7 +2253,7 @@ local function _tweak(tweak_seg)
                     saveSlot.release(sl_tweak)
                 end
                 if ss > get.score() then
-                    Quickload(sl_reset)
+                    QuickLoad(sl_reset)
                 end
             end
         else
@@ -2269,7 +2281,7 @@ snap =
 function rebuild(tweaking_seg)
     bSpheredFuzing = true
     sl_re = saveSlot.request()
-    Quicksave(sl_re)
+    QuickSave(sl_re)
     selection.segs(workingSegmentLeft, workingSegmentRight)
     if workingSegmentRight == workingSegmentLeft then
         p("Rebuilding Segment " .. workingSegmentLeft)
@@ -2283,7 +2295,7 @@ function rebuild(tweaking_seg)
     local ii
     for ii = 1, iRebuildTrys do
         if not work.rebuild(iRebuildsTillSave, iRebuildStrength) then
-            Quickload(sl_re)
+            QuickLoad(sl_re)
             saveSlot.release(sl_re)
             bSpheredFuzing = false
             sl_r = nil
@@ -2297,7 +2309,7 @@ function rebuild(tweaking_seg)
             return
         else
             sl_r[ii] = saveSlot.request()
-            Quicksave(sl_r[ii])
+            QuickSave(sl_r[ii])
         end
     end
     set.clashImportance(1)
@@ -2308,10 +2320,10 @@ function rebuild(tweaking_seg)
         slot = saveSlotOverall
     end
     for ii = 1, #sl_r do
-        Quickload(sl_r[ii])
+        QuickLoad(sl_r[ii])
         report.start("Rebuild" .. ii)
         saveSlot.release(sl_r[ii])
-        Quicksave(sl_re)
+        QuickSave(sl_re)
         if rs_1 ~= get.score() then
             rs_1 = get.score()
             if rs_1 ~= rs_0 then
@@ -2328,7 +2340,7 @@ function rebuild(tweaking_seg)
                     end
                 end
                 if rs_2 > get.score() then
-                    Quickload(sl_re)
+                    QuickLoad(sl_re)
                 end
                 if check.increase(report.stop(), slot) then
                     rs_0 = get.score()
@@ -2341,7 +2353,7 @@ function rebuild(tweaking_seg)
         end
     end
     report.stop()
-    Quickload(slot)
+    QuickLoad(slot)
     sl_r = nil
     saveSlot.release(sl_re)
     bSpheredFuzing = false
@@ -2362,7 +2374,7 @@ function run()
     p("Starting Score: " .. fMaxScore)
     report.start("Overall Gain")
     saveSlotOverall = 1
-    Quicksave(saveSlotOverall)
+    QuickSave(saveSlotOverall)
     check.ss()
     check.ligand()
     check.aa()
@@ -2434,7 +2446,7 @@ function run()
             get.progress(iStartSegment, iEndSegment, 1, i)
         end -- for i
     end -- if (isRebuildingEnabled
-    Quickload(saveSlotOverall)
+    QuickLoad(saveSlotOverall)
     save.LoadSecondaryStructure()
     saveSlot.release(saveSlotOverall)
     p("+++ overall gain +++")
@@ -2708,11 +2720,11 @@ if b_test then
         p("Wiggle: " .. behavior.GetWiggleAccuracy())
         for iii=1,4 do
             reset.puzzle()
-            Quicksave(saveSlotOverall)
+            QuickSave(saveSlotOverall)
             behavior.SetShakeAccuracy(iii)
             p("Shake: " .. behavior.GetShakeAccuracy())
             fuze.start(overall)
-            Quickload(saveSlotOverall)
+            QuickLoad(saveSlotOverall)
             s_1 = get.score()
             if (s_1 - i_s0) > scoie then
                 scoie = s_1 - i_s0
