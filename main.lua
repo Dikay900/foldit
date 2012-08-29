@@ -34,7 +34,7 @@ bExploringWork              = false         -- false        if true then the ove
 iStartSegment   = 1             -- 1                the first segment to work with
 iEndSegment     = iSegmentCount -- iSegmentCount    the last segment to work with
 iStartingWalk   = 1             -- 1                with how many segs shall we work - Walker
-iEndWalk        = iSegmentCount             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
+iEndWalk        = 3             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
 --Working#
 
 --#LocalWiggle
@@ -122,8 +122,8 @@ bPredictingOtherMethod          = true
 --#General
 iTimeSecsBetweenReports = 30
 iTimeMaxHoursToUse      = 0
-iTimeMaxMinsToUse      = 5
-iTimeMaxSecsToUse      = 0
+iTimeMaxMinsToUse      	= 5
+iTimeMaxSecsToUse      	= 0
 bUseTimeOptimization    = true
 --General#
 --Settings#
