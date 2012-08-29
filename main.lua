@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1244
+iVersion            = 1245
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
@@ -88,8 +88,8 @@ bStructuredRebuildFuze      = false         -- false        should we fuze after
 --Structed rebuilding#
 
 --#Curler
-bCurlingHelix         = true          -- true
-bCurlingSheet         = true          -- true
+bCurlingHelix   = true          -- true
+bCurlingSheet   = true          -- true
 --Curler#
 
 --#Snapping
@@ -104,11 +104,11 @@ bFuzingBlueFuze = true          -- true         Use Bluefuse else wiggle out wit
 -- TODO: all mutating things into the mutating category and method
 bOptimizeSidechain                  = true
 bRebuildAfterMutating               = true
-bRebuildInMutatingIgnoreStructures  = true         -- true         TODO: implement completly in rebuilding / combine with loop rebuild
-bRebuildInMutatingDeepRebuild       = true         -- true         rebuild length 3,4,5 else just 3
-bRebuildTweakWholeRebuild           = true         -- true       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
+bRebuildInMutatingIgnoreStructures  = true          -- true         TODO: implement completly in rebuilding / combine with loop rebuild
+bRebuildInMutatingDeepRebuild       = true          -- true         rebuild length 3,4,5 else just 3
+bRebuildTweakWholeRebuild           = true          -- true       All Sidechains get tweaked after rebuild not just the one focusing in the rebuild
 bMutateAfterCompressing             = false
-bMutateSurroundingAfter             = false
+bMutateSurroundingAfter             = true          -- true
 fClashingForMutating                = 0.75          -- 0.75         cl for mutating
 --Mutating#
 
@@ -121,6 +121,7 @@ bPredictingOtherMethod          = true
 
 --#General
 iTimeSecsBetweenReports = 60
+-- TODO: IDEA time option to adjust options automatically to time used
 --General#
 --Settings#
 
@@ -138,6 +139,7 @@ bMutating           = false
 bTweaking           = false
 bChanged            = true
 bStructureChanged   = true
+bSurroundMutatingCurrently = false
 fCompressingBondingPercentageWork   = iSegmentCount / 100 * fCompressingBondingPercentage
 if current.GetExplorationMultiplier() == 0 then
     bIsExploringPuzzle = false
@@ -2030,27 +2032,6 @@ function mutate2(mut, aa, more)
     check.aa()
     p(#amino.segs - aa .. " Mutations left")
     p("Mutating segment " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
-    if bMutateSurroundingAfter then
-        selection.list(mutable)
-        selection.Deselect(mutable[mut])
-        for i = 1, #mutable do
-            local temp = false
-            if i ~= mut then
-                if tDistances[mutable[i]][mutable[mut]] then
-                    if tDistances[mutable[i]][mutable[mut]] > 10 then
-                        temp = true
-                    end
-                elseif tDistances[mutable[mut]][mutable[i]] > 10 then
-                    temp = true
-                end
-                if temp then
-                    selection.Deselect(mutable[i])
-                end
-            end
-        end
-        set.clashImportance(fClashingForMutating)
-        structure.MutateSidechainsSelected(1)
-    end
     if bRebuildAfterMutating then
         if bRebuildInMutatingDeepRebuild then
             set.segs(mutable[mut] - 2, mutable[mut] + 2)
@@ -2088,10 +2069,43 @@ function mutate2(mut, aa, more)
             bSpheredFuzing = false
         end
     end
+    if not bSurroundMutatingCurrently and bMutateSurroundingAfter then
+        report.start("Surrounding mutating")
+        bSurroundMutatingCurrently = true
+        selection.list(mutable)
+        selection.Deselect(mutable[mut])
+        for i = 1, #mutable do
+            local temp = false
+            if i ~= mut then
+                if tDistances[mutable[i]][mutable[mut]] then
+                    if tDistances[mutable[i]][mutable[mut]] > 10 then
+                        temp = true
+                    end
+                elseif tDistances[mutable[mut]][mutable[i]] > 10 then
+                    temp = true
+                end
+                if temp then
+                    selection.Deselect(mutable[i])
+                end
+            end
+        end
+        set.clashImportance(fClashingForMutating)
+        structure.MutateSidechainsSelected(2)
+        local result = math.abs(report.stop())
+        if result > 0.01 then
+            while result > 0.01 do
+                report.start("Mutate while score changes")
+                structure.MutateSidechainsSelected(1)
+                result = math.abs(report.stop())
+            end
+            return mutate2(mut, aa, more)
+        end
+    end
     if not more then
         if check.increase(report.stop(), saveSlotOverall) then
         end
     end
+    bSurroundMutatingCurrently = false
 end -- function
 --Mutate#
 
@@ -2567,6 +2581,8 @@ rebuild will be chosen:]], iStructuredRebuildTillSave, 1, 10, 0)
             secondaryDialog.bRebuildInMutatingIgnoreStructures = dialog.AddCheckbox("ignore structures while rebuilding", bRebuildInMutatingIgnoreStructures)
             secondaryDialog.bRebuildInMutatingDeepRebuild = dialog.AddCheckbox("Try different rebuild lengths", bRebuildInMutatingDeepRebuild)
             secondaryDialog.bRebuildTweakWholeRebuild = dialog.AddCheckbox("Tweak every segment after rebuild else just the mutating one will be tweaked", bRebuildTweakWholeRebuild)
+            secondaryDialog.bMutateSurroundingAfter = dialog.AddCheckbox("Try mutating surround Segments after first work [ALPHA]", bMutateSurroundingAfter)
+            secondaryDialog.fClashingForMutating = dialog.AddSlider("Clash importance for mutating:", fClashingForMutating, 0, 1, 2)
             secondaryDialog.dummy3 = dialog.AddButton("", 0)
             secondaryDialog.dummy4 = dialog.AddButton("", 0)
             secondaryDialog.dummy5 = dialog.AddButton("", 0)
@@ -2658,6 +2674,8 @@ rebuild will be chosen:]], iStructuredRebuildTillSave, 1, 10, 0)
                 bRebuildInMutatingIgnoreStructures = secondaryDialog.bRebuildInMutatingIgnoreStructures.value
                 bRebuildInMutatingDeepRebuild = secondaryDialog.bRebuildInMutatingDeepRebuild.value
                 bRebuildTweakWholeRebuild = secondaryDialog.bRebuildTweakWholeRebuild.value
+                bMutateSurroundingAfter = secondaryDialog.bMutateSurroundingAfter.value
+                fClashingForMutating = secondaryDialog.fClashingForMutating.value
             elseif result == 9 then
                 bPredictingFull = secondaryDialog.bPredictingFull.value
                 bPredictingAddPrefferedSegments = secondaryDialog.bPredictingAddPrefferedSegments.value
