@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1246
+iVersion            = 1247
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
@@ -34,7 +34,7 @@ bExploringWork              = false         -- false        if true then the ove
 iStartSegment   = 1             -- 1                the first segment to work with
 iEndSegment     = iSegmentCount -- iSegmentCount    the last segment to work with
 iStartingWalk   = 1             -- 1                with how many segs shall we work - Walker
-iEndWalk        = 3             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
+iEndWalk        = iSegmentCount             -- 3                starting at the current segment + iStartingWalk to segment + iEndWalk
 --Working#
 
 --#LocalWiggle
@@ -120,8 +120,11 @@ bPredictingOtherMethod          = true
 --Predicting#
 
 --#General
-iTimeSecsBetweenReports = 60
--- TODO: IDEA time option to adjust options automatically to time used
+iTimeSecsBetweenReports = 30
+iTimeMaxHoursToUse      = 0
+iTimeMaxMinsToUse      = 5
+iTimeMaxSecsToUse      = 0
+bUseTimeOptimization    = true
 --General#
 --Settings#
 
@@ -840,6 +843,32 @@ local function _time()
         if estimatedTime ~= elapsedSecs then
             p("approx. time till that recipe is finished: " .. get.formattedTime(estimatedTime))
             p(os.date("Recipe will be approx. finished: %a, %c", estimatedTime + currentTime))
+            if bUseTimeOptimization then
+                iTimeMax = 0
+                if not bUseTimeMaxDate then
+                    iTimeMax = iTimeMaxHoursToUse * 60 * 60 + iTimeMaxMinsToUse * 60 + iTimeMaxSecsToUse
+                else
+                    iTimeMax = os.time{year = iTimeMaxDateYear, month = iTimeMaxDateMonth, day = iTimeMaxDateDay, hour = iTimeMaxDateHour, min = iTimeMaxDateMin ,sec = iTimeMaxDateSec}
+                end
+                if iTimeMax ~= 0 then
+                    if estimatedTime > iTimeMax then
+                        if isLocalWiggleEnabled then
+                            if iStartingWalk < iEndWalk then
+                                iEndWalk = iEndWalk - 1
+                                p("Reduced end walking range")
+                            elseif iStartingWalk >= iEndWalk and iStartingWalk > 0 then
+                                iStartingWalk = iStartingWalk - 1
+                                p("Reduced start walking range")
+                            elseif iStartingWalk == iEndWalk and iStartingWalk == 1 then
+                                if iStartSegment < iEndSegment then
+                                    iEndSegment = iEndSegment - 1
+                                    p("Reduced end seg")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         else
             p("calculating approx. finish of this recipe")
         end
@@ -850,10 +879,18 @@ end
 local function _progress(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
     if start2 then
         if iter1 == -1 then
-            local start = (vari2 +(start1 - vari1) *end2)
-            local stop = (end2 - vari2 - 1+ (end2 - 1) * vari1)
+            local start = (vari2 + (start1 - vari1) * end2)
+            local stop = (end2 - vari2 - 1 + (end2 - 1) * vari1)
             fEstimatedTimeMod = stop / start
             fProgress = round(start / (start1 * end2) * 100, 3)
+        elseif iter1 == 1 then
+            if iter2 == 1 then
+                local start = (vari1 - start1) * (end2 - start2) + vari2 - start2 + 1
+                --local stop = (end2 - vari2) * (end1 - ) + vari2
+                fEstimatedTimeMod = stop / start
+                fProgress = start / (end1 - start1) * (end2 - start2)
+                get.progress(iStartSegment, iEndSegment, 1, i, iStartingWalk, iEndWalk, 1, ii)
+            end
         end -- if iter1
     else -- if start2
         if iter1 == 1 then
@@ -2442,8 +2479,8 @@ function run()
                     work.flow("wla")
                     work.flow("wlb")
                 end -- if isLocalWiggleEnabled
+                get.progress(iStartSegment, iEndSegment, 1, i, iStartingWalk, iEndWalk, 1, ii)
             end -- for ii
-            get.progress(iStartSegment, iEndSegment, 1, i)
         end -- for i
     end -- if (isRebuildingEnabled
     QuickLoad(saveSlotOverall)
