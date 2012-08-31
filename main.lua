@@ -5,7 +5,7 @@ see http://www.github.com/Darkknight900/foldit/ for latest version of this scrip
 ]]
 
 --#Game vars
-iVersion            = 1249
+iVersion            = 1250
 iSegmentCount       = structure.GetCount()
 --#Release
 isReleaseVersion    = true
@@ -452,7 +452,7 @@ amino =
     size        = _mol,
     charge      = _pl,
     part        = {short = 0, abbrev = 1, longname = 2, hydro = 3, scale = 4, pref = 5, mol = 6, pl = 7},
-    Segments        = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'},
+    Segments    = {'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'y'},
     table       = {
   --short = {abbrev,longname,       hydrophobic,scale,  pref,   mol,        pl
     ['a'] = {'Ala', 'Alanine',          true,   -1.6,   'H',    89.094,     6.01},
@@ -891,16 +891,19 @@ end
 local function _progress(start1, end1, iter1, vari1, start2, end2, iter2, vari2)
     if start2 then
         if iter1 == -1 then
-            local start = (vari2 + (start1 - vari1) * end2)
-            local stop = (end2 - vari2 - 1 + (end2 - 1) * vari1)
-            fEstimatedTimeMod = stop / start
-            fProgress = round(start / (start1 * end2) * 100, 3)
+            if iter2 == 1 then
+                local done = (vari2 + (start1 - vari1) * end2)
+                local toDo = (end2 - vari2 + end2 * (vari1 - 1))
+                fEstimatedTimeMod = toDo / done
+                fProgress = round(done / (start1 * end2) * 100, 3)
+            elseif iter2 == -1 then
+            end
         elseif iter1 == 1 then
             if iter2 == 1 then
-                local start = (vari1 - start1) * (end2 - start2) + vari2 - start2 + 1
-                --local stop = (end2 - vari2) * (end1 - ) + vari2
-                fEstimatedTimeMod = stop / start
-                fProgress = round(start / (end1 - start1) * (end2 - start2) * 100, 3)
+                local done = (vari1 - start1) * (end2 - start2) + vari2 - start2 + 1
+                local toDo = (end2 - vari2) + (end1 - vari1) * (end2 - start2)
+                fEstimatedTimeMod = toDo / done
+                fProgress = round(done / (end1 - start1) * (end2 - start2) * 100, 3)
                 get.progress(iStartSegment, iEndSegment, 1, i, iStartingWalk, iEndWalk, 1, ii)
             end
         end -- if iter1
@@ -2087,7 +2090,16 @@ function mutate2(mut, aa, more)
     p(#amino.Segments - aa .. " Mutations left")
     p("Mutating segment " .. mutable[mut] .. " to " .. amino.long(mutable[mut]))
     if bRebuildAfterMutating then
+        set.Segments(mutable[mut] - 1, mutable[mut] + 1)
+        if not bRebuildInMutatingIgnoreStructures then
+            if ss[mutable[mut]] == "L" then
+                rebuild(mutable[mut])
+            end
+        else
+            rebuild(mutable[mut])
+        end
         if bRebuildInMutatingDeepRebuild then
+            bDeepRebuilding = true
             set.Segments(mutable[mut] - 2, mutable[mut] + 2)
             tWorkingMiddleSegments[1] = mutable[mut]
             if not bRebuildInMutatingIgnoreStructures then
@@ -2106,14 +2118,7 @@ function mutate2(mut, aa, more)
             else
                 rebuild(mutable[mut])
             end
-        end
-        set.Segments(mutable[mut] - 1, mutable[mut] + 1)
-        if not bRebuildInMutatingIgnoreStructures then
-            if ss[mutable[mut]] == "L" then
-                rebuild(mutable[mut])
-            end
-        else
-            rebuild(mutable[mut])
+            bDeepRebuilding = false
         end
     elseif bOptimizeSidechain then
         set.Segments(mutable[mut], mutable[mut])
@@ -2126,12 +2131,9 @@ function mutate2(mut, aa, more)
     if not bSurroundMutatingCurrently and bMutateSurroundingAfter then
 		sl_temp_mut = saveSlot.request()
         QuickSave(sl_temp_mut)
-		if not more then
-			if check.increase(report.stop(), saveSlotOverall) then
-			end
-			report.start("Continues Work")
-		end
+        check.increase(report.stop(), saveSlotOverall)
         QuickLoad(sl_temp_mut)
+        report.start("Continues Work")
         saveSlot.release(sl_temp_mut)
         report.start("Surrounding mutating")
         bSurroundMutatingCurrently = true
@@ -2153,14 +2155,17 @@ function mutate2(mut, aa, more)
             end
         end
         set.clashImportance(fClashingForMutating)
-        structure.MutateSidechainsSelected(2)
+        structure.MutateSidechainsSelected(1)
         local result = math.abs(report.stop())
         if result > 0.01 then
-            while result > 0.01 do
+            local iter = 0
+            while result > 0.01 and iter < 6 do
+                iter = iter + 1
                 report.start("Mutate while score changes")
                 structure.MutateSidechainsSelected(1)
                 result = math.abs(report.stop())
             end
+            p("redo the work after surrounded sidechains were mutated")
             return mutate2(mut_temp, aa_temp, more_temp)
         end
     end
@@ -2342,7 +2347,6 @@ function rebuild(tweaking_seg)
         p("Rebuilding Segment " .. workingSegmentLeft .. "-" .. workingSegmentRight)
     end -- if workingSegmentRight
     report.start("Rebuilding")
-    rs_0 = get.score()
     local sl_r = {}
     local i
     local ii
@@ -2361,8 +2365,8 @@ function rebuild(tweaking_seg)
             end
             return
         else
-            sl_r[ii] = saveSlot.request()
-            QuickSave(sl_r[ii])
+            sl_r[#sl_r + 1] = saveSlot.request()
+            QuickSave(sl_r[#sl_r])
         end
     end
     set.clashImportance(1)
@@ -2372,35 +2376,32 @@ function rebuild(tweaking_seg)
     else
         slot = saveSlotOverall
     end
+    local rs_1 = 0
     for ii = 1, #sl_r do
         QuickLoad(sl_r[ii])
         report.start("Rebuild" .. ii)
         saveSlot.release(sl_r[ii])
         QuickSave(sl_re)
-        if rs_1 ~= get.score() then
-            rs_1 = get.score()
-            if rs_1 ~= rs_0 then
-                p("Stabilize try "..ii)
-                fuze.start(sl_re)
-                rs_2 = get.score()
-                if (fMaxScore - rs_2 ) < 30 then
-                    if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops or bRebuildWalking then
-                        for i = workingSegmentLeft, workingSegmentRight do
-                            snap.tweak(i)
-                        end
-                    else
-                        snap.tweak(tweaking_seg)
-                    end
-                end
-                if rs_2 > get.score() then
-                    QuickLoad(sl_re)
-                end
-                if check.increase(report.stop(), slot) then
-                    rs_0 = get.score()
-                end
-            else
-                report.stop()
-            end
+        local score = get.score()
+        p("if ".. rs_1.. " ~= ".. score .. "then")
+        if rs_1 ~= score then
+            rs_1 = score
+			p("Stabilize try "..ii)
+			fuze.start(sl_re)
+			rs_2 = get.score()
+			if (fMaxScore - rs_2 ) < 30 then
+				if bRebuildTweakWholeRebuild or bRebuildWorst or bRebuildLoops or bRebuildWalking then
+					for i = workingSegmentLeft, workingSegmentRight do
+						snap.tweak(i)
+					end
+				else
+					snap.tweak(tweaking_seg)
+				end
+			end
+			if rs_2 > get.score() then
+				QuickLoad(sl_re)
+			end
+			check.increase(report.stop(), slot)
         else
             report.stop()
         end
@@ -2807,6 +2808,4 @@ end
 local function _CCI(a, b) -- charge
     return 11 - (amino.charge(a) - 7) * (amino.charge(b) - 7) * 19 / 33.8
 end
-
-
 ]]
